@@ -1,0 +1,150 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Model for authenticated users, integrated with Clerk
+model User {
+  id         String     @id @default(uuid())
+  clerkId    String     @unique
+  email      String     @unique
+  name       String?
+
+  bookings   Booking[]
+  stores     Store[] // A user can own multiple stores
+
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@map("users")
+}
+
+// The core model representing a salon or beauty business, now called 'Store'
+model Store {
+  id           String    @id @default(uuid())
+  name         String
+  userId       String
+  description  String?
+  shortIntro   String?
+  images       Image[]
+  rating       Float     @default(0.0)
+  address      String?
+  
+  user         User        @relation(fields: [userId], references: [id])
+  categories   Category[]  // Categories are now tied to stores
+  storeServices StoreService[]
+  bookings     Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("stores")
+  @@index([userId])
+}
+
+// Model to manage images, referencing a Store
+model Image {
+  id         String   @id @default(uuid())
+  storeId    String
+  store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  url        String   // The URL from Cloudinary
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([storeId])
+}
+
+// Model for the main service categories - now tied to stores
+model Category {
+  id          String    @id @default(uuid())
+  storeId     String
+  store       Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name        String
+  
+  services    Service[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([storeId, name]) // Unique category name per store
+  @@map("categories")
+}
+
+// A join table for the many-to-many relationship between services and stores
+model StoreService {
+  storeId    String
+  store      Store    @relation(fields: [storeId], references: [id])
+  serviceId  String
+  service    Service  @relation(fields: [serviceId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@id([storeId, serviceId])
+  @@map("store_services")
+}
+
+// Model for the services and sub-services
+model Service {
+  id              String          @id @default(uuid())
+  name            String
+  description     String?
+  
+  categoryId      String
+  category        Category        @relation(fields: [categoryId], references: [id])
+  
+  parentServiceId String?
+  parentService   Service?        @relation("ServiceHierarchy", fields: [parentServiceId], references: [id], onDelete: Cascade)
+  subServices     Service[]       @relation("ServiceHierarchy")
+
+  price           Float?          // Changed from Float? to Float for better revenue calculation
+  durationMinutes Int?
+  isPopular       Boolean         @default(false)
+  
+  storeServices   StoreService[]
+  bookings        Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("services")
+}
+
+// A model to manage user bookings
+model Booking {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+
+  serviceId   String
+  service     Service  @relation(fields: [serviceId], references: [id])
+
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id])
+
+  bookingTime DateTime
+  status      String   @default("pending") // pending, confirmed, completed, cancelled
+  
+  // Additional fields that might be useful for a spa
+  customerName String?
+  customerPhone String?
+  customerEmail String?
+  notes       String?
+  totalAmount Float?   // Can override service price if needed
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("bookings")
+  @@index([storeId])
+  @@index([status])
+  @@index([bookingTime])
+}
