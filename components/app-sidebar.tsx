@@ -63,6 +63,12 @@ export function AppSidebar({ stores }: AppSidebarProps) {
       active: pathname === `/${params.storeId}/categories`,
     },
     {
+      href: `/${params.storeId}/saloons`,
+      label: 'Saloons',
+      icon: List,
+      active: pathname === `/${params.storeId}/saloons`,
+    },
+    {
       href: `/${params.storeId}/settings`,
       label: 'Settings',
       icon: Settings,

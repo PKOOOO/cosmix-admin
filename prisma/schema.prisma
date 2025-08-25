@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Model for authenticated users, integrated with Clerk
+// ------------------- USERS -------------------
 model User {
   id         String     @id @default(uuid())
   clerkId    String     @unique
@@ -18,7 +15,8 @@ model User {
   name       String?
 
   bookings   Booking[]
-  stores     Store[] // A user can own multiple stores
+  stores     Store[]     // A user can own multiple stores
+  saloons    Saloon[]    // A user can own multiple saloons
 
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
@@ -26,21 +24,22 @@ model User {
   @@map("users")
 }
 
-// The core model representing a salon or beauty business, now called 'Store'
+// ------------------- STORE -------------------
 model Store {
-  id           String    @id @default(uuid())
+  id           String        @id @default(uuid())
   name         String
   userId       String
   description  String?
   shortIntro   String?
   images       Image[]
-  rating       Float     @default(0.0)
+  rating       Float         @default(0.0)
   address      String?
-  
-  user         User        @relation(fields: [userId], references: [id])
-  categories   Category[]  // Categories are now tied to stores
+
+  user         User          @relation(fields: [userId], references: [id])
+  categories   Category[]    // Categories are tied to stores
   storeServices StoreService[]
   bookings     Booking[]
+  saloons      Saloon[]      // 👈 relation to saloons
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -49,12 +48,37 @@ model Store {
   @@index([userId])
 }
 
-// Model to manage images, referencing a Store
+// ------------------- SALOON -------------------
+model Saloon {
+  id             String         @id @default(uuid())
+  name           String
+  userId         String
+  storeId        String         // 👈 new field
+  description    String?
+  shortIntro     String?
+  images         SaloonImage[]
+  rating         Float          @default(0.0)
+  address        String?
+
+  user           User           @relation(fields: [userId], references: [id])
+  store          Store          @relation(fields: [storeId], references: [id], onDelete: Cascade) // 👈 linked to store
+  saloonServices SaloonService[]
+  bookings       Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("saloons")
+  @@index([userId])
+  @@index([storeId]) // 👈 added for queries
+}
+
+// ------------------- IMAGES -------------------
 model Image {
   id         String   @id @default(uuid())
   storeId    String
   store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  url        String   // The URL from Cloudinary
+  url        String   // Cloudinary URL
 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -62,7 +86,20 @@ model Image {
   @@index([storeId])
 }
 
-// Model for the main service categories - now tied to stores
+model SaloonImage {
+  id         String   @id @default(uuid())
+  saloonId   String
+  saloon     Saloon   @relation(fields: [saloonId], references: [id], onDelete: Cascade)
+  url        String
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("saloon_images")
+  @@index([saloonId])
+}
+
+// ------------------- CATEGORY -------------------
 model Category {
   id          String    @id @default(uuid())
   storeId     String
@@ -74,11 +111,11 @@ model Category {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
-  @@unique([storeId, name]) // Unique category name per store
+  @@unique([storeId, name]) // Unique per store
   @@map("categories")
 }
 
-// A join table for the many-to-many relationship between services and stores
+// ------------------- STORE ↔ SERVICE -------------------
 model StoreService {
   storeId    String
   store      Store    @relation(fields: [storeId], references: [id])
@@ -92,24 +129,41 @@ model StoreService {
   @@map("store_services")
 }
 
-// Model for the services and sub-services
+// ------------------- SALOON ↔ SERVICE -------------------
+model SaloonService {
+  saloonId        String
+  saloon          Saloon   @relation(fields: [saloonId], references: [id])
+  serviceId       String
+  service         Service  @relation(fields: [serviceId], references: [id])
+
+  price           Float
+  durationMinutes Int
+  isAvailable     Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@id([saloonId, serviceId])
+  @@map("saloon_services")
+}
+
+// ------------------- SERVICE -------------------
 model Service {
   id              String          @id @default(uuid())
   name            String
   description     String?
-  
+
   categoryId      String
   category        Category        @relation(fields: [categoryId], references: [id])
-  
+
   parentServiceId String?
   parentService   Service?        @relation("ServiceHierarchy", fields: [parentServiceId], references: [id], onDelete: Cascade)
   subServices     Service[]       @relation("ServiceHierarchy")
 
-  price           Float?          // Changed from Float? to Float for better revenue calculation
-  durationMinutes Int?
   isPopular       Boolean         @default(false)
-  
+
   storeServices   StoreService[]
+  saloonServices  SaloonService[]
   bookings        Booking[]
 
   createdAt DateTime @default(now())
@@ -118,33 +172,36 @@ model Service {
   @@map("services")
 }
 
-// A model to manage user bookings
+// ------------------- BOOKING -------------------
 model Booking {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
 
-  serviceId   String
-  service     Service  @relation(fields: [serviceId], references: [id])
+  serviceId    String
+  service      Service  @relation(fields: [serviceId], references: [id])
 
-  storeId     String
-  store       Store    @relation(fields: [storeId], references: [id])
+  storeId      String?
+  store        Store?   @relation(fields: [storeId], references: [id])
 
-  bookingTime DateTime
-  status      String   @default("pending") // pending, confirmed, completed, cancelled
-  
-  // Additional fields that might be useful for a spa
-  customerName String?
+  saloonId     String?
+  saloon       Saloon?  @relation(fields: [saloonId], references: [id])
+
+  bookingTime  DateTime
+  status       String   @default("pending") // pending, confirmed, etc.
+
+  customerName  String?
   customerPhone String?
   customerEmail String?
-  notes       String?
-  totalAmount Float?   // Can override service price if needed
+  notes         String?
+  totalAmount   Float?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("bookings")
   @@index([storeId])
+  @@index([saloonId])
   @@index([status])
   @@index([bookingTime])
 }

@@ -1,3 +1,4 @@
+// app\(dashboard)\[storeId]\(routes)\categories\[categoryId]\page.tsx
 import prismadb from "@/lib/prismadb";
 import { CategoryForm } from "./components/category-form";
 

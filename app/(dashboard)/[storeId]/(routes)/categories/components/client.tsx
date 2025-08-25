@@ -1,5 +1,5 @@
+// app\(dashboard)\[storeId]\(routes)\categories\components\client.tsx
 "use client";
-
 import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";

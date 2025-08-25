@@ -1,4 +1,4 @@
-// app\(dashboard)\[storeId]\(routes)\categories\components\cell-action.tsx
+// app\(dashboard)\[storeId]\(routes)\saloons\components\cell-action.tsx
 "use client";
 import axios from "axios";
 import {
@@ -8,7 +8,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CategoryColumn } from "./columns";
+import { SaloonColumn } from "./columns";
 import { Button } from "@/components/ui/button";
 import { Copy, Edit, MoreHorizontal, Trash } from "lucide-react";
 import toast from "react-hot-toast";
@@ -17,7 +17,7 @@ import { useState } from "react";
 import { AlertModal } from "@/components/modals/alert-modal";
 
 interface CellActionProps {
-  data: CategoryColumn;
+  data: SaloonColumn;
 }
 
 export const CellAction: React.FC<CellActionProps> = ({ data }) => {
@@ -29,7 +29,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
 
   const onCopy = (id: string) => {
     navigator.clipboard.writeText(id);
-    toast.success("Category ID copied to clipboard.", {
+    toast.success("Saloon ID copied to clipboard.", {
       style: {
         borderRadius: "10px",
         background: "#333",
@@ -41,10 +41,10 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/${params.storeId}/categories/${data.id}`);
+      await axios.delete(`/api/${params.storeId}/saloons/${data.id}`);
       router.refresh();
-      router.push(`/${params.storeId}/categories`);
-      toast.success("Category Deleted", {
+      router.push(`/${params.storeId}/saloons`);
+      toast.success("Saloon Deleted", {
         style: {
           borderRadius: "10px",
           background: "#333",
@@ -53,7 +53,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
       });
     } catch (error) {
       toast.error(
-        "Make sure to removed all products using this category first."
+        "Make sure to remove all services using this saloon first."
       );
     } finally {
       setLoading(false)
@@ -84,7 +84,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() =>
-              router.push(`/${params.storeId}/categories/${data.id}`)
+              router.push(`/${params.storeId}/saloons/${data.id}`)
             }
           >
             <Edit className="mr-2 h-4 w-4" />
@@ -92,7 +92,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setOpen(true)}>
             <Trash className="mr-2 h-4 w-4" />
-            delete
+            Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
