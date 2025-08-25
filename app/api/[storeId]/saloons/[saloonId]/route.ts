@@ -1,47 +1,47 @@
-// app\api\[storeId]\categories\[categoryId]\route.ts
+// app/api/[storeId]/saloons/[saloonId]/route.ts
 import prismadb from "@/lib/prismadb";
 import { auth } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 
 export async function GET(
     req: Request,
-    { params }: { params: { categoryId: string } }
+    { params }: { params: { saloonId: string } }
 ) {
     try {
-        if (!params.categoryId) {
-            return new NextResponse("Category ID is required", { status: 400 });
+        if (!params.saloonId) {
+            return new NextResponse("Saloon ID is required", { status: 400 });
         }
 
-        const category = await prismadb.category.findUnique({
+        const saloon = await prismadb.saloon.findUnique({
             where: {
-                id: params.categoryId,
+                id: params.saloonId,
             },
-            // Includes all services and their sub-services for this category
             include: {
-                services: {
+                images: true,
+                saloonServices: {
                     include: {
-                        subServices: true
+                        service: true
                     }
                 }
             }
         });
 
-        return NextResponse.json(category);
+        return NextResponse.json(saloon);
     } catch (error) {
-        console.log("[CATEGORY_GET]", error);
+        console.log("[SALOON_GET]", error);
         return new NextResponse("Internal error", { status: 500 });
     }
 }
 
 export async function PATCH(
     req: Request,
-    { params }: { params: { storeId: string; categoryId: string } }
+    { params }: { params: { storeId: string; saloonId: string } }
 ) {
     try {
         const { userId } = auth();
         const body = await req.json();
 
-        const { name } = body;
+        const { name, description, shortIntro, address, images } = body;
 
         if (!userId) {
             return new NextResponse("Unauthenticated", { status: 401 });
@@ -49,8 +49,11 @@ export async function PATCH(
         if (!name) {
             return new NextResponse("Name is required", { status: 400 });
         }
-        if (!params.categoryId) {
-            return new NextResponse("Category ID is required", { status: 400 });
+        if (!images || !images.length) {
+            return new NextResponse("Images are required", { status: 400 });
+        }
+        if (!params.saloonId) {
+            return new NextResponse("Saloon ID is required", { status: 400 });
         }
 
         // Find the user record using Clerk ID
@@ -67,7 +70,7 @@ export async function PATCH(
         const storeByUserId = await prismadb.store.findFirst({
             where: {
                 id: params.storeId,
-                userId: user.id, // Use database user ID
+                userId: user.id,
             },
         });
 
@@ -75,25 +78,46 @@ export async function PATCH(
             return new NextResponse("Unauthorized", { status: 403 });
         }
 
-        const category = await prismadb.category.update({
+        await prismadb.saloon.update({
             where: {
-                id: params.categoryId,
+                id: params.saloonId,
             },
             data: {
                 name,
+                description,
+                shortIntro,
+                address,
+                images: {
+                    deleteMany: {},
+                },
             },
         });
 
-        return NextResponse.json(category);
+        const saloon = await prismadb.saloon.update({
+            where: {
+                id: params.saloonId,
+            },
+            data: {
+                images: {
+                    createMany: {
+                        data: [
+                            ...images.map((image: { url: string }) => image),
+                        ],
+                    },
+                },
+            },
+        });
+
+        return NextResponse.json(saloon);
     } catch (error) {
-        console.log("[CATEGORY_PATCH]", error);
+        console.log("[SALOON_PATCH]", error);
         return new NextResponse("Internal error", { status: 500 });
     }
 }
 
 export async function DELETE(
     req: Request,
-    { params }: { params: { storeId: string; categoryId: string } }
+    { params }: { params: { storeId: string; saloonId: string } }
 ) {
     try {
         const { userId } = auth();
@@ -101,8 +125,8 @@ export async function DELETE(
         if (!userId) {
             return new NextResponse("Unauthenticated", { status: 401 });
         }
-        if (!params.categoryId) {
-            return new NextResponse("Category ID is required", { status: 400 });
+        if (!params.saloonId) {
+            return new NextResponse("Saloon ID is required", { status: 400 });
         }
 
         // Find the user record using Clerk ID
@@ -119,7 +143,7 @@ export async function DELETE(
         const storeByUserId = await prismadb.store.findFirst({
             where: {
                 id: params.storeId,
-                userId: user.id // Use database user ID
+                userId: user.id
             },
         });
 
@@ -127,15 +151,15 @@ export async function DELETE(
             return new NextResponse("Unauthorized", { status: 403 });
         }
 
-        const category = await prismadb.category.delete({
+        const saloon = await prismadb.saloon.delete({
             where: {
-                id: params.categoryId,
+                id: params.saloonId,
             },
         });
 
-        return NextResponse.json(category);
+        return NextResponse.json(saloon);
     } catch (error) {
-        console.log("[CATEGORY_DELETE]", error);
+        console.log("[SALOON_DELETE]", error);
         return new NextResponse("Internal error", { status: 500 });
     }
 }

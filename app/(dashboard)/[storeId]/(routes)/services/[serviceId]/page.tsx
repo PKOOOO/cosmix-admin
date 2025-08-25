@@ -30,6 +30,12 @@ const ServicePage = async ({
         },
     });
 
+    const saloons = await prismadb.saloon.findMany({
+  where: {
+    storeId: params.storeId,
+  },
+});
+
     return (
         <div className="flex-col">
             <div className="flex-1 space-y-4 p-8 pt-6 ">
@@ -37,6 +43,7 @@ const ServicePage = async ({
                     initialData={service}
                     categories={categories}
                     services={services}
+                    saloons={saloons}
                 />
             </div>
         </div>

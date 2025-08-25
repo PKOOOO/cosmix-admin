@@ -1,21 +1,20 @@
-// app\(dashboard)\[storeId]\(routes)\services\components\client.tsx
+// app\(dashboard)\[storeId]\(routes)\saloons\components\client.tsx
 "use client";
-
 import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { Plus } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import React from "react";
-import { ServiceColumn, columns } from "./columns";
+import { SaloonColumn, columns } from "./columns";
 import { DataTable } from "@/components/ui/data-table";
 import { ApiList } from "@/components/ui/api-list";
 
-interface ServiceClientProps {
-    data: ServiceColumn[]
+interface SaloonClientProps {
+    data: SaloonColumn[]
 }
 
-export const ServiceClient: React.FC<ServiceClientProps> = ({
+export const SaloonClient: React.FC<SaloonClientProps> = ({
     data 
 }) => {
     const router = useRouter();
@@ -25,19 +24,19 @@ export const ServiceClient: React.FC<ServiceClientProps> = ({
         <>
         <div className="flex items-center justify-between">
         <Heading
-        title={`Services (${data.length})`}
-        description="Manage services"
+        title={`Saloons (${data.length})`}
+        description="Manage saloons"
         /> 
-        <Button onClick={() => router.push(`/${params.storeId}/services/new`)}>
+        <Button onClick={() => router.push(`/${params.storeId}/saloons/new`)}>
             <Plus className="mr-2 h-4 w-4" />
             Add New
         </Button>
         </div>
         <Separator />
         <DataTable searchKey="name" columns={columns} data={data} />
-        <Heading title="API" description="API calls for Services" />
+        <Heading title="API" description="API calls for Saloons" />
         <Separator />
-        <ApiList entityName="services" entityIdName="serviceId" />
+        <ApiList entityName="saloons" entityIdName="saloonId" />
         </>
     )
 }

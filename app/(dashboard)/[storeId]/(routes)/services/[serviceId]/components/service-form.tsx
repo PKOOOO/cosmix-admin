@@ -17,6 +17,7 @@ import { AlertModal } from "@/components/modals/alert-modal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import { Saloon } from "@prisma/client";
 
 const formSchema = z.object({
     name: z.string().min(1, "Name is required."),
@@ -24,8 +25,10 @@ const formSchema = z.object({
     price: z.coerce.number().min(1, "Price must be at least 1."),
     durationMinutes: z.coerce.number().nullable().optional(),
     isPopular: z.boolean(),
+    isParent: z.boolean(),
     categoryId: z.string().min(1, "Category is required."),
     parentServiceId: z.string().nullable().optional(),
+    saloonId: z.string().min(1, "Saloon is required."),
 });
 
 type ServiceFormValues = z.infer<typeof formSchema>;
@@ -37,9 +40,10 @@ interface ServiceFormProps {
     }) | null;
     categories: Category[];
     services: Service[];
+    saloons: Saloon[];
 }
 
-export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData, categories, services }) => {
+export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData, categories, services, saloons }) => {
     const params = useParams();
     const router = useRouter();
 
@@ -56,10 +60,12 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData, categorie
         defaultValues: initialData
             ? {
                 ...initialData,
-                price: parseFloat(String(initialData.price)),
+                // price: parseFloat(String(initialData.price)),
                 description: initialData.description,
-                durationMinutes: initialData.durationMinutes,
+                // durationMinutes: initialData.durationMinutes,
                 parentServiceId: initialData.parentServiceId,
+                isParent: false, // Add default value for isParent
+                saloonId: "",
             }
             : {
                 name: "",
@@ -67,10 +73,15 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData, categorie
                 price: 0,
                 durationMinutes: null,
                 isPopular: false,
+                isParent: false,
                 categoryId: "",
                 parentServiceId: null,
+                saloonId: "",
             },
     });
+
+    // Watch the isParent field to conditionally show/hide fields
+    const isParent = form.watch("isParent");
 
     const onSubmit = async (data: ServiceFormValues) => {
         try {
@@ -79,11 +90,13 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData, categorie
             // Clean up data before sending to API
             const submitData = {
                 ...data,
-                description: data.description === "" ? null : data.description,
-                // Ensure durationMinutes is not sent as 0 if it was originally null
-                durationMinutes: data.durationMinutes === 0 ? null : data.durationMinutes,
+                description: data.isParent ? null : (data.description === "" ? null : data.description),
+                price: data.isParent ? 0 : data.price,
+                durationMinutes: data.isParent ? null : (data.durationMinutes === 0 ? null : data.durationMinutes),
                 // Handle parentServiceId conversion
                 parentServiceId: data.parentServiceId === "none" ? null : data.parentServiceId,
+                // Remove isParent from the data sent to API (assuming it's not in your database schema)
+                isParent: undefined,
             };
 
             if (initialData) {
@@ -161,38 +174,47 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData, categorie
                                 </FormItem>
                             )}
                         />
-                        <FormField
-                            control={form.control}
-                            name="price"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Price ($)</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" disabled={loading} placeholder="19.99" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="durationMinutes"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Duration (minutes)</FormLabel>
-                                    <FormControl>
-                                        <Input 
-                                            type="number" 
-                                            disabled={loading} 
-                                            placeholder="60" 
-                                            value={field.value ?? ""} 
-                                            onChange={field.onChange} 
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        
+                        {/* Only show price if not a parent service */}
+                        {!isParent && (
+                            <FormField
+                                control={form.control}
+                                name="price"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Price ($)</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" disabled={loading} placeholder="19.99" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        )}
+                        
+                        {/* Only show duration if not a parent service */}
+                        {!isParent && (
+                            <FormField
+                                control={form.control}
+                                name="durationMinutes"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Duration (minutes)</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                type="number" 
+                                                disabled={loading} 
+                                                placeholder="60" 
+                                                value={field.value ?? ""} 
+                                                onChange={field.onChange} 
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        )}
+                        
                         <FormField
                             control={form.control}
                             name="categoryId"
@@ -222,39 +244,73 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData, categorie
                                 </FormItem>
                             )}
                         />
-                        <FormField
-                            control={form.control}
-                            name="parentServiceId"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Parent Service (Optional)</FormLabel>
-                                    <Select
-                                        disabled={loading}
-                                        onValueChange={(value) => field.onChange(value === "none" ? null : value)}
-                                        value={field.value || "none"}
-                                        defaultValue={field.value || "none"}
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select a parent service" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="none">No parent service</SelectItem>
-                                            {services.map((service) => (
-                                                <SelectItem key={service.id} value={service.id}>
-                                                    {service.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                    <FormDescription>
-                                        Use this to create a sub-service, e.g., "Full Massage" for "Massage".
-                                    </FormDescription>
-                                </FormItem>
-                            )}
-                        />
+                            <FormField
+        control={form.control}
+        name="saloonId"
+        render={({ field }) => (
+            <FormItem>
+                <FormLabel>Saloon</FormLabel>
+                <Select
+                    disabled={loading}
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    defaultValue={field.value}
+                >
+                    <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select a saloon" />
+                        </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        {saloons.map((saloon) => (
+                            <SelectItem key={saloon.id} value={saloon.id}>
+                                {saloon.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <FormMessage />
+            </FormItem>
+        )}
+    />
+                        
+                        {/* Only show parent service selection if not creating a parent service */}
+                        {!isParent && (
+                            <FormField
+                                control={form.control}
+                                name="parentServiceId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Parent Service (Optional)</FormLabel>
+                                        <Select
+                                            disabled={loading}
+                                            onValueChange={(value) => field.onChange(value === "none" ? null : value)}
+                                            value={field.value || "none"}
+                                            defaultValue={field.value || "none"}
+                                        >
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select a parent service" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="none">No parent service</SelectItem>
+                                                {services.map((service) => (
+                                                    <SelectItem key={service.id} value={service.id}>
+                                                        {service.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                        <FormDescription>
+                                            Use this to create a sub-service, e.g., "Full Massage" for "Massage".
+                                        </FormDescription>
+                                    </FormItem>
+                                )}
+                            />
+                        )}
+                        
                         <FormField
                             control={form.control}
                             name="isPopular"
@@ -278,24 +334,52 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData, categorie
                                 </FormItem>
                             )}
                         />
+                        
                         <FormField
                             control={form.control}
-                            name="description"
+                            name="isParent"
                             render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Description</FormLabel>
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                                     <FormControl>
-                                        <Textarea 
-                                            disabled={loading} 
-                                            placeholder="Service description" 
-                                            value={field.value ?? ""} 
-                                            onChange={field.onChange} 
+                                        <Checkbox
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
                                         />
                                     </FormControl>
+                                    <div className="space-y-1 leading-none">
+                                        <FormLabel>
+                                            Parent
+                                        </FormLabel>
+                                        <FormDescription>
+                                            This service will be a parent service.
+                                        </FormDescription>
+                                    </div>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
+                        
+                        {/* Only show description if not a parent service */}
+                        {!isParent && (
+                            <FormField
+                                control={form.control}
+                                name="description"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Description</FormLabel>
+                                        <FormControl>
+                                            <Textarea 
+                                                disabled={loading} 
+                                                placeholder="Service description" 
+                                                value={field.value ?? ""} 
+                                                onChange={field.onChange} 
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        )}
                     </div>
                     <Button disabled={loading} className="ml-auto" type="submit">
                         {action}

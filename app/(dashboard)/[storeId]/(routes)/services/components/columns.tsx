@@ -1,4 +1,4 @@
-// Path: ./components/columns.ts
+// app\(dashboard)\[storeId]\(routes)\services\components\columns.tsx
 
 "use client";
 
@@ -8,8 +8,6 @@ import { CellAction } from "./cell-action";
 export type ServiceColumn = {
     id: string;
     name: string;
-    price: number | null;
-    durationMinutes: number | null;
     isPopular: boolean;
     categoryName: string;
     createdAt: string;
@@ -23,28 +21,6 @@ export const columns: ColumnDef<ServiceColumn>[] = [
     {
         accessorKey: "categoryName",
         header: "Category",
-    },
-    {
-        accessorKey: "price",
-        header: "Price",
-        cell: ({ row }) => (
-            <div>
-                {/* Handle null price gracefully */}
-                {row.original.price !== null 
-                    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(row.original.price) 
-                    : "N/A"}
-            </div>
-        )
-    },
-    {
-        accessorKey: "durationMinutes",
-        header: "Duration",
-        cell: ({ row }) => (
-            <div>
-                {/* Handle null durationMinutes gracefully */}
-                {row.original.durationMinutes !== null ? `${row.original.durationMinutes} min` : "N/A"}
-            </div>
-        )
     },
     {
         accessorKey: "isPopular",

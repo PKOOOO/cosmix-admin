@@ -1,4 +1,4 @@
-// Path: ./services/page.tsx
+// app\(dashboard)\[storeId]\(routes)\services\page.tsx
 
 import prismadb from "@/lib/prismadb";
 import { format } from "date-fns";
@@ -29,10 +29,8 @@ const ServicesPage = async ({
     const formattedServices: ServiceColumn[] = services.map((item) => ({
         id: item.service.id,
         name: item.service.name,
-        // Fix: Removed .toNumber() as it's not needed.
-        price: item.service.price ?? null,
-        // Provide a default value for durationMinutes if it's null
-        durationMinutes: item.service.durationMinutes ?? null,
+        // price: item.service.price ?? null,
+        // durationMinutes: item.service.durationMinutes ?? null,
         isPopular: item.service.isPopular,
         categoryName: item.service.category?.name ?? "No category",
         createdAt: format(item.createdAt, "MMMM do, yyyy")

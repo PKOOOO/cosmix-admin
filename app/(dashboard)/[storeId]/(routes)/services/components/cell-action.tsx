@@ -1,3 +1,4 @@
+// app\(dashboard)\[storeId]\(routes)\services\components\cell-action.tsx
 "use client";
 
 import axios from "axios";

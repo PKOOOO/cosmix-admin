@@ -1,3 +1,4 @@
+// app/api/[storeId]/services/[serviceId]/route.ts
 import { auth } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
@@ -19,6 +20,11 @@ export async function GET(
                 category: true,
                 subServices: true,
                 parentService: true,
+                saloonServices: {
+                    include: {
+                        saloon: true
+                    }
+                }
             },
         });
 
@@ -42,7 +48,18 @@ export async function PATCH(
         const { userId } = auth();
         const body = await req.json();
 
-        const { name, description, categoryId, price, durationMinutes, isPopular, parentServiceId } = body;
+        const { 
+            name, 
+            description, 
+            categoryId, 
+            price, 
+            durationMinutes, 
+            isPopular, 
+            parentServiceId, 
+            saloonId, // Added saloonId
+            saloonPrice, // Added saloon-specific price
+            saloonDuration // Added saloon-specific duration
+        } = body;
 
         if (!userId) {
             return new NextResponse("Unauthenticated", { status: 401 });
@@ -87,12 +104,49 @@ export async function PATCH(
                 name,
                 description,
                 categoryId,
-                price,
-                durationMinutes,
                 isPopular,
                 parentServiceId,
             },
         });
+
+        // If saloonId is provided, update or create the saloon-service relationship
+        if (saloonId) {
+            const existingSaloonService = await prismadb.saloonService.findUnique({
+                where: {
+                    saloonId_serviceId: {
+                        saloonId: saloonId,
+                        serviceId: params.serviceId,
+                    }
+                }
+            });
+
+            if (existingSaloonService) {
+                // Update existing relationship
+                await prismadb.saloonService.update({
+                    where: {
+                        saloonId_serviceId: {
+                            saloonId: saloonId,
+                            serviceId: params.serviceId,
+                        }
+                    },
+                    data: {
+                        price: saloonPrice || price,
+                        durationMinutes: saloonDuration || durationMinutes,
+                    },
+                });
+            } else {
+                // Create new relationship
+                await prismadb.saloonService.create({
+                    data: {
+                        saloonId: saloonId,
+                        serviceId: params.serviceId,
+                        price: saloonPrice || price,
+                        durationMinutes: saloonDuration || durationMinutes,
+                        isAvailable: true,
+                    },
+                });
+            }
+        }
 
         return NextResponse.json(service);
 
@@ -138,6 +192,22 @@ export async function DELETE(
             return new NextResponse("Unauthorized", { status: 403 });
         }
 
+        // First delete all saloon-service relationships
+        await prismadb.saloonService.deleteMany({
+            where: {
+                serviceId: params.serviceId,
+            },
+        });
+
+        // Then delete the store-service relationship
+        await prismadb.storeService.deleteMany({
+            where: {
+                serviceId: params.serviceId,
+                storeId: params.storeId,
+            },
+        });
+
+        // Finally delete the service itself
         const service = await prismadb.service.delete({
             where: {
                 id: params.serviceId,

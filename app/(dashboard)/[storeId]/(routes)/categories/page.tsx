@@ -1,3 +1,4 @@
+// app\(dashboard)\[storeId]\(routes)\categories\page.tsx
 import prismadb from "@/lib/prismadb";
 import { format } from "date-fns";
 import { CategoryClient } from "./components/client";
