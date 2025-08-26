@@ -10,26 +10,47 @@ const SaloonsPage = async ({
     params: { storeId: string }
 }) => {
     const saloons = await prismadb.saloon.findMany({
-    where: {
-        storeId: params.storeId,  // ✅ correct relation
-    },
-    include: {
-        images: true,
-    },
-    orderBy: {
-        createdAt: 'desc',
-    },
-});
+        where: {
+            storeId: params.storeId,
+        },
+        include: {
+            images: true,
+            saloonServices: {
+                include: {
+                    service: {
+                        include: {
+                            category: true,
+                        }
+                    }
+                }
+            }
+        },
+        orderBy: {
+            createdAt: 'desc',
+        },
+    });
 
+    const formattedSaloons: SaloonColumn[] = saloons.map((item) => {
+        // Filter only sub-services with pricing information
+        const subServices = item.saloonServices
+            .filter(saloonService => saloonService.service.parentServiceId !== null)
+            .map(saloonService => ({
+                name: saloonService.service.name,
+                price: saloonService.price,
+                duration: saloonService.durationMinutes,
+                isAvailable: saloonService.isAvailable,
+            }));
 
-    const formattedSaloons: SaloonColumn[] = saloons.map((item) => ({
-        id: item.id,
-        name: item.name,
-        shortIntro: item.shortIntro || "",
-        address: item.address || "",
-        imageUrl: item.images[0]?.url || "",
-        createdAt: format(item.createdAt, "MMMM do, yyyy")
-    }));
+        return {
+            id: item.id,
+            name: item.name,
+            shortIntro: item.shortIntro || "",
+            address: item.address || "",
+            imageUrl: item.images[0]?.url || "",
+            subServices: subServices,
+            createdAt: format(item.createdAt, "MMMM do, yyyy")
+        };
+    });
 
     return ( 
         <div className="flex-col">

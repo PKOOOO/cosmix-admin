@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SaloonColumn } from "./columns";
 import { Button } from "@/components/ui/button";
-import { Copy, Edit, MoreHorizontal, Trash } from "lucide-react";
+import { Copy, Edit, MoreHorizontal, Trash, DollarSign } from "lucide-react";
 import toast from "react-hot-toast";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -36,6 +36,11 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
         color: "#fff",
       },
     });
+  };
+
+  const onSetPrices = () => {
+    // Navigate to pricing page for this saloon
+    router.push(`/${params.storeId}/saloons/${data.id}/pricing`);
   };
 
   const onDelete = async () => {
@@ -90,6 +95,12 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
             <Edit className="mr-2 h-4 w-4" />
             Update
           </DropdownMenuItem>
+          {data.subServices.length > 0 && (
+            <DropdownMenuItem onClick={onSetPrices}>
+              <DollarSign className="mr-2 h-4 w-4" />
+              Set Prices
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={() => setOpen(true)}>
             <Trash className="mr-2 h-4 w-4" />
             Delete

@@ -29,9 +29,9 @@ function withCors(middleware: any) {
         if (request.method === "OPTIONS") {
             const origin = request.headers.get("origin");
             const allowedOrigins = [
-                process.env.FRONTEND_STORE_URL || "http://192.168.0.104:3001",
-                "http://192.168.0.104:3000",
-                "http://192.168.0.104:3001",
+                process.env.FRONTEND_STORE_URL || "http://192.168.62.82:3001",
+                "http://192.168.62.82:3000",
+                "http://192.168.62.82:3001",
             ];
             const isAllowedOrigin = origin && allowedOrigins.includes(origin);
             const corsHeaders = {
@@ -51,9 +51,9 @@ function withCors(middleware: any) {
         if (response instanceof NextResponse && request.nextUrl.pathname.startsWith("/api/")) {
             const origin = request.headers.get("origin");
             const allowedOrigins = [
-                process.env.FRONTEND_STORE_URL || "http://192.168.0.104:3001",
-                "http://192.168.0.104:3000",
-                "http://192.168.0.104:3001",
+                process.env.FRONTEND_STORE_URL || "http://192.168.62.82:3001",
+                "http://192.168.62.82:3000",
+                "http://192.168.62.82:3001",
             ];
             const isAllowedOrigin = origin && allowedOrigins.includes(origin);
             
