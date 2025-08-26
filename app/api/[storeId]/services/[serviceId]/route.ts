@@ -52,13 +52,10 @@ export async function PATCH(
             name, 
             description, 
             categoryId, 
-            price, 
-            durationMinutes, 
             isPopular, 
             parentServiceId, 
-            saloonId, // Added saloonId
-            saloonPrice, // Added saloon-specific price
-            saloonDuration // Added saloon-specific duration
+            saloonIds, // Changed from saloonId to saloonIds array
+            isParent
         } = body;
 
         if (!userId) {
@@ -69,6 +66,10 @@ export async function PATCH(
         }
         if (!categoryId) {
             return new NextResponse("Category ID is required", { status: 400 });
+        }
+        // Only require saloonIds for non-parent services
+        if (!isParent && (!saloonIds || saloonIds.length === 0)) {
+            return new NextResponse("At least one saloon is required for non-parent services", { status: 400 });
         }
         if (!params.storeId || !params.serviceId) {
             return new NextResponse("Store ID and Service ID are required", { status: 400 });
@@ -96,56 +97,61 @@ export async function PATCH(
             return new NextResponse("Unauthorized", { status: 403 });
         }
 
+        // Update the service with parent-specific logic
         const service = await prismadb.service.update({
             where: {
                 id: params.serviceId,
             },
             data: {
                 name,
-                description,
+                description: isParent ? null : description,
                 categoryId,
                 isPopular,
-                parentServiceId,
+                parentServiceId: isParent ? null : parentServiceId,
             },
         });
 
-        // If saloonId is provided, update or create the saloon-service relationship
-        if (saloonId) {
-            const existingSaloonService = await prismadb.saloonService.findUnique({
+        // Always delete existing saloon-service relationships first
+        await prismadb.saloonService.deleteMany({
+            where: {
+                serviceId: params.serviceId,
+            },
+        });
+
+        // Create new saloon-service relationships for non-parent services
+        if (!isParent && saloonIds && saloonIds.length > 0) {
+            // Get existing saloon services to preserve price and duration if they exist
+            const existingSaloonServices = await prismadb.saloonService.findMany({
                 where: {
-                    saloonId_serviceId: {
-                        saloonId: saloonId,
-                        serviceId: params.serviceId,
+                    serviceId: params.serviceId,
+                    saloonId: {
+                        in: saloonIds
                     }
                 }
             });
 
-            if (existingSaloonService) {
-                // Update existing relationship
-                await prismadb.saloonService.update({
-                    where: {
-                        saloonId_serviceId: {
-                            saloonId: saloonId,
-                            serviceId: params.serviceId,
-                        }
-                    },
-                    data: {
-                        price: saloonPrice || price,
-                        durationMinutes: saloonDuration || durationMinutes,
-                    },
-                });
-            } else {
-                // Create new relationship
-                await prismadb.saloonService.create({
-                    data: {
-                        saloonId: saloonId,
-                        serviceId: params.serviceId,
-                        price: saloonPrice || price,
-                        durationMinutes: saloonDuration || durationMinutes,
-                        isAvailable: true,
-                    },
-                });
-            }
+            // Create a map of existing data for preservation
+            const existingDataMap = existingSaloonServices.reduce((acc, ss) => {
+                acc[ss.saloonId] = {
+                    price: ss.price,
+                    durationMinutes: ss.durationMinutes,
+                    isAvailable: ss.isAvailable
+                };
+                return acc;
+            }, {} as Record<string, { price: number; durationMinutes: number; isAvailable: boolean }>);
+
+            // Create new relationships, preserving existing data where possible
+            const saloonServiceData = saloonIds.map((saloonId: string) => ({
+                saloonId: saloonId,
+                serviceId: params.serviceId,
+                price: existingDataMap[saloonId]?.price ?? 0, // Preserve existing price or default to 0
+                durationMinutes: existingDataMap[saloonId]?.durationMinutes ?? 30, // Preserve existing duration or default to 30
+                isAvailable: existingDataMap[saloonId]?.isAvailable ?? true, // Preserve existing availability or default to true
+            }));
+
+            await prismadb.saloonService.createMany({
+                data: saloonServiceData,
+            });
         }
 
         return NextResponse.json(service);

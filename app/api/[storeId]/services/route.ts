@@ -63,8 +63,6 @@ export async function GET(
                             saloonId: saloonId || undefined,
                         },
                         select: {
-                            price: true,
-                            durationMinutes: true,
                             isAvailable: true,
                             saloon: {
                                 select: {
@@ -109,11 +107,9 @@ export async function GET(
                 }
             });
 
-            // Format the response to include saloon-specific pricing and availability
+            // Format the response to include saloon-specific availability
             const services = saloonServices.map(saloonService => ({
                 ...saloonService.service,
-                saloonPrice: saloonService.price,
-                saloonDuration: saloonService.durationMinutes,
                 isAvailable: saloonService.isAvailable,
             }));
 
@@ -135,7 +131,7 @@ export async function GET(
     }
 }
 
-// POST method - Create new service and optionally link to saloon
+// POST method - Create new service and optionally link to multiple saloons
 export async function POST(
     req: Request,
     { params }: { params: { storeId: string } }
@@ -148,13 +144,10 @@ export async function POST(
             name, 
             description, 
             categoryId, 
-            price, 
-            durationMinutes, 
             isPopular, 
             parentServiceId, 
-            saloonId, // Added saloonId
-            saloonPrice, // Added saloon-specific price
-            saloonDuration // Added saloon-specific duration
+            saloonIds, // Changed from saloonId to saloonIds array
+            isParent
         } = body;
 
         if (!userId) {
@@ -165,6 +158,10 @@ export async function POST(
         }
         if (!categoryId) {
             return new NextResponse("Category ID is required", { status: 400 });
+        }
+        // Only require saloonIds for non-parent services
+        if (!isParent && (!saloonIds || saloonIds.length === 0)) {
+            return new NextResponse("At least one saloon is required for non-parent services", { status: 400 });
         }
         if (!params.storeId) {
             return new NextResponse("Store ID is required", { status: 400 });
@@ -185,7 +182,7 @@ export async function POST(
         const storeByUserId = await prismadb.store.findFirst({
             where: {
                 id: params.storeId,
-                userId: user.id, // Use database user ID, not Clerk ID
+                userId: user.id,
             },
         });
 
@@ -197,31 +194,34 @@ export async function POST(
         const service = await prismadb.service.create({
             data: {
                 name,
-                description,
+                description: isParent ? null : description,
                 categoryId,
                 isPopular,
-                parentServiceId,
+                parentServiceId: isParent ? null : parentServiceId,
             },
         });
 
-        // Then, link the new service to the store using the join table
-        const storeService = await prismadb.storeService.create({
+        // Always create the store-service relationship
+        await prismadb.storeService.create({
             data: {
                 storeId: params.storeId,
                 serviceId: service.id,
             },
         });
 
-        // If saloonId is provided, create a saloon-service relationship
-        if (saloonId) {
-            await prismadb.saloonService.create({
-                data: {
-                    saloonId: saloonId,
-                    serviceId: service.id,
-                    price: saloonPrice || price,
-                    durationMinutes: saloonDuration || durationMinutes,
-                    isAvailable: true,
-                },
+        // Create saloon-service relationships for non-parent services
+        if (!isParent && saloonIds && saloonIds.length > 0) {
+            // Create multiple saloon-service relationships
+            const saloonServiceData = saloonIds.map((saloonId: string) => ({
+                saloonId: saloonId,
+                serviceId: service.id,
+                price: 0, // Default price - can be updated later per saloon
+                durationMinutes: 30, // Default duration - can be updated later per saloon
+                isAvailable: true,
+            }));
+
+            await prismadb.saloonService.createMany({
+                data: saloonServiceData,
             });
         }
 

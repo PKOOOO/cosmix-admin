@@ -6,7 +6,7 @@ const ServicePage = async ({
 }: {
     params: { serviceId: string; storeId: string };
 }) => {
-    // Fetch the specific service, including its parent and category
+    // Fetch the specific service, including its parent, category, and saloon relationships
     const service = await prismadb.service.findUnique({
         where: {
             id: params.serviceId,
@@ -14,6 +14,7 @@ const ServicePage = async ({
         include: {
             parentService: true,
             category: true,
+            saloonServices: true, // Include saloon relationships for editing
         },
     });
 
@@ -31,10 +32,10 @@ const ServicePage = async ({
     });
 
     const saloons = await prismadb.saloon.findMany({
-  where: {
-    storeId: params.storeId,
-  },
-});
+        where: {
+            storeId: params.storeId,
+        },
+    });
 
     return (
         <div className="flex-col">
