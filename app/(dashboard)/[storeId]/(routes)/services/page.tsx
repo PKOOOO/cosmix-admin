@@ -18,6 +18,18 @@ const ServicesPage = async ({
             service: {
                 include: {
                     category: true,
+                    parentService: true, // Include parent service info
+                    subServices: true,   // Include sub-services to determine if it's a parent
+                    saloonServices: {    // Include saloon relationships
+                        include: {
+                            saloon: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                }
+                            }
+                        }
+                    },
                 },
             },
         },
@@ -26,15 +38,36 @@ const ServicesPage = async ({
         }
     });
 
-    const formattedServices: ServiceColumn[] = services.map((item) => ({
-        id: item.service.id,
-        name: item.service.name,
-        // price: item.service.price ?? null,
-        // durationMinutes: item.service.durationMinutes ?? null,
-        isPopular: item.service.isPopular,
-        categoryName: item.service.category?.name ?? "No category",
-        createdAt: format(item.createdAt, "MMMM do, yyyy")
-    }));
+    const formattedServices: ServiceColumn[] = services.map((item) => {
+        const service = item.service;
+        
+        // Determine service type
+        let serviceType: "Parent" | "Sub-Service" | "Standalone";
+        let parentServiceName: string | undefined;
+
+        if (service.parentServiceId && service.parentService) {
+            // This is a sub-service
+            serviceType = "Sub-Service";
+            parentServiceName = service.parentService.name;
+        } else if (service.subServices && service.subServices.length > 0) {
+            // This is a parent service (has sub-services)
+            serviceType = "Parent";
+        } else {
+            // This is a standalone service
+            serviceType = "Standalone";
+        }
+
+        return {
+            id: service.id,
+            name: service.name,
+            isPopular: service.isPopular,
+            categoryName: service.category?.name ?? "No category",
+            serviceType,
+            parentServiceName,
+            saloonNames: service.saloonServices.map(ss => ss.saloon.name), // Add saloon names
+            createdAt: format(item.createdAt, "MMMM do, yyyy")
+        };
+    });
 
     return (
         <div className="flex-col">
