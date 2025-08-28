@@ -31,7 +31,7 @@ const nextConfig = {
                 headers: [
                     {
                         key: "Access-Control-Allow-Origin",
-                        value: process.env.FRONTEND_STORE_URL || "http://192.168.1.145:3001",
+                        value: process.env.FRONTEND_STORE_URL || "http://192.168.62.82:3001",
                     },
                     {
                         key: "Access-Control-Allow-Methods",
@@ -122,7 +122,7 @@ const nextConfig = {
                     // CORS headers
                     {
                         key: "Access-Control-Allow-Origin",
-                        value: process.env.FRONTEND_STORE_URL || "http://192.168.1.145:3001",
+                        value: process.env.FRONTEND_STORE_URL || "http://192.168.62.82:3001",
                     },
                     {
                         key: "Access-Control-Allow-Methods",
