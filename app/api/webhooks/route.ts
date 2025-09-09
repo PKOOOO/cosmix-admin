@@ -1,3 +1,4 @@
+// app/api/webhooks/route.ts
 import { Webhook } from "svix";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
@@ -55,14 +56,45 @@ export async function POST(req: Request) {
   if (eventType === "user.created") {
     const { id, email_addresses, first_name, last_name } = evt.data;
 
-    // Create a new user in your database
-    await prismadb.user.create({
-      data: {
-        clerkId: id,
-        email: email_addresses[0].email_address,
-        name: `${first_name ?? ""} ${last_name ?? ""}`,
-      },
-    });
+    try {
+      // Create a new user in your database
+      const user = await prismadb.user.create({
+        data: {
+          clerkId: id,
+          email: email_addresses[0].email_address,
+          name: `${first_name ?? ""} ${last_name ?? ""}`.trim() || "New User",
+        },
+      });
+
+      console.log("User created:", user.id);
+
+      // Check if there's already a shared store
+      const existingStore = await prismadb.store.findFirst({
+        orderBy: {
+          createdAt: 'asc' // Get the first store
+        }
+      });
+
+      // If no store exists, create a default shared store
+      if (!existingStore) {
+        const defaultStore = await prismadb.store.create({
+          data: {
+            name: "My Spa", // Default store name
+            description: "Welcome to our spa services",
+            shortIntro: "Relaxation and wellness services",
+            userId: user.id, // First user becomes the nominal owner
+          }
+        });
+
+        console.log("Default store created:", defaultStore.id);
+      } else {
+        console.log("Shared store already exists:", existingStore.id);
+      }
+
+    } catch (error) {
+      console.error("Error creating user or store:", error);
+      return new NextResponse("Error creating user", { status: 500 });
+    }
   }
 
   return new NextResponse("", { status: 201 });

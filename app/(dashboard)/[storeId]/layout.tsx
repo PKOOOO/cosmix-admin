@@ -1,4 +1,4 @@
-// app\(dashboard)\[storeId]\layout.tsx
+// app/(dashboard)/[storeId]/layout.tsx
 import Navbar from "@/components/navbar";
 import prismadb from "@/lib/prismadb";
 import { auth } from "@clerk/nextjs";
@@ -31,23 +31,22 @@ export default async function DashboardLayout({
     redirect('/');
    }
 
-   // Now find the store using the database user ID
-   const store = await prismadb.store.findFirst({
+   // Check if the store exists (remove ownership check for shared store)
+   const store = await prismadb.store.findUnique({
     where: {
-        id: params.storeId,
-        userId: user.id // Use the database user ID, not Clerk ID
+        id: params.storeId
     }
    });
 
-   if(!store) {
+   if (!store) {
     redirect('/');
    }
 
-   // Also fix the stores query for the sidebar
+   // Get all stores for the sidebar (all users can see all stores)
    const stores = await prismadb.store.findMany({
-    where: {
-        userId: user.id, // Use the database user ID here too
-    },
+    orderBy: {
+        createdAt: 'asc'
+    }
    });
 
    return (
