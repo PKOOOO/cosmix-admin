@@ -8,10 +8,7 @@ import { PostSignInClient } from "./post-sign-in-client"
 async function findUserWithRetry(clerkUserId: string, maxRetries = 3) {
   for (let i = 0; i < maxRetries; i++) {
     const user = await prismadb.user.findUnique({
-      where: { clerkId: clerkUserId },
-      include: {
-        stores: true // Include stores in the query
-      }
+      where: { clerkId: clerkUserId }
     })
     
     if (user) return user
@@ -40,7 +37,6 @@ export default async function PostSignIn() {
     user = await findUserWithRetry(clerkUserId)
     
     console.log("PostSignIn - user found:", user?.id)
-    console.log("PostSignIn - user stores:", user?.stores?.length || 0)
     
   } catch (error) {
     console.error("PostSignIn - Database error:", error)
@@ -53,15 +49,20 @@ export default async function PostSignIn() {
     return <PostSignInClient />
   }
 
-  // Check if user has any stores and redirect if they do
-  if (user.stores && user.stores.length > 0) {
-    const firstStore = user.stores[0]
-    console.log("PostSignIn - redirecting to store:", firstStore.id)
-    redirect(`/${firstStore.id}`) // This will throw NEXT_REDIRECT - that's normal!
+  // Check if ANY store exists in the database (shared store approach)
+  const sharedStore = await prismadb.store.findFirst({
+    orderBy: {
+      createdAt: 'asc' // Get the first/oldest store
+    }
+  });
+
+  if (sharedStore) {
+    console.log("PostSignIn - redirecting to shared store:", sharedStore.id)
+    redirect(`/${sharedStore.id}`) // Redirect to the shared store
   }
   
-  console.log("PostSignIn - no store found, showing modal")
+  console.log("PostSignIn - no store found, showing modal to create one")
   
-  // If no store exists, render the client component that will open the modal
+  // If no store exists at all, render the client component that will open the modal
   return <PostSignInClient />
 }
