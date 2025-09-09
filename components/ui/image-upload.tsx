@@ -50,10 +50,12 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
             </div>
             ))}
         </div>
-        <CldUploadWidget onSuccess={onSuccess} uploadPreset="mwa8epb4"> 
+        <CldUploadWidget onSuccess={onSuccess} uploadPreset="mwa8epb4">
             {({ open }) => {
                 const onClick = () => {
-                    open();
+                    // Mark widget as open and defer to next tick
+                    try { (window as any).__cloudinaryOpen = true; } catch {}
+                    setTimeout(() => open(), 0);
                 }
 
                 return (
@@ -69,6 +71,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                 )
             }}
         </CldUploadWidget>
+        {/* Clear open flag when unmounting */}
+        <script dangerouslySetInnerHTML={{ __html: `window.__cloudinaryOpen = false;` }} />
     </div>
   )
 };

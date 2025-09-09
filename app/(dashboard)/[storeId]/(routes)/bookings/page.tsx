@@ -2,15 +2,18 @@ import { format } from "date-fns";
 import prismadb from "@/lib/prismadb";
 import { BookingClient } from "./components/client";
 import { BookingColumn } from "./components/columns";
+import { getOwnedSelectedSaloonId } from "@/lib/saloon";
 
 const BookingsPage = async ({
   params,
 }: {
   params: { storeId: string };
 }) => {
+  const selectedSaloonId = await getOwnedSelectedSaloonId(params.storeId);
   const bookings = await prismadb.booking.findMany({
     where: {
       storeId: params.storeId,
+      saloonId: selectedSaloonId ?? undefined,
     },
     include: {
       user: true, // Includes the user data
@@ -42,7 +45,7 @@ const BookingsPage = async ({
 
   return (
     <div className="flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
+      <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
         <BookingClient data={formattedBookings} />
       </div>
     </div>

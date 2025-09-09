@@ -1,5 +1,5 @@
 // app/api/[storeId]/saloons/route.ts
-import { auth } from "@clerk/nextjs";
+import { auth, currentUser } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 
@@ -26,30 +26,28 @@ export async function POST(
       return new NextResponse("Store ID is required", { status: 400 });
     }
 
-    // Find the user record using Clerk ID
-    const user = await prismadb.user.findUnique({
-      where: {
-        clerkId: userId,
-      },
-    });
-
+    // Ensure the Clerk user exists in our DB (create on the fly if missing)
+    let user = await prismadb.user.findUnique({ where: { clerkId: userId } });
     if (!user) {
-      return new NextResponse("User not found", { status: 401 });
+      const cu = await currentUser();
+      const email = cu?.emailAddresses?.[0]?.emailAddress;
+      if (!email) return new NextResponse("User email missing", { status: 401 });
+      user = await prismadb.user.create({
+        data: {
+          clerkId: userId,
+          email,
+          name: cu?.firstName || cu?.username || null,
+        },
+      });
     }
 
-    // Verify the user owns this store
-    const storeByUserId = await prismadb.store.findFirst({
-      where: {
-        id: params.storeId,
-        userId: user.id,
-      },
-    });
-
-    if (!storeByUserId) {
-      return new NextResponse("Unauthorized", { status: 403 });
+    // Verify the store exists (shared store model; ownership not required)
+    const storeExists = await prismadb.store.findUnique({ where: { id: params.storeId } });
+    if (!storeExists) {
+      return new NextResponse("Store not found", { status: 404 });
     }
 
-    // ✅ Create the saloon with storeId
+    // ✅ Create the saloon with storeId for this user (no store ownership required)
     const saloon = await prismadb.saloon.create({
       data: {
         name,
@@ -83,11 +81,36 @@ export async function GET(
       return new NextResponse("Store ID is required", { status: 400 });
     }
 
-    // ✅ Filter by storeId, not userId
+    const url = new URL(req.url);
+    const owned = url.searchParams.get("owned");
+
+    // Default filter by store
+    const baseWhere: any = { storeId: params.storeId };
+
+    // If owned=1, restrict to current user's saloons
+    if (owned) {
+      const { userId: clerkUserId } = auth();
+      if (!clerkUserId) {
+        return new NextResponse("Unauthenticated", { status: 401 });
+      }
+      let user = await prismadb.user.findUnique({ where: { clerkId: clerkUserId } });
+      if (!user) {
+        const cu = await currentUser();
+        const email = cu?.emailAddresses?.[0]?.emailAddress;
+        if (!email) return new NextResponse("User email missing", { status: 401 });
+        user = await prismadb.user.create({
+          data: {
+            clerkId: clerkUserId,
+            email,
+            name: cu?.firstName || cu?.username || null,
+          },
+        });
+      }
+      baseWhere.userId = user.id;
+    }
+
     const saloons = await prismadb.saloon.findMany({
-      where: {
-        storeId: params.storeId,
-      },
+      where: baseWhere,
       include: {
         images: true,
       },

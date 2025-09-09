@@ -1,10 +1,11 @@
 import prismadb from "@/lib/prismadb";
 
-export const getTotalRevenue = async (storeId: string) => {
+export const getTotalRevenue = async (storeId: string, saloonId?: string) => {
     const completedBookings = await prismadb.booking.findMany({
         where: {
             storeId,
-            status: "completed", // completed/paid bookings
+            status: "completed",
+            saloonId: saloonId ?? undefined,
         },
         include: {
             service: true

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import NextTopLoader from 'nextjs-toploader';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import SaloonGate from "./saloon-gate";
 
 export default async function DashboardLayout({
     children,
@@ -20,16 +21,13 @@ export default async function DashboardLayout({
     redirect('/');
    }
 
-   // First, find the user in your database using the Clerk ID
+   // Optional: find the user in your database using the Clerk ID
+   // Do not block access if the user record hasn't been created yet (shared store access)
    const user = await prismadb.user.findUnique({
     where: { 
         clerkId: userId 
     }
    });
-
-   if (!user) {
-    redirect('/');
-   }
 
    // Check if the store exists (remove ownership check for shared store)
    const store = await prismadb.store.findUnique({
@@ -48,7 +46,6 @@ export default async function DashboardLayout({
         createdAt: 'asc'
     }
    });
-
    return (
     <>
         <NextTopLoader
@@ -62,7 +59,9 @@ export default async function DashboardLayout({
           <div className="flex-1">
             <Navbar />
             <main className="p-6">
-              {children}
+              <SaloonGate storeId={params.storeId}>
+                {children}
+              </SaloonGate>
             </main>
           </div>
         </SidebarProvider>

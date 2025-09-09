@@ -4,15 +4,24 @@ import prismadb from "@/lib/prismadb";
 import { format } from "date-fns";
 import { ServiceClient } from "./components/client";
 import { ServiceColumn } from "./components/columns";
+import { getOwnedSelectedSaloonId } from "@/lib/saloon";
 
 const ServicesPage = async ({
     params
 }: {
     params: { storeId: string }
 }) => {
+    const selectedSaloonId = await getOwnedSelectedSaloonId(params.storeId);
     const services = await prismadb.storeService.findMany({
         where: {
             storeId: params.storeId,
+            ...(selectedSaloonId ? {
+                service: {
+                    saloonServices: {
+                        some: { saloonId: selectedSaloonId }
+                    }
+                }
+            } : {}),
         },
         include: {
             service: {
@@ -71,7 +80,7 @@ const ServicesPage = async ({
 
     return (
         <div className="flex-col">
-            <div className="flex-1 space-y-4 p-8 pt-6">
+            <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
                 <ServiceClient data={formattedServices} />
             </div>
         </div>

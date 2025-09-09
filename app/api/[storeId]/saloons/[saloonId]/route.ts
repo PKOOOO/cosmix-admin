@@ -5,16 +5,28 @@ import { NextResponse } from "next/server";
 
 export async function GET(
     req: Request,
-    { params }: { params: { saloonId: string } }
+    { params }: { params: { storeId: string; saloonId: string } }
 ) {
     try {
         if (!params.saloonId) {
             return new NextResponse("Saloon ID is required", { status: 400 });
         }
 
-        const saloon = await prismadb.saloon.findUnique({
+        // Enforce that the requesting user owns this saloon within the store
+        const { userId: clerkUserId } = auth();
+        if (!clerkUserId) {
+            return new NextResponse("Unauthenticated", { status: 401 });
+        }
+        const user = await prismadb.user.findUnique({ where: { clerkId: clerkUserId } });
+        if (!user) {
+            return new NextResponse("User not found", { status: 401 });
+        }
+
+        const saloon = await prismadb.saloon.findFirst({
             where: {
                 id: params.saloonId,
+                storeId: params.storeId,
+                userId: user.id,
             },
             include: {
                 images: true,
@@ -57,24 +69,18 @@ export async function PATCH(
         }
 
         // Find the user record using Clerk ID
-        const user = await prismadb.user.findUnique({
-            where: {
-                clerkId: userId
-            }
-        });
+        let user = await prismadb.user.findUnique({ where: { clerkId: userId } });
+        if (!user) {
+            return new NextResponse("User not found", { status: 401 });
+        }
 
         if (!user) {
             return new NextResponse("User not found", { status: 401 });
         }
 
-        const storeByUserId = await prismadb.store.findFirst({
-            where: {
-                id: params.storeId,
-                userId: user.id,
-            },
-        });
-
-        if (!storeByUserId) {
+        // Authorization: user must own this saloon
+        const saloonOwned = await prismadb.saloon.findFirst({ where: { id: params.saloonId, storeId: params.storeId, userId: user.id } });
+        if (!saloonOwned) {
             return new NextResponse("Unauthorized", { status: 403 });
         }
 
@@ -130,24 +136,18 @@ export async function DELETE(
         }
 
         // Find the user record using Clerk ID
-        const user = await prismadb.user.findUnique({
-            where: {
-                clerkId: userId
-            }
-        });
+        let user = await prismadb.user.findUnique({ where: { clerkId: userId } });
+        if (!user) {
+            return new NextResponse("User not found", { status: 401 });
+        }
 
         if (!user) {
             return new NextResponse("User not found", { status: 401 });
         }
 
-        const storeByUserId = await prismadb.store.findFirst({
-            where: {
-                id: params.storeId,
-                userId: user.id
-            },
-        });
-
-        if (!storeByUserId) {
+        // Authorization: user must own this saloon
+        const saloonOwned = await prismadb.saloon.findFirst({ where: { id: params.saloonId, storeId: params.storeId, userId: user.id } });
+        if (!saloonOwned) {
             return new NextResponse("Unauthorized", { status: 403 });
         }
 
