@@ -19,6 +19,8 @@ export type SaloonColumn = {
         duration: number;
         isAvailable: boolean;
     }>;
+    averageRating?: number;
+    ratingsCount?: number;
     createdAt: string;
 };
 
@@ -36,6 +38,15 @@ export const columns: ColumnDef<SaloonColumn>[] = [
                 />
             </div>
         )
+    },
+    {
+        accessorKey: "averageRating",
+        header: "Rating",
+        cell: ({ row }) => {
+            const avg = row.original.averageRating ?? 0;
+            const count = row.original.ratingsCount ?? 0;
+            return <span>{avg.toFixed(1)} ({count})</span>;
+        }
     },
     {
         accessorKey: "name",

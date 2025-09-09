@@ -7,6 +7,7 @@ import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 import { formatter } from "@/lib/utils";
 import { Calendar, Scissors, Clock, DollarSign } from "lucide-react";
+import { getOwnedSelectedSaloon, getSelectedSaloonIdForStore } from "@/lib/saloon";
 
 interface DashboardPageProps {
     params: { storeId: string }
@@ -15,18 +16,20 @@ interface DashboardPageProps {
 const DashboardPage: React.FC<DashboardPageProps> = async ({
     params
 }) => {
-    const totalRevenue = await getTotalRevenue(params.storeId);
-    const bookingsCount = await getBookingsCount(params.storeId);
-    const servicesCount = await getServicesCount(params.storeId);
-    const pendingBookings = await getPendingBookings(params.storeId);
+    const selectedSaloon = await getOwnedSelectedSaloon(params.storeId);
+    const selectedSaloonId = selectedSaloon?.id;
+    const totalRevenue = await getTotalRevenue(params.storeId, selectedSaloonId);
+    const bookingsCount = await getBookingsCount(params.storeId, selectedSaloonId);
+    const servicesCount = await getServicesCount(params.storeId, selectedSaloonId);
+    const pendingBookings = await getPendingBookings(params.storeId, selectedSaloonId);
 
     return (
         <div className="flex-col">
-            <div className="flex-1 space-y-4 p-8 pt-6">
-                <Heading title="Spa Dashboard" description="Overview of your spa business" />
+            <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
+                <Heading title={`${selectedSaloon?.name ?? "Spa"} Dashboard`} description={`Overview of your ${selectedSaloon?.name ?? "spa"} business`} />
             
                 <Separator />
-                <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">

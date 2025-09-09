@@ -3,15 +3,23 @@ import prismadb from "@/lib/prismadb";
 import { format } from "date-fns";
 import { SaloonClient } from "./components/client";
 import { SaloonColumn } from "./components/columns";
+import { auth } from "@clerk/nextjs";
 
 const SaloonsPage = async ({
     params
 }: {
     params: { storeId: string }
 }) => {
+    const { userId: clerkUserId } = auth();
+    let ownerId: string | undefined = undefined;
+    if (clerkUserId) {
+        const user = await prismadb.user.findUnique({ where: { clerkId: clerkUserId } });
+        ownerId = user?.id;
+    }
     const saloons = await prismadb.saloon.findMany({
         where: {
             storeId: params.storeId,
+            ...(ownerId ? { userId: ownerId } : {}),
         },
         include: {
             images: true,
@@ -30,6 +38,18 @@ const SaloonsPage = async ({
         },
     });
 
+    // Fetch rating aggregates per saloon
+    const saloonIds = saloons.map(s => s.id);
+    const ratings = await (prismadb as any).saloonReview.groupBy({
+        by: ['saloonId'],
+        where: { saloonId: { in: saloonIds } },
+        _avg: { rating: true },
+        _count: { rating: true },
+    });
+    const saloonIdToRating = new Map<string, { avg: number; count: number }>(
+        ratings.map((r: any) => [r.saloonId as string, { avg: r._avg.rating || 0, count: r._count.rating || 0 }])
+    );
+
     const formattedSaloons: SaloonColumn[] = saloons.map((item) => {
         // Filter only sub-services with pricing information
         const subServices = item.saloonServices
@@ -41,6 +61,7 @@ const SaloonsPage = async ({
                 isAvailable: saloonService.isAvailable,
             }));
 
+        const agg: { avg: number; count: number } = saloonIdToRating.get(item.id) || { avg: 0, count: 0 } as { avg: number; count: number };
         return {
             id: item.id,
             name: item.name,
@@ -48,13 +69,15 @@ const SaloonsPage = async ({
             address: item.address || "",
             imageUrl: item.images[0]?.url || "",
             subServices: subServices,
+            averageRating: agg.avg,
+            ratingsCount: agg.count,
             createdAt: format(item.createdAt, "MMMM do, yyyy")
         };
     });
 
     return ( 
         <div className="flex-col">
-            <div className="flex-1 space-y-4 p-8 pt-6">
+            <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
                 <SaloonClient data={formattedSaloons} />
             </div>
         </div>

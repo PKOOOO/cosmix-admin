@@ -13,6 +13,7 @@ interface ModalProps {
     isOpen: boolean;
     onClose: () => void;
     children?: React.ReactNode;
+    className?: string; // optional extra classes for sizing
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -20,7 +21,8 @@ export const Modal: React.FC<ModalProps> = ({
     description,
     isOpen,
     onClose,
-    children
+    children,
+    className
 }) => {
     const onChange = (open: boolean) => {
         if (!open) {
@@ -29,8 +31,27 @@ export const Modal: React.FC<ModalProps> = ({
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={onChange}>
-            <DialogContent>
+        <Dialog open={isOpen} onOpenChange={onChange} modal={false}>
+            <DialogContent className={
+                [
+                    "sm:max-w-2xl w-[95vw]", // make content a nice rectangle
+                    "max-h-[85vh] overflow-y-auto z-[1001]", // keep above most overlays
+                    className || ""
+                ].join(" ")
+            } onInteractOutside={(e) => {
+                try {
+                    // If Cloudinary widget is open, don't close this dialog
+                    if (typeof window !== 'undefined' && (window as any).__cloudinaryOpen) {
+                        e.preventDefault();
+                    }
+                } catch {}
+            }} onEscapeKeyDown={(e) => {
+                try {
+                    if (typeof window !== 'undefined' && (window as any).__cloudinaryOpen) {
+                        e.preventDefault();
+                    }
+                } catch {}
+            }}>
                 <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>
                     <DialogDescription>

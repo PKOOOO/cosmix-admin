@@ -17,6 +17,7 @@ model User {
   bookings   Booking[]
   stores     Store[]     // A user can own multiple stores
   saloons    Saloon[]    // A user can own multiple saloons
+  reviews    SaloonReview[]
 
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
@@ -64,6 +65,7 @@ model Saloon {
   store          Store          @relation(fields: [storeId], references: [id], onDelete: Cascade) // 👈 linked to store
   saloonServices SaloonService[]
   bookings       Booking[]
+  reviews        SaloonReview[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -204,4 +206,22 @@ model Booking {
   @@index([saloonId])
   @@index([status])
   @@index([bookingTime])
+}
+
+// ------------------- SALOON REVIEWS -------------------
+model SaloonReview {
+  id        String   @id @default(uuid())
+  saloonId  String
+  saloon    Saloon   @relation(fields: [saloonId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  rating    Int      // 1..5
+  comment   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([saloonId])
+  @@index([userId])
+  @@map("saloon_reviews")
 }

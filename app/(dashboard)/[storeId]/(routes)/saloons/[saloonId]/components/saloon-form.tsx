@@ -112,7 +112,7 @@ defaultValues: initialData ? {
                 onConfirm={onDelete}
                 loading={loading}
             />
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
                 <Heading title={title} description={description} />
                 {initialData && (
                     <Button
@@ -149,7 +149,7 @@ defaultValues: initialData ? {
                             </FormItem>
                         )}
                     />
-                    <div className="grid grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8">
                         <FormField
                             control={form.control}
                             name="name"
@@ -205,7 +205,7 @@ defaultValues: initialData ? {
                             control={form.control}
                             name="description"
                             render={({ field }) => (
-                                <FormItem className="col-span-3">
+                                <FormItem className="sm:col-span-3">
                                     <FormLabel>Description</FormLabel>
                                     <FormControl>
                                         <Textarea

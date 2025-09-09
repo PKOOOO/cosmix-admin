@@ -30,25 +30,6 @@ export default async function PostSignIn() {
     redirect('/') // Shouldn't happen but good to handle
   }
 
-  let user = null
-  
-  try {
-    // Try to find user with retry logic (handles webhook timing issues)
-    user = await findUserWithRetry(clerkUserId)
-    
-    console.log("PostSignIn - user found:", user?.id)
-    
-  } catch (error) {
-    console.error("PostSignIn - Database error:", error)
-    // Continue execution - user will be null and we'll show the modal
-  }
-
-  // Handle redirect OUTSIDE of try-catch to avoid catching NEXT_REDIRECT
-  if (!user) {
-    console.log("PostSignIn - no user found in database")
-    return <PostSignInClient />
-  }
-
   // Check if ANY store exists in the database (shared store approach)
   const sharedStore = await prismadb.store.findFirst({
     orderBy: {
@@ -61,8 +42,13 @@ export default async function PostSignIn() {
     redirect(`/${sharedStore.id}`) // Redirect to the shared store
   }
   
+  // If we reach here, there is no store at all. Try to ensure user exists then show modal.
+  let user = null
+  try {
+    user = await findUserWithRetry(clerkUserId)
+  } catch (error) {
+    console.error("PostSignIn - Database error:", error)
+  }
   console.log("PostSignIn - no store found, showing modal to create one")
-  
-  // If no store exists at all, render the client component that will open the modal
   return <PostSignInClient />
 }
