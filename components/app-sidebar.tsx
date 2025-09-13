@@ -10,14 +10,12 @@ import {
   Activity,
   User,
 } from "lucide-react";
-import { UserButton } from "@clerk/nextjs";
 import { useParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -83,27 +81,28 @@ export function AppSidebar({ stores }: AppSidebarProps) {
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b px-4 py-3.5">
+      <SidebarHeader className="border-b px-4 py-4 md:py-3.5">
         <StoreSwitcher items={stores} />
       </SidebarHeader>
       
-      <SidebarContent>
+      <SidebarContent className="px-2 md:px-0">
         {/* Main Navigation */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Dashboard</SidebarGroupLabel>
+        <SidebarGroup className="px-2 md:px-0">
+          <SidebarGroupLabel className="text-sm md:text-xs font-semibold px-3 py-2">Dashboard</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-1">
               {mainRoutes.map((route) => (
                 <SidebarMenuItem key={route.href}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild size="lg" className="h-12 md:h-8 text-base md:text-sm">
                     <a 
                       href={route.href}
                       className={cn(
-                        route.active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground"
+                        "flex items-center gap-3 px-4 py-3 md:px-2 md:py-2 rounded-lg transition-colors",
+                        route.active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                       )}
                     >
-                      <route.icon />
-                      <span>{route.label}</span>
+                      <route.icon className="h-5 w-5 md:h-4 md:w-4" />
+                      <span className="font-medium">{route.label}</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -113,21 +112,22 @@ export function AppSidebar({ stores }: AppSidebarProps) {
         </SidebarGroup>
 
         {/* Store Management */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Store Management</SidebarGroupLabel>
+        <SidebarGroup className="px-2 md:px-0">
+          <SidebarGroupLabel className="text-sm md:text-xs font-semibold px-3 py-2">Store Management</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-1">
               {storeManagementRoutes.map((route) => (
                 <SidebarMenuItem key={route.href}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild size="lg" className="h-12 md:h-8 text-base md:text-sm">
                     <a 
                       href={route.href}
                       className={cn(
-                        route.active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground"
+                        "flex items-center gap-3 px-4 py-3 md:px-2 md:py-2 rounded-lg transition-colors",
+                        route.active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                       )}
                     >
-                      <route.icon />
-                      <span>{route.label}</span>
+                      <route.icon className="h-5 w-5 md:h-4 md:w-4" />
+                      <span className="font-medium">{route.label}</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -137,21 +137,22 @@ export function AppSidebar({ stores }: AppSidebarProps) {
         </SidebarGroup>
 
         {/* System */}
-        <SidebarGroup>
-          <SidebarGroupLabel>System</SidebarGroupLabel>
+        <SidebarGroup className="px-2 md:px-0">
+          <SidebarGroupLabel className="text-sm md:text-xs font-semibold px-3 py-2">System</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-1">
               {systemRoutes.map((route) => (
                 <SidebarMenuItem key={route.href}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild size="lg" className="h-12 md:h-8 text-base md:text-sm">
                     <a 
                       href={route.href}
                       className={cn(
-                        route.active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground"
+                        "flex items-center gap-3 px-4 py-3 md:px-2 md:py-2 rounded-lg transition-colors",
+                        route.active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                       )}
                     >
-                      <route.icon />
-                      <span>{route.label}</span>
+                      <route.icon className="h-5 w-5 md:h-4 md:w-4" />
+                      <span className="font-medium">{route.label}</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -161,12 +162,6 @@ export function AppSidebar({ stores }: AppSidebarProps) {
         </SidebarGroup>
       </SidebarContent>
       
-      <SidebarFooter className="border-t p-4">
-        <div className="flex items-center space-x-2">
-          <UserButton afterSignOutUrl="/" />
-          <span className="text-sm font-medium">Account</span>
-        </div>
-      </SidebarFooter>
     </Sidebar>
   );
 }

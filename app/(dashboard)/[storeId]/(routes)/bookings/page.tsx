@@ -31,21 +31,22 @@ const BookingsPage = async ({
   const formattedBookings: BookingColumn[] = bookings.map((item) => {
     return {
       id: item.id,
-      // Handle nullable user name with a fallback value.
-      user: item.user?.name ?? "N/A",
+      // Handle nullable user name with a fallback value, prefer customer name if available
+      user: item.customerName || item.user?.name || "Anonymous",
       service: item.service.name,
       // Check the `status` string field to determine if the booking is confirmed.
       isConfirmed: item.status === "confirmed", 
       // Use `item.bookingTime` for both date and time formatting.
-      date: format(item.bookingTime, "MMMM do, yyyy"),
+      date: format(item.bookingTime, "EEEE, MMMM do, yyyy"), // More detailed date format
       time: format(item.bookingTime, "h:mm a"),
-      createdAt: format(item.createdAt, "MMMM do, yyyy"),
+      createdAt: format(item.createdAt, "MMM do, yyyy 'at' h:mm a"),
+      totalAmount: item.totalAmount || 0,
     };
   });
 
   return (
     <div className="flex-col">
-      <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
+      <div className="flex-1 space-y-4 p-3 sm:p-6 md:p-8 pt-4 sm:pt-6">
         <BookingClient data={formattedBookings} />
       </div>
     </div>

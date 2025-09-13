@@ -22,7 +22,11 @@ export async function GET(
                 parentService: true,
                 saloonServices: {
                     include: {
-                        saloon: true
+                        saloon: {
+                            include: {
+                                images: true
+                            }
+                        }
                     }
                 }
             },

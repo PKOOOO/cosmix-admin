@@ -26,22 +26,23 @@ const PricingPage = async ({
         redirect('/sign-in');
     }
 
-    // Verify the user owns this store
-    const storeByUserId = await prismadb.store.findFirst({
+    // Verify the store exists (shared store model - no ownership required)
+    const store = await prismadb.store.findUnique({
         where: {
             id: params.storeId,
-            userId: user.id,
         },
     });
 
-    if (!storeByUserId) {
+    if (!store) {
         redirect('/');
     }
 
     // Get the saloon with its services and current pricing
-    const saloon = await prismadb.saloon.findUnique({
+    const saloon = await prismadb.saloon.findFirst({
         where: {
             id: params.saloonId,
+            storeId: params.storeId,
+            userId: user.id, // Ensure user owns this specific saloon
         },
         include: {
             saloonServices: {
@@ -93,6 +94,7 @@ const PricingPage = async ({
             price: ss.price,
             durationMinutes: ss.durationMinutes,
             isAvailable: ss.isAvailable,
+            availableDays: ss.availableDays || [],
         }));
 
     return (

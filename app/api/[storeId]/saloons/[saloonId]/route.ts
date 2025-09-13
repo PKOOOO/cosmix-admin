@@ -12,21 +12,11 @@ export async function GET(
             return new NextResponse("Saloon ID is required", { status: 400 });
         }
 
-        // Enforce that the requesting user owns this saloon within the store
-        const { userId: clerkUserId } = auth();
-        if (!clerkUserId) {
-            return new NextResponse("Unauthenticated", { status: 401 });
-        }
-        const user = await prismadb.user.findUnique({ where: { clerkId: clerkUserId } });
-        if (!user) {
-            return new NextResponse("User not found", { status: 401 });
-        }
-
+        // Allow public access to saloon details (for React Native app)
         const saloon = await prismadb.saloon.findFirst({
             where: {
                 id: params.saloonId,
                 storeId: params.storeId,
-                userId: user.id,
             },
             include: {
                 images: true,
@@ -37,6 +27,10 @@ export async function GET(
                 }
             }
         });
+
+        if (!saloon) {
+            return new NextResponse("Saloon not found", { status: 404 });
+        }
 
         return NextResponse.json(saloon);
     } catch (error) {

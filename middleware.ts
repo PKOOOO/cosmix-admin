@@ -12,13 +12,16 @@ const clerkAuthMiddleware = authMiddleware({
         "/api/categories(.*)",
         "/api/:storeId/categories(.*)",  // ← Correct Clerk syntax for dynamic routes
         "/api/:storeId/services(.*)",    // ← For services
-        "/api/:storeId/bookings(.*)",    // ← For bookings
+        "/api/:storeId/saloons(.*)",     // ← For saloons (public access)
+        "/api/:storeId/bookings(.*)",    // ← For bookings (already there)
+        "/api/:storeId/checkout(.*)",    // ← For checkout (payment flow)
         "/api/webhooks(.*)",
         "/api/uploadthing(.*)",
     ],
     ignoredRoutes: [
         "/api/webhooks/user",
-        "/api/uploadthing"
+        "/api/uploadthing",
+        "/api/:storeId/webhook"
     ]
 });
 
@@ -29,9 +32,11 @@ function withCors(middleware: any) {
         if (request.method === "OPTIONS") {
             const origin = request.headers.get("origin");
             const allowedOrigins = [
-                process.env.FRONTEND_STORE_URL || "http://192.168.1.148:3001",
-                "http://192.168.1.148:3000",
-                "http://192.168.1.148:3001",
+                process.env.FRONTEND_STORE_URL || "http://192.168.0.102:3001",
+                "http://192.168.0.102:3000",
+                "http://192.168.0.102:3001",
+                "http://localhost:8081",  // Expo development server
+                "exp://192.168.0.102:8081",  // Expo on physical device
             ];
             const isAllowedOrigin = origin && allowedOrigins.includes(origin);
             const corsHeaders = {
@@ -51,9 +56,11 @@ function withCors(middleware: any) {
         if (response instanceof NextResponse && request.nextUrl.pathname.startsWith("/api/")) {
             const origin = request.headers.get("origin");
             const allowedOrigins = [
-                process.env.FRONTEND_STORE_URL || "http://192.168.1.148:3001",
-                "http://192.168.1.148:3000",
-                "http://192.168.1.148:3001",
+                process.env.FRONTEND_STORE_URL || "http://192.168.0.102:3001",
+                "http://192.168.0.102:3000",
+                "http://192.168.0.102:3001",
+                "http://localhost:8081",  // Expo development server
+                "exp://192.168.0.102:8081",  // Expo on physical device
             ];
             const isAllowedOrigin = origin && allowedOrigins.includes(origin);
             
