@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 
 import { StoreModal } from "@/components/modals/store-modal";
-import { SaloonModal } from "@/components/modals/saloon-modal";
 
 export const ModalProvider = () => {
     const [isMounted, setIsMounted] = useState(false);
@@ -19,7 +18,6 @@ export const ModalProvider = () => {
     return (
         <>
             <StoreModal />
-            <SaloonModal />
         </>
     )
 }

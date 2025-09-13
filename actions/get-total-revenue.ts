@@ -1,10 +1,10 @@
 import prismadb from "@/lib/prismadb";
 
 export const getTotalRevenue = async (storeId: string, saloonId?: string) => {
-    const completedBookings = await prismadb.booking.findMany({
+    const paidBookings = await prismadb.booking.findMany({
         where: {
             storeId,
-            status: "completed",
+            status: "confirmed", // Changed from "completed" to "confirmed" to match your system
             saloonId: saloonId ?? undefined,
         },
         include: {
@@ -12,8 +12,8 @@ export const getTotalRevenue = async (storeId: string, saloonId?: string) => {
         }
     });
 
-    const totalRevenue = completedBookings.reduce((total, booking) => {
-        return total + (booking.service.price || 0);
+    const totalRevenue = paidBookings.reduce((total, booking) => {
+        return total + (booking.totalAmount || 0); // Use totalAmount from booking instead of service.price
     }, 0);
 
     return totalRevenue;

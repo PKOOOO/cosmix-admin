@@ -29,11 +29,10 @@ const SettingsPage: React.FC<SettingsPageProps> = async ({
         redirect("/");
     }
 
-    // Now use the database user ID for store lookup
-    const store = await prismadb.store.findFirst({
+    // Check if the store exists (shared store model - no ownership required)
+    const store = await prismadb.store.findUnique({
         where: {
             id: params.storeId,
-            userId: user.id // Use database user ID, not Clerk ID
         }
     });
 

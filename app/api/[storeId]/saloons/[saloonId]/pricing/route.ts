@@ -36,27 +36,28 @@ export async function PATCH(
             return new NextResponse("User not found", { status: 401 });
         }
 
-        const storeByUserId = await prismadb.store.findFirst({
+        // Verify the store exists (shared store model - no ownership required)
+        const store = await prismadb.store.findUnique({
             where: {
                 id: params.storeId,
-                userId: user.id,
             },
         });
 
-        if (!storeByUserId) {
-            return new NextResponse("Unauthorized", { status: 403 });
+        if (!store) {
+            return new NextResponse("Store not found", { status: 404 });
         }
 
-        // Verify the saloon belongs to this store
+        // Verify the saloon belongs to this store AND user owns this specific saloon
         const saloon = await prismadb.saloon.findFirst({
             where: {
                 id: params.saloonId,
                 storeId: params.storeId,
+                userId: user.id, // Ensure user owns this specific saloon
             }
         });
 
         if (!saloon) {
-            return new NextResponse("Saloon not found", { status: 404 });
+            return new NextResponse("Saloon not found or unauthorized", { status: 403 });
         }
 
         // Get current saloon services
@@ -89,6 +90,7 @@ export async function PATCH(
             price: number;
             durationMinutes: number;
             isAvailable: boolean;
+            availableDays?: number[];
         }) => {
             // Verify the service exists and is a sub-service
             const service = await prismadb.service.findFirst({
@@ -102,7 +104,7 @@ export async function PATCH(
                 throw new Error(`Service ${pricing.serviceId} not found or is not a sub-service`);
             }
 
-            return prismadb.saloonService.upsert({
+            const saloonService = await prismadb.saloonService.upsert({
                 where: {
                     saloonId_serviceId: {
                         saloonId: params.saloonId,
@@ -113,6 +115,7 @@ export async function PATCH(
                     price: pricing.price,
                     durationMinutes: pricing.durationMinutes,
                     isAvailable: pricing.isAvailable,
+                    availableDays: pricing.availableDays || [],
                 },
                 create: {
                     saloonId: params.saloonId,
@@ -120,8 +123,11 @@ export async function PATCH(
                     price: pricing.price,
                     durationMinutes: pricing.durationMinutes,
                     isAvailable: pricing.isAvailable,
+                    availableDays: pricing.availableDays || [],
                 }
             });
+
+            return saloonService;
         });
 
         await Promise.all(upsertPromises);

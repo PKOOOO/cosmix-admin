@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 import NextTopLoader from 'nextjs-toploader';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import SaloonGate from "./saloon-gate";
 
 export default async function DashboardLayout({
     children,
@@ -58,10 +57,8 @@ export default async function DashboardLayout({
           <AppSidebar stores={stores} />
           <div className="flex-1">
             <Navbar />
-            <main className="p-6">
-              <SaloonGate storeId={params.storeId}>
-                {children}
-              </SaloonGate>
+            <main className="p-3 md:p-6">
+              {children}
             </main>
           </div>
         </SidebarProvider>

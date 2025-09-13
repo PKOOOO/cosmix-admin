@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { Trash2, Plus, Save, ArrowLeft } from "lucide-react";
+import { Trash2, Plus, Save, ArrowLeft, Clock, Calendar } from "lucide-react";
 import toast from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ const servicePricingSchema = z.object({
     price: z.coerce.number().min(0, "Price must be positive"),
     durationMinutes: z.coerce.number().min(1, "Duration must be at least 1 minute"),
     isAvailable: z.boolean(),
+    availableDays: z.array(z.number().min(0).max(6)).optional(), // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 });
 
 // Schema for the entire form
@@ -54,6 +55,7 @@ interface CurrentPricing {
     price: number;
     durationMinutes: number;
     isAvailable: boolean;
+    availableDays?: number[];
 }
 
 interface AvailableService {
@@ -89,6 +91,7 @@ export const PricingForm: React.FC<PricingFormProps> = ({
                 price: pricing.price,
                 durationMinutes: pricing.durationMinutes,
                 isAvailable: pricing.isAvailable,
+                availableDays: pricing.availableDays || [],
             })),
         },
     });
@@ -100,6 +103,7 @@ export const PricingForm: React.FC<PricingFormProps> = ({
             price: 0,
             durationMinutes: 30,
             isAvailable: true,
+            availableDays: [],
         };
         form.setValue("servicePricing", [...currentServices, newService]);
     };
@@ -107,6 +111,24 @@ export const PricingForm: React.FC<PricingFormProps> = ({
     const removeService = (index: number) => {
         const currentServices = form.getValues("servicePricing");
         const updatedServices = currentServices.filter((_, i) => i !== index);
+        form.setValue("servicePricing", updatedServices);
+    };
+
+    const toggleDay = (serviceIndex: number, dayOfWeek: number) => {
+        const currentServices = form.getValues("servicePricing");
+        const service = currentServices[serviceIndex];
+        const currentDays = service.availableDays || [];
+        
+        const updatedDays = currentDays.includes(dayOfWeek)
+            ? currentDays.filter(day => day !== dayOfWeek)
+            : [...currentDays, dayOfWeek];
+        
+        const updatedService = {
+            ...service,
+            availableDays: updatedDays,
+        };
+        const updatedServices = [...currentServices];
+        updatedServices[serviceIndex] = updatedService;
         form.setValue("servicePricing", updatedServices);
     };
 
@@ -140,6 +162,11 @@ export const PricingForm: React.FC<PricingFormProps> = ({
             categoryName: available.categoryName,
             parentServiceName: available.parentServiceName,
         } : null;
+    };
+
+    const getDayName = (dayOfWeek: number) => {
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        return days[dayOfWeek];
     };
 
     const currentServiceIds = form.watch("servicePricing").map(sp => sp.serviceId);
@@ -260,6 +287,41 @@ export const PricingForm: React.FC<PricingFormProps> = ({
                                                     )}
                                                 />
                                             </CardContent>
+                                            
+                                            {/* Available Days Section */}
+                                            <div className="border-t pt-4">
+                                                <div className="flex items-center gap-2 mb-4">
+                                                    <Calendar className="h-4 w-4" />
+                                                    <h4 className="font-medium">Available Days</h4>
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-7 gap-2">
+                                                    {[0,1,2,3,4,5,6].map(day => {
+                                                        const isSelected = form.watch(`servicePricing.${index}.availableDays`)?.includes(day) || false;
+                                                        return (
+                                                            <Button
+                                                                key={day}
+                                                                type="button"
+                                                                variant={isSelected ? "default" : "outline"}
+                                                                size="sm"
+                                                                onClick={() => toggleDay(index, day)}
+                                                                className="h-10"
+                                                            >
+                                                                {getDayName(day).slice(0, 3)}
+                                                            </Button>
+                                                        );
+                                                    })}
+                                                </div>
+                                                
+                                                <div className="mt-3 p-3 bg-muted rounded-lg">
+                                                    <p className="text-sm text-muted-foreground">
+                                                        <strong>Time Range:</strong> 7:00 AM - 9:00 PM (30-minute intervals)
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                        Users can book appointments in 30-minute slots during the selected days.
+                                                    </p>
+                                                </div>
+                                            </div>
                                         </Card>
                                     );
                                 })}
