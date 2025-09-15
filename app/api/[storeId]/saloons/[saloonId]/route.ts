@@ -1,6 +1,6 @@
 // app/api/[storeId]/saloons/[saloonId]/route.ts
 import prismadb from "@/lib/prismadb";
-import { auth } from "@clerk/nextjs";
+import { auth, currentUser } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -62,14 +62,19 @@ export async function PATCH(
             return new NextResponse("Saloon ID is required", { status: 400 });
         }
 
-        // Find the user record using Clerk ID
+        // Ensure the Clerk user exists in our DB (create on the fly if missing)
         let user = await prismadb.user.findUnique({ where: { clerkId: userId } });
         if (!user) {
-            return new NextResponse("User not found", { status: 401 });
-        }
-
-        if (!user) {
-            return new NextResponse("User not found", { status: 401 });
+            const cu = await currentUser();
+            const email = cu?.emailAddresses?.[0]?.emailAddress;
+            if (!email) return new NextResponse("User email missing", { status: 401 });
+            user = await prismadb.user.create({
+                data: {
+                    clerkId: userId,
+                    email,
+                    name: cu?.firstName || cu?.username || null,
+                },
+            });
         }
 
         // Authorization: user must own this saloon
@@ -129,14 +134,19 @@ export async function DELETE(
             return new NextResponse("Saloon ID is required", { status: 400 });
         }
 
-        // Find the user record using Clerk ID
+        // Ensure the Clerk user exists in our DB (create on the fly if missing)
         let user = await prismadb.user.findUnique({ where: { clerkId: userId } });
         if (!user) {
-            return new NextResponse("User not found", { status: 401 });
-        }
-
-        if (!user) {
-            return new NextResponse("User not found", { status: 401 });
+            const cu = await currentUser();
+            const email = cu?.emailAddresses?.[0]?.emailAddress;
+            if (!email) return new NextResponse("User email missing", { status: 401 });
+            user = await prismadb.user.create({
+                data: {
+                    clerkId: userId,
+                    email,
+                    name: cu?.firstName || cu?.username || null,
+                },
+            });
         }
 
         // Authorization: user must own this saloon
@@ -145,13 +155,39 @@ export async function DELETE(
             return new NextResponse("Unauthorized", { status: 403 });
         }
 
+        // First delete all related data
+        await prismadb.saloonService.deleteMany({
+            where: {
+                saloonId: params.saloonId,
+            },
+        });
+
+        await prismadb.booking.deleteMany({
+            where: {
+                saloonId: params.saloonId,
+            },
+        });
+
+        // Then delete the saloon
         const saloon = await prismadb.saloon.delete({
             where: {
                 id: params.saloonId,
             },
         });
 
-        return NextResponse.json(saloon);
+        // Check if user has any remaining salons in this store
+        const remainingSaloons = await prismadb.saloon.findMany({
+            where: {
+                storeId: params.storeId,
+                userId: user.id,
+            },
+        });
+
+        return NextResponse.json({
+            deletedSaloon: saloon,
+            hasRemainingSaloons: remainingSaloons.length > 0,
+            remainingCount: remainingSaloons.length
+        });
     } catch (error) {
         console.log("[SALOON_DELETE]", error);
         return new NextResponse("Internal error", { status: 500 });

@@ -28,9 +28,10 @@ import StoreSwitcher from "@/components/store-switcher";
 
 interface AppSidebarProps {
   stores: any[]; // Replace with your store type
+  hasSaloons: boolean;
 }
 
-export function AppSidebar({ stores }: AppSidebarProps) {
+export function AppSidebar({ stores, hasSaloons }: AppSidebarProps) {
   const pathname = usePathname();
   const params = useParams();
 
@@ -41,36 +42,42 @@ export function AppSidebar({ stores }: AppSidebarProps) {
       label: 'Overview',
       icon: BarChart3,
       active: pathname === `/${params.storeId}`,
+      disabled: !hasSaloons,
     },
     {
       href: `/${params.storeId}/services`,
       label: 'Services',
       icon: Package,
       active: pathname === `/${params.storeId}/services`,
+      disabled: !hasSaloons,
     },
     {
       href: `/${params.storeId}/bookings`,
       label: 'Bookings',
       icon: CalendarCheck,
       active: pathname === `/${params.storeId}/bookings`,
+      disabled: !hasSaloons,
     },
     {
       href: `/${params.storeId}/categories`,
       label: 'Categories',
       icon: List,
       active: pathname === `/${params.storeId}/categories`,
+      disabled: !hasSaloons,
     },
     {
       href: `/${params.storeId}/saloons`,
       label: 'Saloons',
       icon: List,
       active: pathname === `/${params.storeId}/saloons`,
+      disabled: false, // Always allow access to saloons
     },
     {
       href: `/${params.storeId}/settings`,
       label: 'Settings',
       icon: Settings,
       active: pathname === `/${params.storeId}/settings`,
+      disabled: !hasSaloons,
     },
   ];
 
@@ -95,11 +102,13 @@ export function AppSidebar({ stores }: AppSidebarProps) {
                 <SidebarMenuItem key={route.href}>
                   <SidebarMenuButton asChild size="lg" className="h-12 md:h-8 text-base md:text-sm">
                     <a 
-                      href={route.href}
+                      href={route.disabled ? "#" : route.href}
                       className={cn(
                         "flex items-center gap-3 px-4 py-3 md:px-2 md:py-2 rounded-lg transition-colors",
+                        route.disabled ? "text-muted-foreground cursor-not-allowed opacity-50" : 
                         route.active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                       )}
+                      onClick={route.disabled ? (e) => e.preventDefault() : undefined}
                     >
                       <route.icon className="h-5 w-5 md:h-4 md:w-4" />
                       <span className="font-medium">{route.label}</span>
@@ -120,11 +129,13 @@ export function AppSidebar({ stores }: AppSidebarProps) {
                 <SidebarMenuItem key={route.href}>
                   <SidebarMenuButton asChild size="lg" className="h-12 md:h-8 text-base md:text-sm">
                     <a 
-                      href={route.href}
+                      href={route.disabled ? "#" : route.href}
                       className={cn(
                         "flex items-center gap-3 px-4 py-3 md:px-2 md:py-2 rounded-lg transition-colors",
+                        route.disabled ? "text-muted-foreground cursor-not-allowed opacity-50" : 
                         route.active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                       )}
+                      onClick={route.disabled ? (e) => e.preventDefault() : undefined}
                     >
                       <route.icon className="h-5 w-5 md:h-4 md:w-4" />
                       <span className="font-medium">{route.label}</span>
@@ -145,11 +156,13 @@ export function AppSidebar({ stores }: AppSidebarProps) {
                 <SidebarMenuItem key={route.href}>
                   <SidebarMenuButton asChild size="lg" className="h-12 md:h-8 text-base md:text-sm">
                     <a 
-                      href={route.href}
+                      href={route.disabled ? "#" : route.href}
                       className={cn(
                         "flex items-center gap-3 px-4 py-3 md:px-2 md:py-2 rounded-lg transition-colors",
+                        route.disabled ? "text-muted-foreground cursor-not-allowed opacity-50" : 
                         route.active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                       )}
+                      onClick={route.disabled ? (e) => e.preventDefault() : undefined}
                     >
                       <route.icon className="h-5 w-5 md:h-4 md:w-4" />
                       <span className="font-medium">{route.label}</span>

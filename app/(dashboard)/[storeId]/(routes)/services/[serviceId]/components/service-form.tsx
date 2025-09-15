@@ -138,14 +138,17 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData, categorie
             await axios.delete(
                 `/api/${params.storeId}/services/${params.serviceId}`
             );
-            router.refresh();
-            router.push(`/${params.storeId}/services`);
             toast.success("Service deleted successfully.");
+            setOpen(false);
+            setTimeout(() => {
+                router.refresh();
+                router.push(`/${params.storeId}/services`);
+            }, 200);
         } catch (error) {
-            toast.error("Ensure all bookings and sub-services are removed first.");
+            toast.error("Failed to delete service. Please try again.");
+            setOpen(false);
         } finally {
             setLoading(false);
-            setOpen(false);
         }
     };
 
@@ -157,23 +160,25 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData, categorie
                 onConfirm={onDelete}
                 loading={loading}
             />
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <Heading title={title} description={description} />
                 {initialData && (
                     <Button
                         disabled={loading}
                         variant="destructive"
-                        size="icon"
+                        size="sm"
                         onClick={() => setOpen(true)}
+                        className="w-full sm:w-auto"
                     >
-                        <Trash className="h-4 w-4" />
+                        <Trash className="h-4 w-4 mr-2" />
+                        Delete Service
                     </Button>
                 )}
             </div>
             <Separator />
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 w-full">
-                    <div className="grid grid-cols-3 gap-8">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 w-full">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <FormField
                             control={form.control}
                             name="name"
@@ -259,7 +264,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData, categorie
                             control={form.control}
                             name="isPopular"
                             render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 md:col-span-2 lg:col-span-1">
                                     <FormControl>
                                         <Checkbox
                                             checked={field.value}
@@ -283,7 +288,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData, categorie
                             control={form.control}
                             name="isParent"
                             render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 md:col-span-2 lg:col-span-1">
                                     <FormControl>
                                         <Checkbox
                                             checked={field.value}
@@ -309,14 +314,15 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData, categorie
                                 control={form.control}
                                 name="description"
                                 render={({ field }) => (
-                                    <FormItem>
+                                    <FormItem className="md:col-span-2 lg:col-span-3">
                                         <FormLabel>Description</FormLabel>
                                         <FormControl>
                                             <Textarea 
                                                 disabled={loading} 
                                                 placeholder="Service description" 
                                                 value={field.value ?? ""} 
-                                                onChange={field.onChange} 
+                                                onChange={field.onChange}
+                                                className="min-h-[100px]"
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -337,7 +343,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData, categorie
                                     <FormDescription>
                                         Select which saloons offer this service. You can choose multiple saloons.
                                     </FormDescription>
-                                    <div className="grid grid-cols-2 gap-4 mt-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                                         {saloons.map((saloon) => (
                                             <FormItem
                                                 key={saloon.id}
@@ -350,12 +356,12 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData, categorie
                                                         disabled={loading}
                                                     />
                                                 </FormControl>
-                                                <div className="space-y-1 leading-none">
+                                                <div className="space-y-1 leading-none flex-1">
                                                     <FormLabel className="font-normal">
                                                         {saloon.name}
                                                     </FormLabel>
                                                     {saloon.address && (
-                                                        <p className="text-sm text-muted-foreground">
+                                                        <p className="text-sm text-muted-foreground break-words">
                                                             {saloon.address}
                                                         </p>
                                                     )}
@@ -374,7 +380,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData, categorie
                         />
                     )}
 
-                    <Button disabled={loading} className="ml-auto" type="submit">
+                    <Button disabled={loading} className="w-full sm:w-auto sm:ml-auto" type="submit">
                         {action}
                     </Button>
                 </form>

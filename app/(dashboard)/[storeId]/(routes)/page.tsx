@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { formatter } from "@/lib/utils";
 import { Calendar, Scissors, Clock, DollarSign } from "lucide-react";
 import { getOwnedSelectedSaloon, getSelectedSaloonIdForStore } from "@/lib/saloon";
+import { checkSalonAccess } from "@/lib/salon-access";
 
 interface DashboardPageProps {
     params: { storeId: string }
@@ -16,6 +17,9 @@ interface DashboardPageProps {
 const DashboardPage: React.FC<DashboardPageProps> = async ({
     params
 }) => {
+    // Check if user has salons, redirect if not
+    await checkSalonAccess(params.storeId);
+    
     const selectedSaloon = await getOwnedSelectedSaloon(params.storeId);
     const selectedSaloonId = selectedSaloon?.id;
     const totalRevenue = await getTotalRevenue(params.storeId, selectedSaloonId);

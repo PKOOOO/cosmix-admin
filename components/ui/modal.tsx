@@ -31,7 +31,7 @@ export const Modal: React.FC<ModalProps> = ({
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={onChange} modal={false}>
+        <Dialog open={isOpen} onOpenChange={onChange} modal={true}>
             <DialogContent className={
                 [
                     "sm:max-w-2xl w-[95vw]", // make content a nice rectangle

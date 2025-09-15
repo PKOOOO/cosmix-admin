@@ -5,12 +5,16 @@ import { format } from "date-fns";
 import { ServiceClient } from "./components/client";
 import { ServiceColumn } from "./components/columns";
 import { getOwnedSelectedSaloonId } from "@/lib/saloon";
+import { checkSalonAccess } from "@/lib/salon-access";
 
 const ServicesPage = async ({
     params
 }: {
     params: { storeId: string }
 }) => {
+    // Check if user has salons, redirect if not
+    await checkSalonAccess(params.storeId);
+    
     const selectedSaloonId = await getOwnedSelectedSaloonId(params.storeId);
     const services = await prismadb.storeService.findMany({
         where: {
@@ -79,8 +83,8 @@ const ServicesPage = async ({
     });
 
     return (
-        <div className="flex-col">
-            <div className="flex-1 space-y-4 p-3 sm:p-6 md:p-8 pt-4 sm:pt-6">
+        <div className="flex-col w-full max-w-full overflow-hidden">
+            <div className="flex-1 space-y-4 p-4 sm:p-6 md:p-8 pt-4 sm:pt-6 w-full max-w-full">
                 <ServiceClient data={formattedServices} />
             </div>
         </div>

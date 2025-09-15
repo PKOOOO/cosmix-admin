@@ -17,6 +17,7 @@ import { useParams, useRouter } from "next/navigation";
 import { AlertModal } from "@/components/modals/alert-modal";
 import ImageUpload from "@/components/ui/image-upload";
 import { Textarea } from "@/components/ui/textarea";
+import { useStoreModal } from "@/hooks/use-store-modal";
 
 const formSchema = z.object({
     name: z.string().min(1, "Name is required."),
@@ -37,6 +38,7 @@ interface SaloonFormProps {
 export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
     const params = useParams();
     const router = useRouter();
+    const storeModal = useStoreModal();
 
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -90,17 +92,33 @@ defaultValues: initialData ? {
     const onDelete = async () => {
         try {
             setLoading(true);
-            await axios.delete(
+            const response = await axios.delete(
                 `/api/${params.storeId}/saloons/${params.saloonId}`
             );
-            router.refresh();
-            router.push(`/${params.storeId}/saloons`);
-            toast.success("Saloon deleted successfully.");
+            
+            // Check if user has remaining salons
+            if (!response.data.hasRemainingSaloons) {
+                // No remaining salons, navigate to create new salon
+                toast.success("Saloon deleted. Please create a new salon to continue.");
+                // Close modal and navigate to salon creation page
+                setOpen(false);
+                setTimeout(() => {
+                    router.push(`/${params.storeId}/saloons/new`);
+                }, 200);
+            } else {
+                // Has remaining salons, navigate normally
+                toast.success("Saloon deleted successfully.");
+                setOpen(false);
+                setTimeout(() => {
+                    router.refresh();
+                    router.push(`/${params.storeId}/saloons`);
+                }, 100);
+            }
         } catch (error) {
-            toast.error("Ensure all services using this saloon are removed first.");
+            toast.error("Failed to delete saloon. Please try again.");
+            setOpen(false);
         } finally {
             setLoading(false);
-            setOpen(false);
         }
     };
 

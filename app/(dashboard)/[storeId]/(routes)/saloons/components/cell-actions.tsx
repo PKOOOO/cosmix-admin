@@ -15,6 +15,7 @@ import toast from "react-hot-toast";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { AlertModal } from "@/components/modals/alert-modal";
+import { useStoreModal } from "@/hooks/use-store-modal";
 
 interface CellActionProps {
   data: SaloonColumn;
@@ -23,6 +24,7 @@ interface CellActionProps {
 export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   const router = useRouter();
   const params = useParams();
+  const storeModal = useStoreModal();
 
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -46,23 +48,45 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/${params.storeId}/saloons/${data.id}`);
-      router.refresh();
-      router.push(`/${params.storeId}/saloons`);
-      toast.success("Saloon Deleted", {
-        style: {
-          borderRadius: "10px",
-          background: "#333",
-          color: "#fff",
-        },
-      });
+      const response = await axios.delete(`/api/${params.storeId}/saloons/${data.id}`);
+      
+      // Check if user has remaining salons
+      if (!response.data.hasRemainingSaloons) {
+        // No remaining salons, show salon creation modal
+        toast.success("Saloon deleted. Please create a new salon to continue.", {
+          style: {
+            borderRadius: "10px",
+            background: "#333",
+            color: "#fff",
+          },
+        });
+        // Close modal and navigate to salon creation page
+        setOpen(false);
+        setTimeout(() => {
+          router.push(`/${params.storeId}/saloons/new`);
+        }, 200);
+      } else {
+        // Has remaining salons, navigate normally
+        toast.success("Saloon Deleted", {
+          style: {
+            borderRadius: "10px",
+            background: "#333",
+            color: "#fff",
+          },
+        });
+        setOpen(false);
+        setTimeout(() => {
+          router.refresh();
+          router.push(`/${params.storeId}/saloons`);
+        }, 200);
+      }
     } catch (error) {
       toast.error(
-        "Make sure to remove all services using this saloon first."
+        "Failed to delete saloon. Please try again."
       );
+      setOpen(false);
     } finally {
-      setLoading(false)
-      setOpen(false)
+      setLoading(false);
     }
   };
 
@@ -101,7 +125,16 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
               Set Prices
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem onClick={() => setOpen(true)}>
+          <DropdownMenuItem 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              // Small delay to ensure dropdown closes before modal opens
+              setTimeout(() => {
+                setOpen(true);
+              }, 50);
+            }}
+          >
             <Trash className="mr-2 h-4 w-4" />
             Delete
           </DropdownMenuItem>
