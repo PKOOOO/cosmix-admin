@@ -3,12 +3,16 @@ import prismadb from "@/lib/prismadb";
 import { format } from "date-fns";
 import { CategoryClient } from "./components/client";
 import { CategoryColumn } from "./components/columns";
+import { checkSalonAccess } from "@/lib/salon-access";
 
 const CategoriesPage = async ({
     params
 }: {
     params: { storeId: string }
 }) => {
+    // Check if user has salons, redirect if not
+    await checkSalonAccess(params.storeId);
+    
     // Correctly fetch all categories without billboard or icon
     const categories = await prismadb.category.findMany({
         orderBy: {

@@ -2,6 +2,7 @@ import prismadb from "@/lib/prismadb";
 import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import { SettingsForm } from "./components/settings-form";
+import { checkSalonAccess } from "@/lib/salon-access";
 
 interface SettingsPageProps {
     params: {
@@ -12,6 +13,9 @@ interface SettingsPageProps {
 const SettingsPage: React.FC<SettingsPageProps> = async ({
     params
 }) => {
+    // Check if user has salons, redirect if not
+    await checkSalonAccess(params.storeId);
+    
     const { userId } = auth();
 
     if (!userId) {

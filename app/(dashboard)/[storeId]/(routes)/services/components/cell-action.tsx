@@ -37,16 +37,19 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
         try {
             setLoading(true);
             await axios.delete(`/api/${params.storeId}/services/${data.id}`);
-            router.refresh();
-            router.push(`/${params.storeId}/services`);
             toast.success("Service deleted successfully.");
+            setOpen(false);
+            setTimeout(() => {
+                router.refresh();
+                router.push(`/${params.storeId}/services`);
+            }, 200);
         } catch (error) {
             toast.error(
-                "Ensure all bookings and sub-services for this service are removed first."
+                "Failed to delete service. Please try again."
             );
+            setOpen(false);
         } finally {
-            setLoading(false)
-            setOpen(false)
+            setLoading(false);
         }
     };
 
@@ -79,7 +82,15 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
                         <Edit className="mr-2 h-4 w-4" />
                         Update
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setOpen(true)}>
+                    <DropdownMenuItem 
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setTimeout(() => {
+                                setOpen(true);
+                            }, 50);
+                        }}
+                    >
                         <Trash className="mr-2 h-4 w-4" />
                         Delete
                     </DropdownMenuItem>

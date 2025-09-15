@@ -32,11 +32,11 @@ function withCors(middleware: any) {
         if (request.method === "OPTIONS") {
             const origin = request.headers.get("origin");
             const allowedOrigins = [
-                process.env.FRONTEND_STORE_URL || "http://192.168.0.102:3001",
-                "http://192.168.0.102:3000",
-                "http://192.168.0.102:3001",
+                process.env.FRONTEND_STORE_URL || "http://192.168.1.148:3001",
+                "http://192.168.1.148:3000",
+                "http://192.168.1.148:3001",
                 "http://localhost:8081",  // Expo development server
-                "exp://192.168.0.102:8081",  // Expo on physical device
+                "exp://192.168.1.148:8081",  // Expo on physical device
             ];
             const isAllowedOrigin = origin && allowedOrigins.includes(origin);
             const corsHeaders = {
@@ -56,11 +56,11 @@ function withCors(middleware: any) {
         if (response instanceof NextResponse && request.nextUrl.pathname.startsWith("/api/")) {
             const origin = request.headers.get("origin");
             const allowedOrigins = [
-                process.env.FRONTEND_STORE_URL || "http://192.168.0.102:3001",
-                "http://192.168.0.102:3000",
-                "http://192.168.0.102:3001",
+                process.env.FRONTEND_STORE_URL || "http://192.168.1.148:3001",
+                "http://192.168.1.148:3000",
+                "http://192.168.1.148:3001",
                 "http://localhost:8081",  // Expo development server
-                "exp://192.168.0.102:8081",  // Expo on physical device
+                "exp://192.168.1.148:8081",  // Expo on physical device
             ];
             const isAllowedOrigin = origin && allowedOrigins.includes(origin);
             

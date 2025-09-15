@@ -3,12 +3,16 @@ import prismadb from "@/lib/prismadb";
 import { BookingClient } from "./components/client";
 import { BookingColumn } from "./components/columns";
 import { getOwnedSelectedSaloonId } from "@/lib/saloon";
+import { checkSalonAccess } from "@/lib/salon-access";
 
 const BookingsPage = async ({
   params,
 }: {
   params: { storeId: string };
 }) => {
+  // Check if user has salons, redirect if not
+  await checkSalonAccess(params.storeId);
+  
   const selectedSaloonId = await getOwnedSelectedSaloonId(params.storeId);
   const bookings = await prismadb.booking.findMany({
     where: {

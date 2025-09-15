@@ -1,5 +1,5 @@
 // app/api/[storeId]/services/[serviceId]/route.ts
-import { auth } from "@clerk/nextjs";
+import { auth, currentUser } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 
@@ -180,17 +180,27 @@ export async function DELETE(
             return new NextResponse("Store ID and Service ID are required", { status: 400 });
         }
 
-        // Find the user record using Clerk ID
-        const user = await prismadb.user.findUnique({
+        // Ensure the Clerk user exists in our DB (create on the fly if missing)
+        let user = await prismadb.user.findUnique({
             where: {
                 clerkId: userId
             }
         });
 
         if (!user) {
-            return new NextResponse("User not found", { status: 401 });
+            const cu = await currentUser();
+            const email = cu?.emailAddresses?.[0]?.emailAddress;
+            if (!email) return new NextResponse("User email missing", { status: 401 });
+            user = await prismadb.user.create({
+                data: {
+                    clerkId: userId,
+                    email,
+                    name: cu?.firstName || cu?.username || null,
+                },
+            });
         }
 
+        // Check if user owns the store OR if user owns a salon that uses this service
         const storeByUserId = await prismadb.store.findFirst({
             where: {
                 id: params.storeId,
@@ -198,8 +208,20 @@ export async function DELETE(
             },
         });
 
+        // If user doesn't own the store, check if they own a salon that uses this service
         if (!storeByUserId) {
-            return new NextResponse("Unauthorized", { status: 403 });
+            const saloonUsingService = await prismadb.saloonService.findFirst({
+                where: {
+                    serviceId: params.serviceId,
+                    saloon: {
+                        userId: user.id,
+                    },
+                },
+            });
+
+            if (!saloonUsingService) {
+                return new NextResponse("Unauthorized", { status: 403 });
+            }
         }
 
         // First delete all saloon-service relationships

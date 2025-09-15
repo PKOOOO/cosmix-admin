@@ -20,15 +20,14 @@ export default async function DashboardLayout({
     redirect('/');
    }
 
-   // Optional: find the user in your database using the Clerk ID
-   // Do not block access if the user record hasn't been created yet (shared store access)
+   // Find the user in your database using the Clerk ID
    const user = await prismadb.user.findUnique({
     where: { 
         clerkId: userId 
     }
    });
 
-   // Check if the store exists (remove ownership check for shared store)
+   // Check if the store exists
    const store = await prismadb.store.findUnique({
     where: {
         id: params.storeId
@@ -38,6 +37,23 @@ export default async function DashboardLayout({
    if (!store) {
     redirect('/');
    }
+
+   // Check if user has any salons in this store
+   const userSaloons = user ? await prismadb.saloon.findMany({
+    where: {
+        userId: user.id,
+        storeId: params.storeId
+    }
+   }) : [];
+
+   const hasSaloons = userSaloons.length > 0;
+
+   // Check if current route should be restricted for users without salons
+   const restrictedRoutes = ['/services', '/bookings', '/categories', '/settings'];
+   const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+   
+   // For server-side, we need to check the pathname differently
+   // This will be handled in individual page components
 
    // Get all stores for the sidebar (all users can see all stores)
    const stores = await prismadb.store.findMany({
@@ -54,10 +70,10 @@ export default async function DashboardLayout({
           shadow="0 0 10px #3b82f6,0 0 5px #3b82f6"
         />
         <SidebarProvider>
-          <AppSidebar stores={stores} />
-          <div className="flex-1">
+          <AppSidebar stores={stores} hasSaloons={hasSaloons} />
+          <div className="flex-1 w-full max-w-full overflow-hidden">
             <Navbar />
-            <main className="p-3 md:p-6">
+            <main className="p-3 md:p-6 w-full max-w-full overflow-hidden">
               {children}
             </main>
           </div>

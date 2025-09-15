@@ -38,55 +38,55 @@ const ServiceCard: React.FC<{ service: ServiceColumn }> = ({ service }) => {
     };
 
     return (
-        <Card className="mb-4 shadow-sm border-l-4 border-l-blue-500">
+        <Card className="mb-4 shadow-sm border-l-4 border-l-blue-500 w-full max-w-full overflow-hidden">
             <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg font-semibold text-gray-900">{service.name}</CardTitle>
-                    <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                    <CardTitle className="text-lg sm:text-xl font-semibold text-gray-900 leading-tight break-words">{service.name}</CardTitle>
+                    <div className="flex flex-wrap gap-2">
                         {getPopularBadge(service.isPopular)}
-                        <Badge className={getTypeColor(service.serviceType)}>
+                        <Badge className={`${getTypeColor(service.serviceType)} text-sm`}>
                             {service.serviceType}
                         </Badge>
                     </div>
                 </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-                {/* Category and Type Row */}
-                <div className="grid grid-cols-2 gap-4">
+            <CardContent className="space-y-3 w-full max-w-full">
+                {/* Category and Type Row - Stack on mobile */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="bg-gray-50 p-3 rounded-lg">
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Category</p>
-                        <p className="text-sm font-semibold text-gray-900 mt-1">{service.categoryName}</p>
+                        <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Category</p>
+                        <p className="text-base font-semibold text-gray-900 mt-1 break-words">{service.categoryName}</p>
                     </div>
                     <div className="bg-blue-50 p-3 rounded-lg">
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Type</p>
-                        <p className="text-sm font-semibold text-blue-900 mt-1">{service.serviceType}</p>
+                        <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Type</p>
+                        <p className="text-base font-semibold text-blue-900 mt-1">{service.serviceType}</p>
                         {service.parentServiceName && (
-                            <p className="text-xs text-blue-600 mt-1">under {service.parentServiceName}</p>
+                            <p className="text-sm text-blue-600 mt-1 break-words">under {service.parentServiceName}</p>
                         )}
                     </div>
                 </div>
                 
                 {/* Saloons Row */}
                 <div className="bg-purple-50 p-3 rounded-lg">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Saloons</p>
+                    <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Saloons</p>
                     {service.serviceType === "Parent" ? (
-                        <p className="text-sm text-gray-500 italic mt-1">N/A (Parent Service)</p>
+                        <p className="text-base text-gray-500 italic mt-1">N/A (Parent Service)</p>
                     ) : service.saloonNames.length === 0 ? (
-                        <p className="text-sm text-gray-500 italic mt-1">No saloons assigned</p>
+                        <p className="text-base text-gray-500 italic mt-1">No saloons assigned</p>
                     ) : service.saloonNames.length === 1 ? (
-                        <p className="text-sm font-semibold text-purple-900 mt-1">{service.saloonNames[0]}</p>
+                        <p className="text-base font-semibold text-purple-900 mt-1 break-words">{service.saloonNames[0]}</p>
                     ) : (
                         <div className="mt-1">
-                            <p className="text-sm font-semibold text-purple-900">{service.saloonNames[0]}</p>
-                            <p className="text-xs text-purple-600">+{service.saloonNames.length - 1} more</p>
+                            <p className="text-base font-semibold text-purple-900 break-words">{service.saloonNames[0]}</p>
+                            <p className="text-sm text-purple-600">+{service.saloonNames.length - 1} more</p>
                         </div>
                     )}
                 </div>
                 
                 {/* Created Date */}
                 <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Created</p>
-                    <p className="text-sm text-gray-700 mt-1">{service.createdAt}</p>
+                    <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Created</p>
+                    <p className="text-base text-gray-700 mt-1">{service.createdAt}</p>
                 </div>
             </CardContent>
         </Card>
@@ -116,75 +116,76 @@ export const ServiceClient: React.FC<ServiceClientProps> = ({
     const standaloneServices = data.filter(service => service.serviceType === "Standalone").length;
 
     return (
-        <>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <Heading
-                title={`Services (${data.length})`}
-                description={`Manage your services - ${parentServices} parent, ${subServices} sub-services, ${standaloneServices} standalone`}
-            /> 
-            <Button onClick={() => router.push(`/${params.storeId}/services/new`)} className="w-full sm:w-auto">
-                <Plus className="mr-2 h-4 w-4" />
-                Add New
-            </Button>
+        <div className="w-full max-w-full overflow-hidden">
+        {/* Sticky Header */}
+        <div className="sticky top-16 z-10 bg-white border-b border-gray-200 pb-2 mb-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <Heading
+                    title={`Services (${data.length})`}
+                    description={`Manage your services - ${parentServices} parent, ${subServices} sub-services, ${standaloneServices} standalone`}
+                /> 
+                <Button onClick={() => router.push(`/${params.storeId}/services/new`)} className="w-full sm:w-auto">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add New
+                </Button>
+            </div>
         </div>
-        <Separator />
+        
         
         {/* Desktop Table View */}
         <div className="hidden md:block">
-            <DataTable searchKey="name" columns={columns} data={data} />
+            <div className="overflow-x-auto">
+                <DataTable columns={columns} data={data} />
+            </div>
         </div>
         
         {/* Mobile Card View */}
-        <div className="md:hidden">
-            {/* Mobile Search and Filters */}
-            <div className="mb-6 space-y-4">
-                <Input
-                    placeholder="🔍 Search services by name or category..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full h-12 text-base border-2 border-gray-200 focus:border-blue-500 rounded-lg"
-                />
+        <div className="md:hidden w-full max-w-full">
+            {/* Mobile Search and Filters - Sticky */}
+            <div className="sticky top-24 z-10 bg-white border-b border-gray-200 pb-2 mb-4 space-y-3 w-full max-w-full">
+                {/* Add New Button for Mobile */}
+                <div className="flex justify-center">
+                    <Button 
+                        onClick={() => router.push(`/${params.storeId}/services/new`)} 
+                        className="w-full max-w-xs bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add New Service
+                    </Button>
+                </div>
                 
                 {/* Type Filter Buttons */}
-                <div className="flex gap-2 overflow-x-auto pb-2">
+                <div className="flex flex-wrap gap-2 mt-2">
                     <Button
                         variant={typeFilter === "all" ? "default" : "outline"}
-                        size="sm"
+                        size="default"
                         onClick={() => setTypeFilter("all")}
-                        className="flex-shrink-0"
+                        className="flex-shrink-0 text-base"
                     >
                         All ({data.length})
                     </Button>
                     <Button
                         variant={typeFilter === "Parent" ? "default" : "outline"}
-                        size="sm"
+                        size="default"
                         onClick={() => setTypeFilter("Parent")}
-                        className="flex-shrink-0 bg-green-600 hover:bg-green-700"
+                        className="flex-shrink-0 bg-green-600 hover:bg-green-700 text-base"
                     >
                         Parent ({parentServices})
                     </Button>
                     <Button
                         variant={typeFilter === "Sub-Service" ? "default" : "outline"}
-                        size="sm"
+                        size="default"
                         onClick={() => setTypeFilter("Sub-Service")}
-                        className="flex-shrink-0 bg-blue-600 hover:bg-blue-700"
+                        className="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-base"
                     >
                         Sub ({subServices})
-                    </Button>
-                    <Button
-                        variant={typeFilter === "Standalone" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setTypeFilter("Standalone")}
-                        className="flex-shrink-0 bg-gray-600 hover:bg-gray-700"
-                    >
-                        Standalone ({standaloneServices})
                     </Button>
                 </div>
             </div>
             
             {filteredData.length === 0 ? (
                 <div className="text-center py-8">
-                    <p className="text-gray-500">
+                    <p className="text-gray-500 text-lg">
                         {searchTerm || typeFilter !== "all" ? "No services found matching your filters" : "No services found"}
                     </p>
                 </div>
@@ -200,6 +201,6 @@ export const ServiceClient: React.FC<ServiceClientProps> = ({
         <Heading title="API" description="API calls for Services" />
         <Separator />
         <ApiList entityName="services" entityIdName="serviceId" />
-        </>
+        </div>
     )
 }
