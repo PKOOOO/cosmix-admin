@@ -21,22 +21,36 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
     const params = useParams();
 
     return (
-        <>
-        <div className="flex items-center justify-between">
-        <Heading
-        title={`Saloons (${data.length})`}
-        description="Manage saloons"
-        /> 
-        <Button onClick={() => router.push(`/${params.storeId}/saloons/new`)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add New
-        </Button>
+        <div className="relative min-h-screen">
+            <div className="flex items-center justify-between">
+                <Heading
+                    title={`Saloons (${data.length})`}
+                /> 
+                <Button onClick={() => router.push(`/${params.storeId}/saloons/new`)} className="hidden sm:flex">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add New
+                </Button>
+            </div>
+            <Separator />
+            
+            <div className="pb-20 sm:pb-0">
+                <DataTable searchKey="name" columns={columns} data={data} />
+            </div>
+            
+            {/* Mobile Sticky Bottom Button */}
+            <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 p-3">
+                <Button 
+                    onClick={() => router.push(`/${params.storeId}/saloons/new`)} 
+                    className="w-full bg-black hover:bg-gray-800 text-white"
+                >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add New Saloon
+                </Button>
+            </div>
+            
+            {/* <Heading title="API" description="API calls for Saloons" />
+            <Separator />
+            <ApiList entityName="saloons" entityIdName="saloonId" /> */}
         </div>
-        <Separator />
-        <DataTable searchKey="name" columns={columns} data={data} />
-        <Heading title="API" description="API calls for Saloons" />
-        <Separator />
-        <ApiList entityName="saloons" entityIdName="saloonId" />
-        </>
     )
 }
