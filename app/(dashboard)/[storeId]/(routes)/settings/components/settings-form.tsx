@@ -85,56 +85,101 @@ export const SettingsForm: React.FC<SettingsFormProps> = ({ initialData }) => {
   };
 
   return (
-    <>
+    <div className="relative">
       <AlertModal
         isOpen={open}
         onClose={() => setOpen(false)}
         onConfirm={onDelete}
         loading={loading}
       />
-      <div className="flex items-center justify-between">
-        <Heading title="Settings" description="Manage store preferences" />
+      
+      {/* Header Section - Optimized for mobile */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+        <Heading 
+          title="Settings"
+        />
         <Button
           disabled={loading}
           variant="destructive"
-          size="icon"
+          size="sm"
           onClick={() => setOpen(true)}
+          className="w-full sm:w-auto order-last sm:order-none"
         >
-          <Trash className="h-4 w-4" />
+          <Trash className="h-4 w-4 mr-2" />
+          Delete Store
         </Button>
       </div>
-      <Separator />
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-8 w-full"
-        >
-          <div className="grid grid-cols-3 gap-8">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input
-                      disabled={loading}
-                      placeholder="Store name"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+      
+      <Separator className="mb-6" />
+      
+      {/* Main content container with proper bottom padding for mobile */}
+      <div className="pb-20 md:pb-0">
+        <Form {...form}>
+          <form
+            id="settings-form"
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6 w-full"
+          >
+            {/* Form Fields - Mobile first approach */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem className="sm:col-span-2 lg:col-span-1">
+                    <FormLabel>Store Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={loading}
+                        placeholder="Enter store name"
+                        {...field}
+                        className="w-full"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            {/* Desktop Submit Button */}
+            <div className="flex justify-end">
+              <Button 
+                disabled={loading} 
+                className="hidden md:flex w-full md:w-auto" 
+                type="submit"
+              >
+                Save changes
+              </Button>
+            </div>
+          </form>
+        </Form>
+        
+        <Separator className="my-6" />
+        
+        {/* API Alert - Mobile responsive with overflow handling */}
+        <div className="w-full overflow-hidden">
+          <div className="max-w-full break-all">
+            <ApiAlert 
+              title="NEXT_PUBLIC_API_URL" 
+              description={`${origin}/api/${params.storeId}`} 
+              variant="public" 
             />
           </div>
-          <Button disabled={loading} className="ml-auto" type="submit">
-            Save changes
-          </Button>
-        </form>
-      </Form>
-      <Separator />
-      <ApiAlert title="NEXT_PUBLIC_API_URL" description={`${origin}/api/${params.storeId}`} variant="public" />
-    </>
+        </div>
+      </div>
+      
+      {/* Mobile Sticky Bottom Button - Fixed positioning */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-4 shadow-lg safe-area-padding-bottom">
+        <Button 
+          disabled={loading} 
+          className="w-full h-12 text-base font-medium" 
+          type="submit" 
+          form="settings-form"
+        >
+          Save changes
+        </Button>
+      </div>
+    </div>
   );
 };

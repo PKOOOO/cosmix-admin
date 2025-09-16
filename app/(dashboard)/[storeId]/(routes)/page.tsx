@@ -9,6 +9,8 @@ import { formatter } from "@/lib/utils";
 import { Calendar, Scissors, Clock, DollarSign } from "lucide-react";
 import { getOwnedSelectedSaloon, getSelectedSaloonIdForStore } from "@/lib/saloon";
 import { checkSalonAccess } from "@/lib/salon-access";
+import prismadb from "@/lib/prismadb";
+import { auth } from "@clerk/nextjs";
 
 interface DashboardPageProps {
     params: { storeId: string }
@@ -21,7 +23,26 @@ const DashboardPage: React.FC<DashboardPageProps> = async ({
     await checkSalonAccess(params.storeId);
     
     const selectedSaloon = await getOwnedSelectedSaloon(params.storeId);
-    const selectedSaloonId = selectedSaloon?.id;
+    let saloonToUse = selectedSaloon;
+    
+    // If no saloon is selected, get the first available saloon
+    if (!saloonToUse) {
+        const { userId: clerkUserId } = auth();
+        if (clerkUserId) {
+            const user = await prismadb.user.findUnique({ where: { clerkId: clerkUserId } });
+            if (user) {
+                const firstSaloon = await prismadb.saloon.findFirst({
+                    where: { storeId: params.storeId, userId: user.id },
+                    select: { id: true, name: true },
+                });
+                if (firstSaloon) {
+                    saloonToUse = { id: firstSaloon.id, name: firstSaloon.name };
+                }
+            }
+        }
+    }
+    
+    const selectedSaloonId = saloonToUse?.id;
     const totalRevenue = await getTotalRevenue(params.storeId, selectedSaloonId);
     const bookingsCount = await getBookingsCount(params.storeId, selectedSaloonId);
     const servicesCount = await getServicesCount(params.storeId, selectedSaloonId);
@@ -30,7 +51,7 @@ const DashboardPage: React.FC<DashboardPageProps> = async ({
     return (
         <div className="flex-col">
             <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
-                <Heading title={`${selectedSaloon?.name ?? "Spa"} Dashboard`} description={`Overview of your ${selectedSaloon?.name ?? "spa"} business`} />
+                <Heading title={`${saloonToUse?.name || "Spa"} Dashboard`} />
             
                 <Separator />
                 <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
