@@ -9,6 +9,7 @@ import {
   CalendarCheck,
   Activity,
   User,
+  CloudIcon,
 } from "lucide-react";
 import { useParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -42,6 +43,13 @@ export function AppSidebar({ stores, hasSaloons }: AppSidebarProps) {
       label: 'Overview',
       icon: BarChart3,
       active: pathname === `/${params.storeId}`,
+      disabled: !hasSaloons,
+    },
+    {
+      href: `/${params.storeId}/intergration`,
+      label: 'Stripe Connect',
+      icon: CloudIcon,
+      active: pathname === `/${params.storeId}/intergration`,
       disabled: !hasSaloons,
     },
     {

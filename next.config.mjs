@@ -15,7 +15,24 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     images: {
-        domains: ["res.cloudinary.com"],
+        remotePatterns: [
+            {
+                protocol: 'https',
+                hostname: 'res.cloudinary.com',
+            },
+            {
+                protocol: 'https',
+                hostname: 'cdn.brandfetch.io',
+            },
+            {
+                protocol: 'https',
+                hostname: 'ucarecdn.com',
+            },
+            {
+                protocol: 'https',
+                hostname: 'js.stripe.com',
+            },
+        ],
     },
     experimental: {
         serverActions: true,
