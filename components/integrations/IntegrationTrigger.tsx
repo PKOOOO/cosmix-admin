@@ -4,6 +4,7 @@ import { Card } from '../ui/card'
 import { CloudIcon } from 'lucide-react'
 import { Separator } from '../ui/separator'
 import StripeModal from '../modals/stripe-modal'
+import { IntegrationModalbody } from './integration-modal-body'
 
 interface Props {
     name: 'stripe'
@@ -38,10 +39,10 @@ const IntegrationTrigger = ({
         }
         >
             <Separator orientation="horizontal" />
-            {/* <IntegrationModalbody
+            <IntegrationModalbody
                 connections={connections}
                 type={name}
-            /> */}
+            />
 
         </StripeModal>
     )
