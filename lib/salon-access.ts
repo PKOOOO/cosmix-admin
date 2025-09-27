@@ -2,7 +2,7 @@ import prismadb from "@/lib/prismadb";
 import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 
-export async function checkSalonAccess(storeId: string) {
+export async function checkSalonAccess() {
   const { userId } = auth();
 
   if (!userId) {
@@ -20,11 +20,10 @@ export async function checkSalonAccess(storeId: string) {
     redirect('/');
   }
 
-  // Check if user has any salons in this store
+  // Check if user has any salons
   const userSaloons = await prismadb.saloon.findMany({
     where: {
-      userId: user.id,
-      storeId: storeId
+      userId: user.id
     }
   });
 
@@ -32,7 +31,7 @@ export async function checkSalonAccess(storeId: string) {
 
   if (!hasSaloons) {
     // Redirect to saloons page to create a salon
-    redirect(`/${storeId}/saloons`);
+    redirect('/dashboard/saloons');
   }
 
   return { user, hasSaloons, userSaloons };

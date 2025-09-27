@@ -1,7 +1,17 @@
+import { auth } from "@clerk/nextjs";
+import { redirect } from "next/navigation";
 import { Header } from '@/components/Header'
 import React from 'react'
 
-function page() {
+async function page() {
+  const { userId } = auth();
+
+  // If user is authenticated, redirect to dashboard
+  if (userId) {
+    redirect('/dashboard');
+  }
+
+  // If not authenticated, show landing page
   return (
     <Header />
   )

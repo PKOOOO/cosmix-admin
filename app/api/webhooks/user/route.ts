@@ -57,42 +57,36 @@ export async function POST(req: Request) {
     const { id, email_addresses, first_name, last_name } = evt.data;
 
     try {
-      // Create a new user in your database
-      const user = await prismadb.user.create({
-        data: {
-          clerkId: id,
-          email: email_addresses[0].email_address,
-          name: `${first_name ?? ""} ${last_name ?? ""}`.trim() || "New User",
-        },
+      // Check if user already exists (in case post-sign-in page created them first)
+      const existingUser = await prismadb.user.findUnique({
+        where: { clerkId: id }
       });
 
-      console.log("User created:", user.id);
-
-      // Check if there's already a shared store
-      const existingStore = await prismadb.store.findFirst({
-        orderBy: {
-          createdAt: 'asc' // Get the first store
-        }
-      });
-
-      // If no store exists, create a default shared store
-      if (!existingStore) {
-        const defaultStore = await prismadb.store.create({
+      let user;
+      if (existingUser) {
+        // Update existing user with full details from webhook
+        user = await prismadb.user.update({
+          where: { clerkId: id },
           data: {
-            name: "My Spa", // Default store name
-            description: "Welcome to our spa services",
-            shortIntro: "Relaxation and wellness services",
-            userId: user.id, // First user becomes the nominal owner
-          }
+            email: email_addresses[0].email_address,
+            name: `${first_name ?? ""} ${last_name ?? ""}`.trim() || "New User",
+          },
         });
-
-        console.log("Default store created:", defaultStore.id);
+        console.log("User updated:", user.id);
       } else {
-        console.log("Shared store already exists:", existingStore.id);
+        // Create a new user in your database
+        user = await prismadb.user.create({
+          data: {
+            clerkId: id,
+            email: email_addresses[0].email_address,
+            name: `${first_name ?? ""} ${last_name ?? ""}`.trim() || "New User",
+          },
+        });
+        console.log("User created:", user.id);
       }
 
     } catch (error) {
-      console.error("Error creating user or store:", error);
+      console.error("Error creating user:", error);
       return new NextResponse("Error creating user", { status: 500 });
     }
   }

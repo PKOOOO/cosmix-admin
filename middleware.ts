@@ -10,12 +10,18 @@ const clerkAuthMiddleware = authMiddleware({
         "/sign-up(.*)",
         "/api/stores(.*)",
         "/api/categories(.*)",
-        "/api/:storeId/categories(.*)",  // ← Correct Clerk syntax for dynamic routes
-        "/api/:storeId/services(.*)",    // ← For services
-        "/api/:storeId/saloons(.*)",     // ← For saloons (public access)
-        "/api/:storeId/bookings(.*)",    // ← For bookings (already there)
+        "/api/services(.*)",
+        "/api/saloons(.*)",
+        "/api/bookings(.*)",
+        "/api/checkout(.*)",             // ← For checkout (payment flow)
+        "/api/:storeId/categories(.*)",  // ← Keep for backward compatibility
+        "/api/:storeId/services(.*)",    // ← Keep for backward compatibility
+        "/api/:storeId/saloons(.*)",     // ← Keep for backward compatibility
+        "/api/:storeId/bookings(.*)",    // ← Keep for backward compatibility
         "/api/:storeId/checkout(.*)",    // ← For checkout (payment flow)
+        "/api/webhook(.*)",              // ← Allow Stripe webhook (singular)
         "/api/webhooks(.*)",
+        "/api/webhooks/stripe(.*)",
         "/api/uploadthing(.*)",
     ],
     ignoredRoutes: [
@@ -32,11 +38,11 @@ function withCors(middleware: any) {
         if (request.method === "OPTIONS") {
             const origin = request.headers.get("origin");
             const allowedOrigins = [
-                process.env.FRONTEND_STORE_URL || "http://172.26.222.187:3001",
-                "http://172.26.222.187:3000",
-                "http://172.26.222.187:3001",
+                process.env.FRONTEND_STORE_URL || "http://192.168.1.148:3001",
+                "http://192.168.1.148:3000",
+                "http://192.168.1.148:3001",
                 "http://localhost:8081",  // Expo development server
-                "exp://172.26.222.187:8081",  // Expo on physical device
+                "exp://192.168.1.148:8081",  // Expo on physical device
             ];
             const isAllowedOrigin = origin && allowedOrigins.includes(origin);
             const corsHeaders = {
@@ -56,11 +62,11 @@ function withCors(middleware: any) {
         if (response instanceof NextResponse && request.nextUrl.pathname.startsWith("/api/")) {
             const origin = request.headers.get("origin");
             const allowedOrigins = [
-                process.env.FRONTEND_STORE_URL || "http://172.26.222.187:3001",
-                "http://172.26.222.187:3000",
-                "http://172.26.222.187:3001",
+                process.env.FRONTEND_STORE_URL || "http://192.168.1.148:3001",
+                "http://192.168.1.148:3000",
+                "http://192.168.1.148:3001",
                 "http://localhost:8081",  // Expo development server
-                "exp://172.26.222.187:8081",  // Expo on physical device
+                "exp://192.168.1.148:8081",  // Expo on physical device
             ];
             const isAllowedOrigin = origin && allowedOrigins.includes(origin);
             

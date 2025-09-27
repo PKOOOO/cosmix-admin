@@ -1,9 +1,11 @@
 import prismadb from "@/lib/prismadb";
 
-export const getPendingBookings = async (storeId: string, saloonId?: string) => {
+export const getPendingBookings = async (userId: string, saloonId?: string) => {
     const pendingCount = await prismadb.booking.count({
         where: {
-            storeId,
+            saloon: {
+                userId: userId
+            },
             status: "pending",
             saloonId: saloonId ?? undefined,
         },

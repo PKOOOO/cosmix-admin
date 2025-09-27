@@ -3,65 +3,44 @@
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
-import { useParams, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 export function MainNav({
     className,
     ...props
 }: React.HTMLAttributes<HTMLElement>) {
 const pathname = usePathname();
-const params = useParams();
 
     const routes = [
         {
-            href:`/${params.storeId}`,
+            href: '/dashboard',
             label: 'Overview',
-            active: pathname === `/${params.storeId}`,
+            active: pathname === '/dashboard',
         },
         {
-            href:`/${params.storeId}/billboards`,
-            label: 'Billboards',
-            active: pathname === `/${params.storeId}/billboards`,
+            href: '/dashboard/services',
+            label: 'Services',
+            active: pathname === '/dashboard/services',
         },
         {
-            href:`/${params.storeId}/categories`,
+            href: '/dashboard/categories',
             label: 'Categories',
-            active: pathname === `/${params.storeId}/categories`,
+            active: pathname === '/dashboard/categories',
         },
         {
-            href:`/${params.storeId}/sizes`,
-            label: 'Sizes',
-            active: pathname === `/${params.storeId}/sizes`,
+            href: '/dashboard/saloons',
+            label: 'Saloons',
+            active: pathname === '/dashboard/saloons',
         },
         {
-            href:`/${params.storeId}/icons`,
-            label: 'Icons',
-            active: pathname === `/${params.storeId}/icons`,
+            href: '/dashboard/bookings',
+            label: 'Bookings',
+            active: pathname === '/dashboard/bookings',
         },
         {
-            href:`/${params.storeId}/colors`,
-            label: 'Colors',
-            active: pathname === `/${params.storeId}/colors`,
-        },
-        {
-            href:`/${params.storeId}/products`,
-            label: 'Products',
-            active: pathname === `/${params.storeId}/products`,
-        },
-        {
-            href:`/${params.storeId}/orders`,
-            label: 'Orders',
-            active: pathname === `/${params.storeId}/orders`,
-        },
-        {
-            href:`/${params.storeId}/settings`,
+            href: '/dashboard/settings',
             label: 'Settings',
-            active: pathname === `/${params.storeId}/settings`,
-        },
-        {
-            href:`/${params.storeId}/tracker`,
-            label: 'Tracker',
-            active: pathname === `/${params.storeId}/tracker`,
+            active: pathname === '/dashboard/settings',
         },
     ];
     

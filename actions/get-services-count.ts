@@ -1,17 +1,17 @@
 import prismadb from "@/lib/prismadb";
 
-export const getServicesCount = async (storeId: string, saloonId?: string) => {
-    // Count services available at this spa/store
-    const servicesCount = await prismadb.storeService.count({
+export const getServicesCount = async (userId: string, saloonId?: string) => {
+    // Count services available for this user's saloons
+    const servicesCount = await prismadb.service.count({
         where: {
-            storeId,
-            ...(saloonId ? {
-                service: {
-                    saloonServices: {
-                        some: { saloonId }
-                    }
+            saloonServices: {
+                some: {
+                    saloon: {
+                        userId: userId
+                    },
+                    ...(saloonId ? { saloonId } : {})
                 }
-            } : {}),
+            }
         },
     });
 

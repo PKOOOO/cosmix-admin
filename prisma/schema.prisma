@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------- USERS -------------------
+model User {
+  id         String     @id @default(uuid())
+  clerkId    String     @unique
+  email      String     @unique
+  name       String?
+  stripeId   String?    @unique
+
+  bookings   Booking[]
+  saloons    Saloon[]    // A user can own multiple saloons
+  reviews    SaloonReview[]
+
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@map("users")
+}
+
+// ------------------- SALOON -------------------
+model Saloon {
+  id             String         @id @default(uuid())
+  name           String
+  userId         String
+  description    String?
+  shortIntro     String?
+  images         SaloonImage[]
+  rating         Float          @default(0.0)
+  address        String?
+
+  user           User           @relation(fields: [userId], references: [id])
+  saloonServices SaloonService[]
+  bookings       Booking[]
+  reviews        SaloonReview[]
+  categories     Category[]     // Categories are now tied to saloons
+  timeSlots      SaloonTimeSlot[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("saloons")
+  @@index([userId])
+}
+
+// ------------------- IMAGES -------------------
+model SaloonImage {
+  id         String   @id @default(uuid())
+  saloonId   String
+  saloon     Saloon   @relation(fields: [saloonId], references: [id], onDelete: Cascade)
+  url        String
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("saloon_images")
+  @@index([saloonId])
+}
+
+// ------------------- CATEGORY -------------------
+model Category {
+  id          String    @id @default(uuid())
+  saloonId    String
+  saloon      Saloon    @relation(fields: [saloonId], references: [id], onDelete: Cascade)
+  name        String
+  
+  services    Service[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([saloonId, name]) // Unique per saloon
+  @@map("categories")
+}
+
+// ------------------- SALOON ↔ SERVICE -------------------
+model SaloonService {
+  saloonId        String
+  saloon          Saloon   @relation(fields: [saloonId], references: [id])
+  serviceId       String
+  service         Service  @relation(fields: [serviceId], references: [id])
+
+  price           Float
+  durationMinutes Int
+  isAvailable     Boolean  @default(true)
+
+  // Available days (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+  availableDays   Int[]    @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@id([saloonId, serviceId])
+  @@map("saloon_services")
+}
+
+// ------------------- SERVICE -------------------
+model Service {
+  id              String          @id @default(uuid())
+  name            String
+  description     String?
+
+  categoryId      String
+  category        Category        @relation(fields: [categoryId], references: [id])
+
+  parentServiceId String?
+  parentService   Service?        @relation("ServiceHierarchy", fields: [parentServiceId], references: [id], onDelete: Cascade)
+  subServices     Service[]       @relation("ServiceHierarchy")
+
+  isPopular       Boolean         @default(false)
+
+  saloonServices  SaloonService[]
+  bookings        Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("services")
+}
+
+// ------------------- BOOKING -------------------
+model Booking {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+
+  serviceId    String
+  service      Service  @relation(fields: [serviceId], references: [id])
+
+  saloonId     String
+  saloon       Saloon   @relation(fields: [saloonId], references: [id])
+
+  bookingTime  DateTime
+  status       String   @default("pending") // pending, confirmed, cancelled, completed
+
+  customerName  String?
+  customerPhone String?
+  customerEmail String?
+  notes         String?
+  totalAmount   Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("bookings")
+  @@index([saloonId])
+  @@index([status])
+  @@index([bookingTime])
+}
+
+// ------------------- SALOON REVIEWS -------------------
+model SaloonReview {
+  id        String   @id @default(uuid())
+  saloonId  String
+  saloon    Saloon   @relation(fields: [saloonId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  rating    Int      // 1..5
+  comment   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([saloonId])
+  @@index([userId])
+  @@map("saloon_reviews")
+}
+
+// ------------------- SALOON TIME SLOTS -------------------
+model SaloonTimeSlot {
+  id        String   @id @default(uuid())
+  saloonId  String
+  saloon    Saloon   @relation(fields: [saloonId], references: [id], onDelete: Cascade)
+  
+  dayOfWeek Int      // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  startTime String   // Format: "HH:MM" (e.g., "09:00")
+  endTime   String   // Format: "HH:MM" (e.g., "18:00")
+  isOpen    Boolean  @default(true)
+  
+  // Slot configuration
+  slotDurationMinutes Int @default(30) // Duration of each slot
+  breakTimeMinutes    Int @default(15) // Break time between appointments
+  maxBookingsPerSlot  Int @default(1)  // Maximum bookings per time slot
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([saloonId, dayOfWeek])
+  @@map("saloon_time_slots")
+}
