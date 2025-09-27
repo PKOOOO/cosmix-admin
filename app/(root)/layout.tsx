@@ -26,19 +26,22 @@ export default async function SetupLayout({
         redirect('/');
     }
 
-    // Check if ANY store exists in the database (shared store approach)
-    const sharedStore = await prismadb.store.findFirst({
+    // Check if user has any saloons
+    const userSaloons = await prismadb.saloon.findMany({
+        where: {
+            userId: user.id
+        },
         orderBy: {
-            createdAt: 'asc' // Get the first/oldest store
+            createdAt: 'asc'
         }
     });
 
-    if (sharedStore) {
-        // If a store exists, redirect all users to it
-        redirect(`/${sharedStore.id}`);
+    if (userSaloons.length > 0) {
+        // If user has saloons, redirect to dashboard
+        redirect('/dashboard');
     }
 
-    // If no store exists at all, allow store creation
+    // If no saloons exist, allow saloon creation
     return (
         <>
         {children}

@@ -68,31 +68,8 @@ export async function POST(req: Request) {
 
       console.log("User created:", user.id);
 
-      // Check if there's already a shared store
-      const existingStore = await prismadb.store.findFirst({
-        orderBy: {
-          createdAt: 'asc' // Get the first store
-        }
-      });
-
-      // If no store exists, create a default shared store
-      if (!existingStore) {
-        const defaultStore = await prismadb.store.create({
-          data: {
-            name: "My Spa", // Default store name
-            description: "Welcome to our spa services",
-            shortIntro: "Relaxation and wellness services",
-            userId: user.id, // First user becomes the nominal owner
-          }
-        });
-
-        console.log("Default store created:", defaultStore.id);
-      } else {
-        console.log("Shared store already exists:", existingStore.id);
-      }
-
     } catch (error) {
-      console.error("Error creating user or store:", error);
+      console.error("Error creating user:", error);
       return new NextResponse("Error creating user", { status: 500 });
     }
   }

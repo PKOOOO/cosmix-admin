@@ -2,6 +2,7 @@ import { Roboto } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 
 import { ModalProvider } from "@/providers/modal-provider";
+import { ThemeProvider } from "@/components/theme-provider";
 
 import "./globals.css";
 
@@ -28,18 +29,23 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={roboto.className}>
-     
-      <NextTopLoader
-              color="#3b82f6" // Default blue - change to match your theme
-              height={3}
-              showSpinner={true}
-              
-            />
-        <ToastProvider />
-        <ModalProvider />
-        {children}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <NextTopLoader
+            color="#3b82f6" // Default blue - change to match your theme
+            height={3}
+            showSpinner={true}
+          />
+          <ToastProvider />
+          <ModalProvider />
+          {children}
+        </ThemeProvider>
         </body>
     </html>
     </ClerkProvider>

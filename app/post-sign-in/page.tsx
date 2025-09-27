@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs"
 import { redirect } from "next/navigation"
 import prismadb from "@/lib/prismadb"
 import { PostSignInClient } from "./post-sign-in-client"
+import { PostSignInError } from "./error-component"
 
 // Helper function to wait for user creation (in case webhook is delayed)
 async function findUserWithRetry(clerkUserId: string, maxRetries = 3) {
@@ -30,25 +31,59 @@ export default async function PostSignIn() {
     redirect('/') // Shouldn't happen but good to handle
   }
 
-  // Check if ANY store exists in the database (shared store approach)
-  const sharedStore = await prismadb.store.findFirst({
+  // Check if user has any saloons
+  let user = await findUserWithRetry(clerkUserId)
+  console.log("PostSignIn - user lookup result:", user ? `Found user ${user.id}` : "No user found")
+  
+  // If user doesn't exist in database, create them
+  if (!user) {
+    console.log("PostSignIn - user not found in database, creating user")
+    try {
+      // Create user with minimal info - we'll let the webhook handle full details
+      // or update them later when we can get the full user info
+      user = await prismadb.user.create({
+        data: {
+          clerkId: clerkUserId,
+          email: `${clerkUserId}@temp.local`, // Temporary email with unique ID
+          name: "New User", // Will be updated by webhook or later
+        }
+      })
+      console.log("PostSignIn - user created successfully:", user.id)
+    } catch (error) {
+      console.error("PostSignIn - error creating user:", error)
+      // Check if it's a unique constraint error (user already exists)
+      if (error instanceof Error && error.message.includes('Unique constraint')) {
+        console.log("PostSignIn - user already exists, retrying lookup")
+        user = await prismadb.user.findUnique({
+          where: { clerkId: clerkUserId }
+        })
+        if (user) {
+          console.log("PostSignIn - found existing user after retry:", user.id)
+        }
+      }
+      
+      if (!user) {
+        // If we still don't have a user, show error page
+        return <PostSignInError />
+      }
+    }
+  }
+
+  const userSaloons = await prismadb.saloon.findMany({
+    where: {
+      userId: user.id
+    },
     orderBy: {
-      createdAt: 'asc' // Get the first/oldest store
+      createdAt: 'asc'
     }
   });
 
-  if (sharedStore) {
-    console.log("PostSignIn - redirecting to shared store:", sharedStore.id)
-    redirect(`/${sharedStore.id}`) // Redirect to the shared store
+  if (userSaloons.length > 0) {
+    console.log("PostSignIn - user has saloons, redirecting to dashboard")
+    redirect('/dashboard') // Redirect to dashboard without storeId
   }
   
-  // If we reach here, there is no store at all. Try to ensure user exists then show modal.
-  let user = null
-  try {
-    user = await findUserWithRetry(clerkUserId)
-  } catch (error) {
-    console.error("PostSignIn - Database error:", error)
-  }
-  console.log("PostSignIn - no store found, showing modal to create one")
+  // If we reach here, user has no saloons. Show modal to create one.
+  console.log("PostSignIn - no saloons found, showing modal to create one")
   return <PostSignInClient />
 }

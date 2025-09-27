@@ -1,18 +1,14 @@
 import axios from "axios"
-import { useParams } from "next/navigation";
 import { useState } from "react"
-
-
 
 export const useStripe = () => {
     const [onStripeAccountPending, setOnStripeAccountPending] = 
     useState<boolean>(false)
-    const params = useParams();
 
     const onStripeConnect = async () => {
         try { 
             setOnStripeAccountPending(true)
-            const response = await axios.get(`/api/${params.storeId}/stripe/connect`)
+            const response = await axios.get(`/api/stripe/connect`)
             
             if (response.data?.url) {
                 window.location.href = response.data.url
