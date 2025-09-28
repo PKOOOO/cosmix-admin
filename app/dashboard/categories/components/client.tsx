@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { CategoryColumn, columns } from "./columns";
 import { DataTable } from "@/components/ui/data-table";
 
@@ -16,6 +17,23 @@ export const CategoryClient: React.FC<CategoryClientProps> = ({
     data 
 }) => {
     const router = useRouter();
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const checkAdminStatus = async () => {
+            try {
+                const response = await axios.get('/api/admin/check');
+                setIsAdmin(response.data.isAdmin);
+            } catch (error) {
+                console.error('Error checking admin status:', error);
+                setIsAdmin(false);
+            } finally {
+                setLoading(false);
+            }
+        };
+        checkAdminStatus();
+    }, []);
 
     return (
         <div className="relative min-h-screen">
@@ -23,26 +41,30 @@ export const CategoryClient: React.FC<CategoryClientProps> = ({
                 <Heading
                     title={`Categories (${data.length})`}
                 /> 
-                <Button onClick={() => router.push('/dashboard/categories/new')} className="hidden sm:flex">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add New
-                </Button>
+                {!loading && isAdmin && (
+                    <Button onClick={() => router.push('/dashboard/categories/new')} className="hidden sm:flex">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add New
+                    </Button>
+                )}
             </div>
             
             <div className="pb-20 sm:pb-0">
                 <DataTable searchKey="name" columns={columns} data={data} />
             </div>
             
-            {/* Mobile Sticky Bottom Button */}
-            <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 p-3">
-                <Button 
-                    onClick={() => router.push('/dashboard/categories/new')} 
-                    className="w-full bg-black hover:bg-gray-800 text-white"
-                >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add New Category
-                </Button>
-            </div>
+            {/* Mobile Sticky Bottom Button - Only for admins */}
+            {!loading && isAdmin && (
+                <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 p-3">
+                    <Button 
+                        onClick={() => router.push('/dashboard/categories/new')} 
+                        className="w-full bg-black hover:bg-gray-800 text-white"
+                    >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add New Category
+                    </Button>
+                </div>
+            )}
         </div>
     )
 }

@@ -34,13 +34,18 @@ const ServicesPage = async () => {
         redirect('/dashboard/saloons');
     }
 
-    // Get all services for the user's categories (including parent services)
+    // Get all services for the user's categories and global categories
     const services = await prismadb.service.findMany({
         where: {
             category: {
-                saloon: {
-                    userId: user.id
-                }
+                OR: [
+                    { isGlobal: true }, // Global categories available to all users
+                    { 
+                        saloon: {
+                            userId: user.id
+                        }
+                    } // User's own saloon categories
+                ]
             }
         },
         include: {
@@ -73,9 +78,24 @@ const ServicesPage = async () => {
         name: item.name,
         description: item.description || "",
         category: item.category?.name || "",
-        isPopular: item.isPopular,
-        createdAt: new Date(item.createdAt).toLocaleDateString()
+        createdAt: new Date(item.createdAt).toLocaleDateString(),
+        isParent: !item.parentServiceId,
+        parentService: item.parentService?.name
     }));
+
+    console.log(`Found ${services.length} services:`, services.map(s => ({
+        id: s.id,
+        name: s.name,
+        isParent: !s.parentServiceId,
+        category: s.category?.name,
+        parentService: s.parentService?.name,
+        saloonServices: s.saloonServices.length
+    })));
+    
+    // Separate parent services and sub-services
+    const parentServices = services.filter(s => !s.parentServiceId);
+    const subServices = services.filter(s => s.parentServiceId);
+    console.log(`Parent services: ${parentServices.length}, Sub-services: ${subServices.length}`);
 
     return ( 
         <div className="flex-col">

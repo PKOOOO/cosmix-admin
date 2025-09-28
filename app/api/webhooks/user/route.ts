@@ -57,6 +57,10 @@ export async function POST(req: Request) {
     const { id, email_addresses, first_name, last_name } = evt.data;
 
     try {
+      // Check if this is the first user (admin)
+      const userCount = await prismadb.user.count();
+      const isFirstUser = userCount === 0;
+
       // Check if user already exists (in case post-sign-in page created them first)
       const existingUser = await prismadb.user.findUnique({
         where: { clerkId: id }
@@ -70,9 +74,10 @@ export async function POST(req: Request) {
           data: {
             email: email_addresses[0].email_address,
             name: `${first_name ?? ""} ${last_name ?? ""}`.trim() || "New User",
+            isAdmin: isFirstUser, // Set admin status for first user
           },
         });
-        console.log("User updated:", user.id);
+        console.log("User updated:", user.id, isFirstUser ? "(Admin)" : "");
       } else {
         // Create a new user in your database
         user = await prismadb.user.create({
@@ -80,9 +85,10 @@ export async function POST(req: Request) {
             clerkId: id,
             email: email_addresses[0].email_address,
             name: `${first_name ?? ""} ${last_name ?? ""}`.trim() || "New User",
+            isAdmin: isFirstUser, // Set admin status for first user
           },
         });
-        console.log("User created:", user.id);
+        console.log("User created:", user.id, isFirstUser ? "(Admin)" : "");
       }
 
     } catch (error) {

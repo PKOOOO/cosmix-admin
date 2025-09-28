@@ -17,12 +17,11 @@ import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { AlertModal } from "@/components/modals/alert-modal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { auth } from "@clerk/nextjs";
-import prismadb from "@/lib/prismadb";
+import { checkAdminAccess } from "@/lib/admin-access";
 
 const formSchema = z.object({
     name: z.string().min(1, "Name is required."),
-    saloonId: z.string().min(1, "Saloon is required."),
+    saloonId: z.string().optional(),
 });
 
 type CategoryFormValues = z.infer<typeof formSchema>;
@@ -37,6 +36,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({ initialData }) => {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [saloons, setSaloons] = useState<{id: string, name: string}[]>([]);
+    const [isAdmin, setIsAdmin] = useState(false);
 
     const title = initialData ? "Edit category" : "Create category";
     const description = initialData ? "Edit category details" : "Add a new category";
@@ -54,22 +54,42 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({ initialData }) => {
         },
     });
 
-    // Fetch user's saloons
+    // Fetch user's saloons and check admin status
     useEffect(() => {
-        const fetchSaloons = async () => {
+        const fetchData = async () => {
             try {
-                const response = await axios.get('/api/saloons?owned=1');
-                setSaloons(response.data);
+                // Check admin status
+                const adminResponse = await axios.get('/api/admin/check');
+                setIsAdmin(adminResponse.data.isAdmin);
+                
+                // Only fetch saloons if not admin
+                if (!adminResponse.data.isAdmin) {
+                    const response = await axios.get('/api/saloons?owned=1');
+                    setSaloons(response.data);
+                }
             } catch (error) {
-                console.error('Error fetching saloons:', error);
+                console.error('Error fetching data:', error);
+                // If admin check fails, assume not admin and fetch saloons
+                try {
+                    const response = await axios.get('/api/saloons?owned=1');
+                    setSaloons(response.data);
+                } catch (saloonError) {
+                    console.error('Error fetching saloons:', saloonError);
+                }
             }
         };
-        fetchSaloons();
+        fetchData();
     }, []);
 
     const onSubmit = async (data: CategoryFormValues) => {
         try {
             setLoading(true);
+            
+            // Validate saloon selection for non-admin users
+            if (!isAdmin && !data.saloonId) {
+                toast.error("Please select a saloon");
+                return;
+            }
             
             if (initialData) {
                 await axios.patch(
@@ -147,6 +167,15 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({ initialData }) => {
                         onSubmit={form.handleSubmit(onSubmit)}
                         className="space-y-6 w-full"
                     >
+                        {/* Admin Notice */}
+                        {isAdmin && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                                <p className="text-sm text-blue-800">
+                                    <strong>Admin Mode:</strong> You are creating a global category that will be available to all saloons on the platform.
+                                </p>
+                            </div>
+                        )}
+
                         {/* Form Fields Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormField
@@ -167,34 +196,36 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({ initialData }) => {
                                 )}
                             />
                             
-                            <FormField
-                                control={form.control}
-                                name="saloonId"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Saloon</FormLabel>
-                                        <Select 
-                                            disabled={loading} 
-                                            onValueChange={field.onChange} 
-                                            value={field.value}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select a saloon" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {saloons.map((saloon) => (
-                                                    <SelectItem key={saloon.id} value={saloon.id}>
-                                                        {saloon.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            {!isAdmin && (
+                                <FormField
+                                    control={form.control}
+                                    name="saloonId"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Saloon</FormLabel>
+                                            <Select 
+                                                disabled={loading} 
+                                                onValueChange={field.onChange} 
+                                                value={field.value}
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select a saloon" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {saloons.map((saloon) => (
+                                                        <SelectItem key={saloon.id} value={saloon.id}>
+                                                            {saloon.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
                         </div>
 
                         {/* Desktop Submit Button */}

@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { ServiceColumn, columns } from "./columns";
 import { DataTable } from "@/components/ui/data-table";
 
@@ -16,6 +17,23 @@ export const ServiceClient: React.FC<ServiceClientProps> = ({
     data 
 }) => {
     const router = useRouter();
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const checkAdminStatus = async () => {
+            try {
+                const response = await axios.get('/api/admin/check');
+                setIsAdmin(response.data.isAdmin);
+            } catch (error) {
+                console.error('Error checking admin status:', error);
+                setIsAdmin(false);
+            } finally {
+                setLoading(false);
+            }
+        };
+        checkAdminStatus();
+    }, []);
 
     return (
         <div className="relative min-h-screen">

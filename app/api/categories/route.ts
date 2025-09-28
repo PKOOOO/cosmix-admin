@@ -2,12 +2,13 @@
 import { auth } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
+import { checkAdminAccess } from "@/lib/admin-access";
 
 export async function POST(req: Request) {
     try {
         const { userId } = auth();
         const body = await req.json();
-        const { name } = body;
+        const { name, saloonId } = body;
 
         if (!userId) {
             return new NextResponse("Unauthenticated", { status: 401 });
@@ -27,40 +28,72 @@ export async function POST(req: Request) {
             return new NextResponse("User not found", { status: 401 });
         }
 
-        // Check if category already exists for this user's saloons
-        const existingCategory = await prismadb.category.findFirst({
-            where: {
-                saloon: {
+        // Check if user is admin
+        const { isAdmin } = await checkAdminAccess();
+
+        if (isAdmin) {
+            // Admin can create global categories without saloon attachment
+            const existingCategory = await prismadb.category.findFirst({
+                where: {
+                    name: name,
+                    isGlobal: true
+                }
+            });
+
+            if (existingCategory) {
+                return new NextResponse("Global category with this name already exists", { status: 409 });
+            }
+
+            const category = await prismadb.category.create({
+                data: {
+                    name,
+                    isGlobal: true,
+                    saloonId: null
+                }
+            });
+
+            return NextResponse.json(category);
+        } else {
+            // Regular users need to specify a saloon and can only create local categories
+            if (!saloonId) {
+                return new NextResponse("Saloon ID is required for non-admin users", { status: 400 });
+            }
+
+            // Verify the saloon belongs to the user
+            const userSaloon = await prismadb.saloon.findFirst({
+                where: {
+                    id: saloonId,
                     userId: user.id
-                },
-                name: name
-            }
-        });
+                }
+            });
 
-        if (existingCategory) {
-            return new NextResponse("Category with this name already exists", { status: 409 });
+            if (!userSaloon) {
+                return new NextResponse("Saloon not found or access denied", { status: 404 });
+            }
+
+            // Check if category already exists for this saloon
+            const existingCategory = await prismadb.category.findFirst({
+                where: {
+                    saloonId: saloonId,
+                    name: name
+                }
+            });
+
+            if (existingCategory) {
+                return new NextResponse("Category with this name already exists for this saloon", { status: 409 });
+            }
+
+            // Create a new local category
+            const category = await prismadb.category.create({
+                data: {
+                    name,
+                    saloonId: saloonId,
+                    isGlobal: false
+                }
+            });
+
+            return NextResponse.json(category);
         }
-
-        // Get the user's first saloon (or you might want to handle multiple saloons differently)
-        const userSaloon = await prismadb.saloon.findFirst({
-            where: {
-                userId: user.id
-            }
-        });
-
-        if (!userSaloon) {
-            return new NextResponse("No saloon found for user", { status: 404 });
-        }
-
-        // Creates a new category
-        const category = await prismadb.category.create({
-            data: {
-                name,
-                saloonId: userSaloon.id
-            }
-        });
-
-        return NextResponse.json(category);
 
     } catch (error) {
         console.log('[CATEGORIES_POST]', error);
@@ -68,7 +101,7 @@ export async function POST(req: Request) {
     }
 }
 
-// Getting all categories for the current user's saloons
+// Getting all categories (global + user's saloon categories)
 export async function GET(req: Request) {
     try {
         const { userId } = auth();
@@ -88,16 +121,29 @@ export async function GET(req: Request) {
             return new NextResponse("User not found", { status: 401 });
         }
 
-        // Get categories that are associated with the user's saloons
+        // Get both global categories and user's saloon categories
         const categories = await prismadb.category.findMany({
             where: {
+                OR: [
+                    { isGlobal: true }, // Global categories available to all users
+                    { 
+                        saloon: {
+                            userId: user.id
+                        }
+                    } // User's own saloon categories
+                ]
+            },
+            include: {
                 saloon: {
-                    userId: user.id
+                    select: {
+                        name: true
+                    }
                 }
             },
-            orderBy: {
-                createdAt: 'desc',
-            }
+            orderBy: [
+                { isGlobal: 'desc' }, // Global categories first
+                { createdAt: 'desc' }
+            ]
         });
 
         return NextResponse.json(categories);

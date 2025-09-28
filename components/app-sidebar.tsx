@@ -10,9 +10,12 @@ import {
   Activity,
   User,
   CloudIcon,
+  Shield,
 } from "lucide-react";
 import { useParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useState, useEffect } from "react";
+import axios from "axios";
 
 import {
   Sidebar,
@@ -31,6 +34,23 @@ interface AppSidebarProps {
 
 export function AppSidebar({ hasSaloons }: AppSidebarProps) {
   const pathname = usePathname();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      try {
+        const response = await axios.get('/api/admin/check');
+        setIsAdmin(response.data.isAdmin);
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkAdminStatus();
+  }, []);
 
   // Define your menu items to match your app's routes
   const routes = [
@@ -68,6 +88,7 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
       icon: List,
       active: pathname === '/dashboard/categories',
       disabled: !hasSaloons,
+      adminOnly: false, // Regular users can view categories but not create them
     },
     {
       href: '/dashboard/saloons',
@@ -82,6 +103,17 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
       icon: Settings,
       active: pathname === '/dashboard/settings',
       disabled: !hasSaloons,
+    },
+  ];
+
+  // Admin routes
+  const adminRoutes = [
+    {
+      href: '/dashboard/admin',
+      label: 'Admin Panel',
+      icon: Shield,
+      active: pathname === '/dashboard/admin',
+      disabled: false,
     },
   ];
 
@@ -170,6 +202,32 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Admin Section - Only show for admins */}
+        {!loading && isAdmin && (
+          <SidebarGroup className="px-2 md:px-0">
+            <SidebarGroupContent>
+              <SidebarMenu className="space-y-1">
+                {adminRoutes.map((route) => (
+                  <SidebarMenuItem key={route.href}>
+                    <SidebarMenuButton asChild size="lg" className="h-12 md:h-8 text-base md:text-sm">
+                      <a 
+                        href={route.href}
+                        className={cn(
+                          "flex items-center gap-3 px-4 py-3 md:px-2 md:py-2 rounded-lg transition-colors",
+                          route.active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                        )}
+                      >
+                        <route.icon className="h-5 w-5 md:h-4 md:w-4" />
+                        <span className="font-medium">{route.label}</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
       
     </Sidebar>

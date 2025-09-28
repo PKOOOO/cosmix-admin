@@ -39,6 +39,10 @@ export default async function PostSignIn() {
   if (!user) {
     console.log("PostSignIn - user not found in database, creating user")
     try {
+      // Check if this is the first user (admin)
+      const userCount = await prismadb.user.count();
+      const isFirstUser = userCount === 0;
+
       // Create user with minimal info - we'll let the webhook handle full details
       // or update them later when we can get the full user info
       user = await prismadb.user.create({
@@ -46,9 +50,10 @@ export default async function PostSignIn() {
           clerkId: clerkUserId,
           email: `${clerkUserId}@temp.local`, // Temporary email with unique ID
           name: "New User", // Will be updated by webhook or later
+          isAdmin: isFirstUser, // Set admin status for first user
         }
       })
-      console.log("PostSignIn - user created successfully:", user.id)
+      console.log("PostSignIn - user created successfully:", user.id, isFirstUser ? "(Admin)" : "")
     } catch (error) {
       console.error("PostSignIn - error creating user:", error)
       // Check if it's a unique constraint error (user already exists)
