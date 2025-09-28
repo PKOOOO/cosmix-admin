@@ -24,7 +24,6 @@ const formSchema = z.object({
     name: z.string().min(1, "Name is required."),
     description: z.string().optional(),
     categoryId: z.string().min(1, "Category is required."),
-    isPopular: z.boolean().default(false),
     parentServiceId: z.string().optional(),
     saloonIds: z.array(z.string()).min(1, "At least one saloon is required."),
     isParent: z.boolean().default(false),
@@ -63,7 +62,6 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
             name: initialData.name,
             description: initialData.description || "",
             categoryId: initialData.categoryId,
-            isPopular: initialData.isPopular,
             parentServiceId: initialData.parentServiceId || "",
             saloonIds: initialData.saloonServices?.map(ss => ss.saloon.id) || [],
             isParent: !initialData.parentServiceId,
@@ -71,7 +69,6 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
             name: "",
             description: "",
             categoryId: "",
-            isPopular: false,
             parentServiceId: "",
             saloonIds: [],
             isParent: false,
@@ -262,26 +259,6 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                                 )}
                             />
                             
-                            <FormField
-                                control={form.control}
-                                name="isPopular"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                                        <div className="space-y-0.5">
-                                            <FormLabel>Popular Service</FormLabel>
-                                            <p className="text-sm text-muted-foreground">
-                                                Mark as popular service
-                                            </p>
-                                        </div>
-                                        <FormControl>
-                                            <Switch
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                            />
-                                        </FormControl>
-                                    </FormItem>
-                                )}
-                            />
                             
                             {!form.watch("isParent") && (
                                 <FormField

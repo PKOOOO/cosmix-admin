@@ -10,8 +10,9 @@ export type ServiceColumn = {
     name: string;
     description: string;
     category: string;
-    isPopular: boolean;
     createdAt: string;
+    isParent: boolean;
+    parentService?: string;
 };
 
 export const columns: ColumnDef<ServiceColumn>[] = [
@@ -28,13 +29,23 @@ export const columns: ColumnDef<ServiceColumn>[] = [
         header: "Category",
     },
     {
-        accessorKey: "isPopular",
-        header: "Popular",
-        cell: ({ row }) => (
-            <Badge variant={row.original.isPopular ? "default" : "secondary"}>
-                {row.original.isPopular ? "Popular" : "Regular"}
-            </Badge>
-        )
+        id: "type",
+        header: "Type",
+        cell: ({ row }) => {
+            const isParent = row.original.isParent;
+            return (
+                <div className="flex items-center gap-2">
+                    <Badge variant={isParent ? "default" : "secondary"}>
+                        {isParent ? "Parent Service" : "Sub Service"}
+                    </Badge>
+                    {!isParent && row.original.parentService && (
+                        <span className="text-xs text-muted-foreground">
+                            of {row.original.parentService}
+                        </span>
+                    )}
+                </div>
+            );
+        },
     },
     {
         accessorKey: "createdAt",

@@ -2,6 +2,7 @@
 import { auth } from "@clerk/nextjs";
 import { NextRequest, NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
+import { checkAdminAccess } from "@/lib/admin-access";
 
 // GET method - Fetch services by category or saloon
 export async function GET(request: NextRequest) {
@@ -26,27 +27,39 @@ export async function GET(request: NextRequest) {
                 return new NextResponse("User not found", { status: 401 });
             }
 
-            // Find the category by ID or name for this user's saloons
+            // Find the category by ID or name - include both global categories and user's saloon categories
             const category = await prismadb.category.findFirst({
                 where: {
-                    saloon: {
-                        userId: user.id
-                    },
                     OR: [
-                        { id: categoryParam }, // If it's a category ID
-                        { name: categoryParam } // If it's a category name
+                        { isGlobal: true }, // Global categories available to all users
+                        { 
+                            saloon: {
+                                userId: user.id
+                            }
+                        } // User's own saloon categories
+                    ],
+                    AND: [
+                        {
+                            OR: [
+                                { id: categoryParam }, // If it's a category ID
+                                { name: categoryParam } // If it's a category name
+                            ]
+                        }
                     ]
                 }
             });
 
             if (!category) {
+                console.log(`Category '${categoryParam}' not found for user ${user.id}`);
                 return NextResponse.json(
                     { error: `Category '${categoryParam}' not found` },
                     { status: 404 }
                 );
             }
 
-            // Fetch all services for this category, including sub-services
+            console.log(`Found category: ${category.name} (isGlobal: ${category.isGlobal})`);
+
+            // Fetch all services for this category, including parent services and sub-services
             const services = await prismadb.service.findMany({
                 where: {
                     categoryId: category.id,
@@ -56,6 +69,7 @@ export async function GET(request: NextRequest) {
                         select: {
                             id: true,
                             name: true,
+                            isGlobal: true,
                         }
                     },
                     parentService: {
@@ -69,7 +83,6 @@ export async function GET(request: NextRequest) {
                             id: true,
                             name: true,
                             description: true,
-                            isPopular: true,
                         }
                     },
                     saloonServices: {
@@ -97,6 +110,7 @@ export async function GET(request: NextRequest) {
                 ]
             });
 
+            console.log(`Found ${services.length} services for category ${category.name}`);
             return NextResponse.json(services);
         } else if (saloonId) {
             // Fetch services for a specific saloon
@@ -178,7 +192,6 @@ export async function POST(req: Request) {
             name, 
             description, 
             categoryId, 
-            isPopular, 
             parentServiceId, 
             saloonIds, // Changed from saloonId to saloonIds array
             isParent
@@ -193,6 +206,14 @@ export async function POST(req: Request) {
         if (!categoryId) {
             return new NextResponse("Category ID is required", { status: 400 });
         }
+        // Check if user is admin
+        const { isAdmin } = await checkAdminAccess();
+
+        // Only admins can create parent services
+        if (isParent && !isAdmin) {
+            return new NextResponse("Only admins can create parent services", { status: 403 });
+        }
+
         // Only require saloonIds for non-parent services
         if (!isParent && (!saloonIds || saloonIds.length === 0)) {
             return new NextResponse("At least one saloon is required for non-parent services", { status: 400 });
@@ -215,7 +236,6 @@ export async function POST(req: Request) {
                 name,
                 description: isParent ? null : description,
                 categoryId,
-                isPopular,
                 parentServiceId: isParent ? null : parentServiceId,
             },
         });

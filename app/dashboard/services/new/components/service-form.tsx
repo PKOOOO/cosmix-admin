@@ -24,7 +24,6 @@ const formSchema = z.object({
     name: z.string().min(1, "Name is required."),
     description: z.string().optional(),
     categoryId: z.string().min(1, "Category is required."),
-    isPopular: z.boolean().default(false),
     parentServiceId: z.string().optional(),
     saloonIds: z.array(z.string()).optional(),
     isParent: z.boolean().default(false),
@@ -53,6 +52,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
     const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
     const [saloons, setSaloons] = useState<{id: string, name: string}[]>([]);
     const [parentServices, setParentServices] = useState<{id: string, name: string}[]>([]);
+    const [isAdmin, setIsAdmin] = useState(false);
 
 
     const title = initialData ? "Edit service" : "Create service";
@@ -66,7 +66,6 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
             name: initialData.name,
             description: initialData.description || "",
             categoryId: initialData.categoryId,
-            isPopular: initialData.isPopular,
             parentServiceId: initialData.parentServiceId || "",
             saloonIds: [],
             isParent: !initialData.parentServiceId,
@@ -74,7 +73,6 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
             name: "",
             description: "",
             categoryId: "",
-            isPopular: false,
             parentServiceId: "",
             saloonIds: [],
             isParent: false,
@@ -90,18 +88,21 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
         isDirty: formState.isDirty
     });
 
-    // Fetch categories and saloons
+    // Fetch categories, saloons, and check admin status
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [categoriesRes, saloonsRes] = await Promise.all([
+                const [categoriesRes, saloonsRes, adminRes] = await Promise.all([
                     axios.get('/api/categories'),
-                    axios.get('/api/saloons?owned=1')
+                    axios.get('/api/saloons?owned=1'),
+                    axios.get('/api/admin/check')
                 ]);
                 setCategories(categoriesRes.data);
                 setSaloons(saloonsRes.data);
+                setIsAdmin(adminRes.data.isAdmin);
             } catch (error) {
                 console.error('Error fetching data:', error);
+                setIsAdmin(false);
             }
         };
         fetchData();
@@ -219,6 +220,15 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                         onSubmit={form.handleSubmit(onSubmit)}
                         className="space-y-6 w-full"
                     >
+                        {/* Non-Admin Notice */}
+                        {!isAdmin && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                                <p className="text-sm text-blue-800">
+                                    <strong>Note:</strong> You can create sub-services that are based on existing parent services. Parent services can only be created by administrators.
+                                </p>
+                            </div>
+                        )}
+
                         {/* Form Fields Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormField
@@ -268,47 +278,29 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                                 )}
                             />
                             
-                            <FormField
-                                control={form.control}
-                                name="isParent"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                                        <div className="space-y-0.5">
-                                            <FormLabel>Parent Service</FormLabel>
-                                            <p className="text-sm text-muted-foreground">
-                                                This is a parent service (no pricing)
-                                            </p>
-                                        </div>
-                                        <FormControl>
-                                            <Switch
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                            />
-                                        </FormControl>
-                                    </FormItem>
-                                )}
-                            />
+                            {isAdmin && (
+                                <FormField
+                                    control={form.control}
+                                    name="isParent"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                            <div className="space-y-0.5">
+                                                <FormLabel>Parent Service</FormLabel>
+                                                <p className="text-sm text-muted-foreground">
+                                                    This is a parent service (no pricing)
+                                                </p>
+                                            </div>
+                                            <FormControl>
+                                                <Switch
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
                             
-                            <FormField
-                                control={form.control}
-                                name="isPopular"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                                        <div className="space-y-0.5">
-                                            <FormLabel>Popular Service</FormLabel>
-                                            <p className="text-sm text-muted-foreground">
-                                                Mark as popular service
-                                            </p>
-                                        </div>
-                                        <FormControl>
-                                            <Switch
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                            />
-                                        </FormControl>
-                                    </FormItem>
-                                )}
-                            />
                             
                             {!form.watch("isParent") && (
                                 <FormField

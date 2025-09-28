@@ -7,7 +7,8 @@ import { CellAction } from "./cell-action";
 export type CategoryColumn = {
     id: string;
     name: string;
-    saloonName: string;
+    saloonName?: string;
+    isGlobal: boolean;
     servicesCount: number;
     createdAt: string;
 };
@@ -20,6 +21,17 @@ export const columns: ColumnDef<CategoryColumn>[] = [
     {
         accessorKey: "saloonName",
         header: "Saloon",
+        cell: ({ row }) => (
+            <span>
+                {row.original.isGlobal ? (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Global
+                    </span>
+                ) : (
+                    row.original.saloonName || "N/A"
+                )}
+            </span>
+        )
     },
     {
         accessorKey: "servicesCount",

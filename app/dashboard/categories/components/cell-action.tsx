@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Copy, Edit, MoreHorizontal, Trash } from "lucide-react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AlertModal } from "@/components/modals/alert-modal";
 
 interface CellActionProps {
@@ -22,9 +22,22 @@ interface CellActionProps {
 
 export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   const router = useRouter();
-
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      try {
+        const response = await axios.get('/api/admin/check');
+        setIsAdmin(response.data.isAdmin);
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+      }
+    };
+    checkAdminStatus();
+  }, []);
 
   const onCopy = (id: string) => {
     navigator.clipboard.writeText(id);
@@ -40,7 +53,13 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   const onDelete = async () => {
     try {
       setLoading(true);
-      await axios.delete(`/api/categories/${data.id}`);
+      
+      // Use different API endpoint for global categories
+      if (data.isGlobal) {
+        await axios.delete(`/api/admin/categories/${data.id}`);
+      } else {
+        await axios.delete(`/api/categories/${data.id}`);
+      }
       
       toast.success("Category deleted successfully.", {
         style: {
@@ -83,26 +102,37 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
             <Copy className="mr-2 h-4 w-4" />
             Copy Id
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() =>
-              router.push(`/dashboard/categories/${data.id}`)
-            }
-          >
-            <Edit className="mr-2 h-4 w-4" />
-            Update
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setTimeout(() => {
-                setOpen(true);
-              }, 50);
-            }}
-          >
-            <Trash className="mr-2 h-4 w-4" />
-            Delete
-          </DropdownMenuItem>
+          
+          {/* Only show edit/delete for admin users */}
+          {isAdmin && (
+            <>
+              <DropdownMenuItem
+                onClick={() => {
+                  if (data.isGlobal) {
+                    // For global categories, redirect to admin panel
+                    router.push('/dashboard/admin');
+                  } else {
+                    router.push(`/dashboard/categories/${data.id}`);
+                  }
+                }}
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                {data.isGlobal ? "Manage in Admin" : "Update"}
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setTimeout(() => {
+                    setOpen(true);
+                  }, 50);
+                }}
+              >
+                <Trash className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </>

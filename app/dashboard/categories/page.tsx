@@ -34,12 +34,17 @@ const CategoriesPage = async () => {
         redirect('/dashboard/saloons');
     }
 
-    // Get all categories for the user's saloons
+    // Get both global categories and user's saloon categories
     const categories = await prismadb.category.findMany({
         where: {
-            saloon: {
-                userId: user.id
-            }
+            OR: [
+                { isGlobal: true }, // Global categories available to all users
+                { 
+                    saloon: {
+                        userId: user.id
+                    }
+                } // User's own saloon categories
+            ]
         },
         include: {
             saloon: {
@@ -53,15 +58,17 @@ const CategoriesPage = async () => {
                 }
             }
         },
-        orderBy: {
-            createdAt: 'desc',
-        },
+        orderBy: [
+            { isGlobal: 'desc' }, // Global categories first
+            { createdAt: 'desc' }
+        ],
     });
 
     const formattedCategories: CategoryColumn[] = categories.map((item) => ({
         id: item.id,
         name: item.name,
-        saloonName: item.saloon.name,
+        saloonName: item.saloon?.name,
+        isGlobal: item.isGlobal,
         servicesCount: item.services.length,
         createdAt: new Date(item.createdAt).toLocaleDateString()
     }));
