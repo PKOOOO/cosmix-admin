@@ -83,19 +83,6 @@ const ServicesPage = async () => {
         parentService: item.parentService?.name
     }));
 
-    console.log(`Found ${services.length} services:`, services.map(s => ({
-        id: s.id,
-        name: s.name,
-        isParent: !s.parentServiceId,
-        category: s.category?.name,
-        parentService: s.parentService?.name,
-        saloonServices: s.saloonServices.length
-    })));
-    
-    // Separate parent services and sub-services
-    const parentServices = services.filter(s => !s.parentServiceId);
-    const subServices = services.filter(s => s.parentServiceId);
-    console.log(`Parent services: ${parentServices.length}, Sub-services: ${subServices.length}`);
 
     return ( 
         <div className="flex-col">

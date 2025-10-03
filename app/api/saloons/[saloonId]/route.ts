@@ -49,7 +49,7 @@ export async function PATCH(
     const { userId } = auth();
     const body = await req.json();
 
-    const { name, description, shortIntro, address, images } = body;
+    const { name, description, shortIntro, address, images, selectedServices } = body;
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 401 });
@@ -110,6 +110,31 @@ export async function PATCH(
         }),
       },
     });
+
+    // Update saloon-service relationships
+    if (selectedServices !== undefined) {
+      // Delete existing saloon-service relationships
+      await prismadb.saloonService.deleteMany({
+        where: {
+          saloonId: params.saloonId,
+        },
+      });
+
+      // Create new saloon-service relationships
+      if (selectedServices.length > 0) {
+        const saloonServiceData = selectedServices.map((serviceId: string) => ({
+          saloonId: params.saloonId,
+          serviceId: serviceId,
+          price: 0, // Default price - can be updated later
+          durationMinutes: 30, // Default duration - can be updated later
+          isAvailable: true,
+        }));
+
+        await prismadb.saloonService.createMany({
+          data: saloonServiceData,
+        });
+      }
+    }
 
     return NextResponse.json(saloon);
   } catch (error) {

@@ -168,10 +168,51 @@ export async function GET(request: NextRequest) {
 
             return NextResponse.json(services);
         } else {
-            return NextResponse.json(
-                { error: "Either category or saloonId parameter is required" },
-                { status: 400 }
-            );
+            // No parameters provided - return all sub-services for saloon selection
+            const { userId: clerkUserId } = auth();
+            if (!clerkUserId) {
+                return new NextResponse("Unauthenticated", { status: 401 });
+            }
+
+            const user = await prismadb.user.findUnique({
+                where: { clerkId: clerkUserId }
+            });
+
+            if (!user) {
+                return new NextResponse("User not found", { status: 401 });
+            }
+
+            // Fetch all sub-services (services with parentServiceId) from global categories
+            const services = await prismadb.service.findMany({
+                where: {
+                    parentServiceId: { not: null }, // Only sub-services
+                    category: {
+                        isGlobal: true // Only from global categories
+                    }
+                },
+                include: {
+                    category: {
+                        select: {
+                            id: true,
+                            name: true,
+                            isGlobal: true,
+                        }
+                    },
+                    parentService: {
+                        select: {
+                            id: true,
+                            name: true,
+                        }
+                    }
+                },
+                orderBy: [
+                    { category: { name: 'asc' } },
+                    { parentService: { name: 'asc' } },
+                    { name: 'asc' }
+                ]
+            });
+
+            return NextResponse.json(services);
         }
     } catch (error) {
         console.error("Error fetching services:", error);

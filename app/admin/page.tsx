@@ -17,10 +17,8 @@ export default async function AdminPage() {
   }
 
   return (
-    <div className="flex-col">
-      <div className="flex-1 space-y-4 p-8 pt-6">
-        <AdminClient />
-      </div>
+    <div className="p-6">
+      <AdminClient />
     </div>
   );
 }

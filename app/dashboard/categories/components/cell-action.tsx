@@ -110,7 +110,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
                 onClick={() => {
                   if (data.isGlobal) {
                     // For global categories, redirect to admin panel
-                    router.push('/dashboard/admin');
+                    router.push('/admin');
                   } else {
                     router.push(`/dashboard/categories/${data.id}`);
                   }
