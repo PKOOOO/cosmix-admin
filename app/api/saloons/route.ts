@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const { userId } = auth();
     const body = await req.json();
 
-    const { name, description, shortIntro, address, images } = body;
+    const { name, description, shortIntro, address, images, selectedServices } = body;
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 401 });
@@ -50,6 +50,21 @@ export async function POST(req: Request) {
         },
       },
     });
+
+    // Create saloon-service relationships for selected services
+    if (selectedServices && selectedServices.length > 0) {
+      const saloonServiceData = selectedServices.map((serviceId: string) => ({
+        saloonId: saloon.id,
+        serviceId: serviceId,
+        price: 0, // Default price - can be updated later
+        durationMinutes: 30, // Default duration - can be updated later
+        isAvailable: true,
+      }));
+
+      await prismadb.saloonService.createMany({
+        data: saloonServiceData,
+      });
+    }
 
     return NextResponse.json(saloon);
   } catch (error) {

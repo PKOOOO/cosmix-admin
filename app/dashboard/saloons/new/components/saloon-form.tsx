@@ -5,18 +5,20 @@ import { Saloon } from "@prisma/client";
 import { Trash } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { AlertModal } from "@/components/modals/alert-modal";
 import ImageUpload from "@/components/ui/image-upload";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const formSchema = z.object({
     name: z.string().min(1, "Name is required."),
@@ -24,6 +26,7 @@ const formSchema = z.object({
     shortIntro: z.string().optional(),
     address: z.string().optional(),
     images: z.object({ url: z.string() }).array(),
+    selectedServices: z.array(z.string()).optional(),
 });
 
 type SaloonFormValues = z.infer<typeof formSchema>;
@@ -39,6 +42,8 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
 
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [services, setServices] = useState<any[]>([]);
+    const [loadingServices, setLoadingServices] = useState(false);
 
     const title = initialData ? "Edit saloon" : "Create saloon";
     const description = initialData ? "Edit saloon details" : "Add a new saloon";
@@ -53,26 +58,50 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
             shortIntro: initialData.shortIntro ?? "",
             address: initialData.address ?? "",
             images: initialData.images || [],
+            selectedServices: [],
         } : {
             name: "",
             description: "",
             shortIntro: "",
             address: "",
             images: [],
+            selectedServices: [],
         },
     });
+
+    // Fetch all sub-services for selection
+    useEffect(() => {
+        const fetchServices = async () => {
+            try {
+                setLoadingServices(true);
+                const response = await axios.get('/api/services');
+                // Filter only sub-services (services with parentServiceId)
+                const subServices = response.data.filter((service: any) => service.parentServiceId);
+                setServices(subServices);
+            } catch (error) {
+                console.error('Error fetching services:', error);
+                toast.error("Failed to fetch services");
+            } finally {
+                setLoadingServices(false);
+            }
+        };
+        fetchServices();
+    }, []);
 
     const onSubmit = async (data: SaloonFormValues) => {
         try {
             setLoading(true);
             
+            // Extract selectedServices from data
+            const { selectedServices, ...saloonData } = data;
+            
             if (initialData) {
                 await axios.patch(
                     `/api/saloons/${initialData.id}`,
-                    data
+                    { ...saloonData, selectedServices }
                 );
             } else {
-                await axios.post(`/api/saloons`, data);
+                await axios.post(`/api/saloons`, { ...saloonData, selectedServices });
             }
     
             router.refresh();
@@ -246,6 +275,71 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                                 value={field.value || ""}
                                                 className="min-h-[100px]"
                                             />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+
+                        {/* Service Selection */}
+                        <div className="md:col-span-4">
+                            <FormField
+                                control={form.control}
+                                name="selectedServices"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Available Services</FormLabel>
+                                        <FormDescription>
+                                            Select which sub-services will be available in this saloon
+                                        </FormDescription>
+                                        <FormControl>
+                                            <div className="space-y-4">
+                                                {loadingServices ? (
+                                                    <div className="text-center py-4">
+                                                        <p className="text-sm text-muted-foreground">Loading services...</p>
+                                                    </div>
+                                                ) : services.length === 0 ? (
+                                                    <div className="text-center py-4">
+                                                        <p className="text-sm text-muted-foreground">No sub-services available. Admins need to create sub-services first.</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="grid gap-3 max-h-60 overflow-y-auto border rounded-md p-4">
+                                                        {services.map((service) => (
+                                                            <div key={service.id} className="flex items-start space-x-3">
+                                                                <Checkbox
+                                                                    id={service.id}
+                                                                    checked={field.value?.includes(service.id) || false}
+                                                                    onCheckedChange={(checked) => {
+                                                                        const currentValues = field.value || [];
+                                                                        if (checked) {
+                                                                            field.onChange([...currentValues, service.id]);
+                                                                        } else {
+                                                                            field.onChange(currentValues.filter((id: string) => id !== service.id));
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <div className="flex-1 space-y-1">
+                                                                    <label
+                                                                        htmlFor={service.id}
+                                                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                                                    >
+                                                                        {service.name}
+                                                                    </label>
+                                                                    {service.description && (
+                                                                        <p className="text-xs text-muted-foreground">
+                                                                            {service.description}
+                                                                        </p>
+                                                                    )}
+                                                                    <p className="text-xs text-blue-600">
+                                                                        Category: {service.category?.name} • Parent: {service.parentService?.name}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>

@@ -108,10 +108,10 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
         fetchData();
     }, []);
 
-    // Fetch parent services when category changes
+    // Fetch parent services when category changes (only for admins)
     useEffect(() => {
         const categoryId = form.watch("categoryId");
-        if (categoryId) {
+        if (categoryId && isAdmin) {
             const fetchParentServices = async () => {
                 try {
                     const response = await axios.get(`/api/services?category=${categoryId}`);
@@ -123,7 +123,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
             };
             fetchParentServices();
         }
-    }, [form.watch("categoryId")]);
+    }, [form.watch("categoryId"), isAdmin]);
 
     // Handle parent service selection - populate form fields
     useEffect(() => {
@@ -302,7 +302,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                             )}
                             
                             
-                            {!form.watch("isParent") && (
+                            {!form.watch("isParent") && isAdmin && (
                                 <FormField
                                     control={form.control}
                                     name="parentServiceId"
@@ -342,6 +342,15 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                                         </FormItem>
                                     )}
                                 />
+                            )}
+                            
+                            {!isAdmin && (
+                                <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
+                                    <p className="text-sm text-blue-800">
+                                        <strong>Note:</strong> As a regular user, you can only create services for your saloons. 
+                                        Sub-services are created by administrators and can be selected when setting up your saloon.
+                                    </p>
+                                </div>
                             )}
                             
                             {!form.watch("isParent") && (

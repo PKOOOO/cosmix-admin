@@ -15,7 +15,7 @@ import {
 import { useParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
-import axios from "axios";
+import axios from "@/lib/axios";
 
 import {
   Sidebar,
@@ -74,6 +74,7 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
       icon: Package,
       active: pathname === '/dashboard/services',
       disabled: !hasSaloons,
+      adminOnly: true, // Only admins can access services
     },
     {
       href: '/dashboard/bookings',
@@ -109,18 +110,18 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
   // Admin routes
   const adminRoutes = [
     {
-      href: '/dashboard/admin',
+      href: '/admin',
       label: 'Admin Panel',
       icon: Shield,
-      active: pathname === '/dashboard/admin',
+      active: pathname === '/admin',
       disabled: false,
     },
   ];
 
   // Group routes for better organization
   const mainRoutes = routes.slice(0, 1);
-  const saloonManagementRoutes = routes.slice(1, 4);
-  const systemRoutes = routes.slice(4);
+  const saloonManagementRoutes = routes.slice(1, 4).filter(route => !route.adminOnly || isAdmin);
+  const systemRoutes = routes.slice(4).filter(route => !route.adminOnly || isAdmin);
 
   return (
     <Sidebar>
