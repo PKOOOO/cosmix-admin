@@ -16,6 +16,7 @@ import { useParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import axios from "@/lib/axios";
+import { UserButton } from "@clerk/nextjs";
 
 import {
   Sidebar,
@@ -25,6 +26,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
 // import StoreSwitcher from "@/components/store-switcher"; // No longer needed
 
@@ -63,7 +65,7 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
     },
     {
       href: '/dashboard/integration',
-      label: 'Stripe Connect',
+      label: 'Paytrail Integration',
       icon: CloudIcon,
       active: pathname === '/dashboard/integration',
       disabled: !hasSaloons,
@@ -231,6 +233,12 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
         )}
       </SidebarContent>
       
+      {/* User Profile at Bottom */}
+      <SidebarFooter className="p-2">
+        <div className="flex items-center justify-center">
+          <UserButton afterSignOutUrl="/" />
+        </div>
+      </SidebarFooter>
     </Sidebar>
   );
 }

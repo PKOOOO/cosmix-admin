@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { auth } from "@clerk/nextjs/server";
-import Stripe from "stripe";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2024-12-18.acacia",
-});
+import { paytrail, PAYTRAIL_CURRENCY } from "@/lib/paytrail";
 
 export async function POST(req: Request) {
     try {
@@ -25,8 +21,7 @@ export async function POST(req: Request) {
             console.log('Checkout: auth() failed or not available');
         }
 
-        // For now, we'll create bookings without payment processing
-        // In a real implementation, you'd integrate with Stripe here
+        // Create bookings and process payments with Paytrail
         
         const bookings = [];
         
@@ -124,30 +119,54 @@ export async function POST(req: Request) {
             bookings.push(booking);
         }
         
-        // Create Stripe Payment Intent
-        const totalAmount = bookings.reduce((sum, b) => sum + b.totalAmount, 0);
+        // Create Paytrail Payment
+        const totalAmount = bookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
         
-        const paymentIntent = await stripe.paymentIntents.create({
+        // Create Paytrail payment request
+        const paymentRequest = {
+            stamp: `booking_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            reference: `REF_${bookings.map(b => b.id).join('_')}`,
             amount: Math.round(totalAmount * 100), // Convert to cents
-            currency: 'usd',
+            currency: PAYTRAIL_CURRENCY,
+            language: 'FI',
+            items: bookings.map(booking => ({
+                unitPrice: Math.round((booking.totalAmount || 0) * 100),
+                units: 1,
+                vatPercentage: 24, // Finland VAT
+                productCode: `service_${booking.serviceId}`,
+                description: `Service booking for ${booking.customerName}`,
+            })),
+            customer: {
+                email: customerInfo.email,
+                firstName: customerInfo.name?.split(' ')[0] || 'Customer',
+                lastName: customerInfo.name?.split(' ').slice(1).join(' ') || '',
+                phone: customerInfo.phone || '',
+            },
+            redirectUrls: {
+                success: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success`,
+                cancel: `${process.env.NEXT_PUBLIC_APP_URL}/payment/cancel`,
+            },
+            callbackUrls: {
+                success: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/paytrail/success`,
+                cancel: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/paytrail/cancel`,
+            },
             metadata: {
                 bookingIds: bookings.map(b => b.id).join(','),
                 customerEmail: customerInfo.email,
                 customerName: customerInfo.name,
             },
-            automatic_payment_methods: {
-                enabled: true,
-            },
-        });
+        };
+        
+        const payment = await paytrail.createPayment(paymentRequest);
         
         const response = {
-            clientSecret: paymentIntent.client_secret,
-            sessionId: paymentIntent.id,
+            paymentUrl: (payment as any).href,
+            transactionId: (payment as any).transactionId,
             bookingIds: bookings.map(b => b.id),
             amount: totalAmount
         };
         
-        console.log('Checkout completed with Stripe Payment Intent:', response);
+        console.log('Checkout completed with Paytrail Payment:', response);
         
         return NextResponse.json(response);
         

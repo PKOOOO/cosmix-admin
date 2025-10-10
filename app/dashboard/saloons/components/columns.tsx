@@ -29,7 +29,7 @@ export const columns: ColumnDef<SaloonColumn>[] = [
         accessorKey: "imageUrl",
         header: "Image",
         cell: ({ row }) => (
-            <div className="w-16 h-16 relative">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 relative">
                 <Image
                     src={row.original.imageUrl}
                     alt={row.original.name}
@@ -45,20 +45,35 @@ export const columns: ColumnDef<SaloonColumn>[] = [
         cell: ({ row }) => {
             const avg = row.original.averageRating ?? 0;
             const count = row.original.ratingsCount ?? 0;
-            return <span>{avg.toFixed(1)} ({count})</span>;
+            return <span className="text-xs sm:text-sm">{avg.toFixed(1)} ({count})</span>;
         }
     },
     {
         accessorKey: "name",
         header: "Name",
+        cell: ({ row }) => (
+            <div className="font-medium text-sm sm:text-base">
+                {row.original.name}
+            </div>
+        )
     },
     {
         accessorKey: "shortIntro",
         header: "Short Intro",
+        cell: ({ row }) => (
+            <div className="text-xs sm:text-sm text-muted-foreground max-w-[200px] truncate">
+                {row.original.shortIntro}
+            </div>
+        )
     },
     {
         accessorKey: "address",
         header: "Address",
+        cell: ({ row }) => (
+            <div className="text-xs sm:text-sm text-muted-foreground max-w-[150px] truncate">
+                {row.original.address}
+            </div>
+        )
     },
     {
         accessorKey: "subServices",
@@ -115,6 +130,11 @@ export const columns: ColumnDef<SaloonColumn>[] = [
     {
         accessorKey: "createdAt",
         header: "Date",
+        cell: ({ row }) => (
+            <div className="text-xs sm:text-sm text-muted-foreground">
+                {row.original.createdAt}
+            </div>
+        )
     },
     {
         id: "actions",

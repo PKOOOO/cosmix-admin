@@ -1,4 +1,4 @@
-import { Roboto } from "next/font/google";
+import { Philosopher } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 
 import { ModalProvider } from "@/providers/modal-provider";
@@ -11,9 +11,9 @@ import { ToastProvider } from "@/providers/toast-provider";
 import NextTopLoader from 'nextjs-toploader';
 import { Header } from "@/components/Header";
 
-const roboto = Roboto({
+const philosopher = Philosopher({
   subsets: ["latin"],
-  weight: ["400", "700"], // Add font weights as needed
+  weight: ["400", "700"],
 });
 
 
@@ -30,15 +30,15 @@ export default function RootLayout({
   return (
     <ClerkProvider>
     <html lang="en" suppressHydrationWarning>
-      <body className={roboto.className}>
+      <body className={philosopher.className}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="light"
+          enableSystem={false}
           disableTransitionOnChange
         >
           <NextTopLoader
-            color="#3b82f6" // Default blue - change to match your theme
+            color="#423120" // Brand dark color
             height={3}
             showSpinner={true}
           />

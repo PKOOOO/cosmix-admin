@@ -46,14 +46,14 @@ const CategoryPage = async ({
     }
 
     // Check if user has access to this category through their saloons
-    if (category.saloon.userId !== user.id) {
+    if (category.saloon?.userId !== user.id) {
         redirect('/dashboard/categories');
     }
 
     return (
         <div className="flex-col">
             <div className="flex-1 space-y-4 p-8 pt-6 ">
-                <CategoryForm initialData={category} />
+                <CategoryForm initialData={category as any} />
             </div>
         </div>
     );

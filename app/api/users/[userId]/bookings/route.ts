@@ -26,10 +26,10 @@ export async function GET(
                 service: {
                     select: {
                         name: true,
-                        price: true,
+                        description: true,
                     },
                 },
-                store: {
+                saloon: {
                     select: {
                         name: true,
                         address: true,

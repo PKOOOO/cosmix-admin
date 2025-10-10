@@ -69,8 +69,8 @@ const PricingPage = async ({ params }: PricingPageProps) => {
         <div className="flex-col">
             <div className="flex-1 space-y-4 p-8 pt-6">
                 <PricingClient 
-                    saloon={saloon}
-                    availableServices={availableServices}
+                    saloon={saloon as any}
+                    availableServices={availableServices as any}
                 />
             </div>
         </div>

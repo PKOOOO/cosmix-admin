@@ -4,7 +4,7 @@ import IntegrationList from "@/components/integrations";
 
 interface IntegrationClientProps {
     connections: {
-        stripe: boolean;
+        paytrail: boolean;
     };
 }
 

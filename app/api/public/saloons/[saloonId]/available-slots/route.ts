@@ -55,7 +55,7 @@ export async function GET(
         });
 
         // Get saloon time slot configuration
-        let saloonTimeSlots = [];
+        let saloonTimeSlots: any[] = [];
         try {
             // Check if the model exists before trying to use it
             if (prismadb.saloonTimeSlot) {

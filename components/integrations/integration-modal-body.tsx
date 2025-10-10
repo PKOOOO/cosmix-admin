@@ -1,13 +1,13 @@
 import { CheckCircle2Icon } from "lucide-react";
 import React from 'react';
 import { Button } from "../ui/button";
-import { StripeConnect } from "../settings/stripe-connect";
+import { PaytrailConnect } from "../settings/paytrail-connect";
 
 
 type IntegrationModalbodyProps = {
     type: string
     connections: {
-        [key in 'stripe']: boolean
+        [key in 'paytrail']: boolean
     }
 }
 
@@ -17,15 +17,16 @@ export const IntegrationModalbody = ({
     connections,
 }: IntegrationModalbodyProps) => {
     switch (type) {
-        case 'stripe':
+        case 'paytrail':
             return (
                 <div className="flex flex-col gap-2">
-                    <h2 className="font-bold">Stripe would like to access</h2>
+                    <h2 className="font-bold">Paytrail Payment Integration</h2>
                     {[
-                        'Payment and Bank Information',
-                        'Spa Services you Offer',
-                        'Business and tax Information',
-                        'Create and update services',
+                        'Process payments from Finnish banks',
+                        'Accept credit and debit cards',
+                        'Mobile payment support (MobilePay, Siirto)',
+                        'Secure payment processing',
+                        'Real-time payment notifications',
                     ].map((item, key) => (
                         <div
                             key={key}
@@ -36,8 +37,12 @@ export const IntegrationModalbody = ({
                         </div>
                     ))}
                     <div className="flex justify-between mt-10">
-                        <Button variant="outline">Learn More</Button>
-                        <StripeConnect connected={connections.stripe} />
+                        <Button variant="outline" asChild>
+                            <a href="https://www.paytrail.com/en/merchant-onboarding" target="_blank" rel="noopener noreferrer">
+                                Learn More
+                            </a>
+                        </Button>
+                        <PaytrailConnect connected={connections.paytrail} />
                     </div>
                 </div>
             )
