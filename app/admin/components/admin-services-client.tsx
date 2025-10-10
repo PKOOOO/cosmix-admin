@@ -63,7 +63,7 @@ export const AdminServicesClient = () => {
       setCategories(categoriesResponse.data);
       
       // Filter parent services for sub-service creation
-      const parentServicesOnly = servicesResponse.data.filter((service: ParentService) => !service.parentServiceId);
+      const parentServicesOnly = servicesResponse.data.filter((service: any) => !service.parentServiceId);
       setParentServices(parentServicesOnly);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -72,7 +72,7 @@ export const AdminServicesClient = () => {
   };
 
   // Filter parent services by selected category
-  const filteredParentServices = parentServices.filter((service: ParentService) => 
+  const filteredParentServices = parentServices.filter((service: any) => 
     service.categoryId === selectedCategoryId
   );
 
@@ -107,7 +107,7 @@ export const AdminServicesClient = () => {
       toast.success(`${isCreatingSubService ? 'Sub-service' : 'Parent service'} created successfully`);
       resetForm();
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating service:', error);
       toast.error(`Failed to create service: ${error.response?.data || error.message}`);
     } finally {
@@ -213,7 +213,7 @@ export const AdminServicesClient = () => {
             <DialogHeader>
               <DialogTitle>
                 {editingService 
-                  ? `Edit ${editingService.parentServiceId ? 'Sub-Service' : 'Parent Service'}` 
+                  ? `Edit ${(editingService as any).parentServiceId ? 'Sub-Service' : 'Parent Service'}`
                   : `Create ${isCreatingSubService ? 'Sub-Service' : 'Parent Service'}`
                 }
               </DialogTitle>
@@ -238,7 +238,7 @@ export const AdminServicesClient = () => {
                 />
               </div>
 
-              {(isCreatingSubService || (editingService && editingService.parentServiceId)) && (
+              {(isCreatingSubService || (editingService && (editingService as any).parentServiceId)) && (
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
                   <textarea
@@ -333,10 +333,10 @@ export const AdminServicesClient = () => {
         <div>
           <h4 className="text-md font-medium mb-3 flex items-center gap-2">
             <Settings className="h-4 w-4" />
-            Parent Services ({services.filter(s => !s.parentServiceId).length})
+            Parent Services ({services.filter((s: any) => !s.parentServiceId).length})
           </h4>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {services.filter(s => !s.parentServiceId).map((service) => (
+            {services.filter((s: any) => !s.parentServiceId).map((service) => (
               <Card key={service.id}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{service.name}</CardTitle>
@@ -373,10 +373,10 @@ export const AdminServicesClient = () => {
         <div>
           <h4 className="text-md font-medium mb-3 flex items-center gap-2">
             <Settings className="h-4 w-4" />
-            Sub-Services ({services.filter(s => s.parentServiceId).length})
+            Sub-Services ({services.filter((s: any) => s.parentServiceId).length})
           </h4>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {services.filter(s => s.parentServiceId).map((service) => (
+            {services.filter((s: any) => s.parentServiceId).map((service) => (
               <Card key={service.id}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{service.name}</CardTitle>
@@ -403,7 +403,7 @@ export const AdminServicesClient = () => {
                   </CardDescription>
                   <div className="space-y-1 text-xs text-muted-foreground">
                     <p>Category: {service.category.name}</p>
-                    <p>Parent: {service.parentService?.name}</p>
+                    <p>Parent: {(service as any).parentService?.name}</p>
                     <p>Created: {new Date(service.createdAt).toLocaleDateString()}</p>
                   </div>
                 </CardContent>

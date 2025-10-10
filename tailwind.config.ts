@@ -1,7 +1,6 @@
 import type { Config } from "tailwindcss"
 
 const config = {
-  darkMode: ["class"],
   content: [
     './pages/**/*.{ts,tsx}',
     './components/**/*.{ts,tsx}',
@@ -18,7 +17,16 @@ const config = {
   		}
   	},
   	extend: {
+  		fontFamily: {
+  			'philosopher': ['Philosopher', 'sans-serif'],
+  		},
   		colors: {
+  			// New color palette
+  			'brand-dark': '#423120',
+  			'brand-beige': '#D7C3A7',
+  			'brand-cream': '#F4EDE5',
+  			'brand-white': '#FFFFFF',
+  			'brand-hover': '#E0D7CA',
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',

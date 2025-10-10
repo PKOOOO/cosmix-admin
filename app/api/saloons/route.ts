@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const { userId } = auth();
     const body = await req.json();
 
-    const { name, description, shortIntro, address, images, selectedServices } = body;
+    const { name, description, shortIntro, address, images, selectedServices, latitude, longitude } = body;
 
     if (!userId) {
       return new NextResponse("Unauthenticated", { status: 401 });
@@ -42,6 +42,8 @@ export async function POST(req: Request) {
         description,
         shortIntro,
         address,
+        latitude,
+        longitude,
         userId: user.id,
         images: {
           createMany: {

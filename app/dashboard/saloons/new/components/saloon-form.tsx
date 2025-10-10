@@ -19,6 +19,7 @@ import ImageUpload from "@/components/ui/image-upload";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { MapboxLocationPicker } from "@/components/ui/mapbox-location-picker";
 
 const formSchema = z.object({
     name: z.string().min(1, "Name is required."),
@@ -27,6 +28,8 @@ const formSchema = z.object({
     address: z.string().optional(),
     images: z.object({ url: z.string() }).array(),
     selectedServices: z.array(z.string()).optional(),
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
 });
 
 type SaloonFormValues = z.infer<typeof formSchema>;
@@ -44,6 +47,11 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
     const [loading, setLoading] = useState(false);
     const [services, setServices] = useState<any[]>([]);
     const [loadingServices, setLoadingServices] = useState(false);
+    const [selectedLocation, setSelectedLocation] = useState<{
+        latitude: number;
+        longitude: number;
+        address: string;
+    } | null>(null);
 
     const title = initialData ? "Edit saloon" : "Create saloon";
     const description = initialData ? "Edit saloon details" : "Add a new saloon";
@@ -59,6 +67,8 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
             address: initialData.address ?? "",
             images: initialData.images || [],
             selectedServices: [],
+            latitude: initialData.latitude || undefined,
+            longitude: initialData.longitude || undefined,
         } : {
             name: "",
             description: "",
@@ -66,6 +76,8 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
             address: "",
             images: [],
             selectedServices: [],
+            latitude: undefined,
+            longitude: undefined,
         },
     });
 
@@ -87,6 +99,13 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
         };
         fetchServices();
     }, []);
+
+    const handleLocationSelect = (location: { latitude: number; longitude: number; address: string }) => {
+        setSelectedLocation(location);
+        form.setValue('latitude', location.latitude);
+        form.setValue('longitude', location.longitude);
+        form.setValue('address', location.address);
+    };
 
     const onSubmit = async (data: SaloonFormValues) => {
         try {
@@ -279,6 +298,15 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                         <FormMessage />
                                     </FormItem>
                                 )}
+                            />
+                        </div>
+
+                        {/* Location Selection */}
+                        <div className="md:col-span-4">
+                            <MapboxLocationPicker
+                                onLocationSelect={handleLocationSelect}
+                                initialLocation={selectedLocation || undefined}
+                                disabled={loading}
                             />
                         </div>
 

@@ -3,16 +3,16 @@ import { Modal } from '../ui/modal'
 import { Card } from '../ui/card'
 import { CloudIcon } from 'lucide-react'
 import { Separator } from '../ui/separator'
-import StripeModal from '../modals/stripe-modal'
+import PaytrailModal from '../modals/paytrail-modal'
 import { IntegrationModalbody } from './integration-modal-body'
 
 interface Props {
-    name: 'stripe'
+    name: 'paytrail'
     logo: string
     title: string
     description: string
     connections: {
-        [key in 'stripe']: boolean
+        [key in 'paytrail']: boolean
     }
     
 }
@@ -25,7 +25,7 @@ const IntegrationTrigger = ({
     connections,
  }: Props) => {
     return (
-        <StripeModal
+        <PaytrailModal
         title={title}
         type="integration"
         logo={logo}
@@ -37,6 +37,8 @@ const IntegrationTrigger = ({
 
             </Card>
         }
+        isOpen={false}
+        onClose={() => {}}
         >
             <Separator orientation="horizontal" />
             <IntegrationModalbody
@@ -44,7 +46,7 @@ const IntegrationTrigger = ({
                 type={name}
             />
 
-        </StripeModal>
+        </PaytrailModal>
     )
 }
 

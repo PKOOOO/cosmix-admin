@@ -81,9 +81,7 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
       <Card className="w-full">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-bold">
-              Bookings Calendar
-            </CardTitle>
+            
             <div className="flex items-center space-x-1">
               <Button variant="outline" size="sm" onClick={previousMonth} className="p-2">
                 <ChevronLeft className="h-4 w-4" />
@@ -116,12 +114,12 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
                   key={day.toISOString()}
                   className={`min-h-[60px] p-1 border rounded-lg transition-colors cursor-pointer ${
                     isCurrentMonth ? "bg-white hover:bg-gray-50" : "bg-gray-50 hover:bg-gray-100"
-                  } ${isTodayDate ? "ring-2 ring-blue-500" : ""}`}
+                  } ${isTodayDate ? "ring-2 ring-brand-dark" : ""}`}
                   onClick={() => handleDateClick(day)}
                 >
                   <div className={`text-sm font-medium mb-1 ${
                     isCurrentMonth ? "text-gray-900" : "text-gray-400"
-                  } ${isTodayDate ? "text-blue-600 font-bold" : ""}`}>
+                  } ${isTodayDate ? "text-brand-dark font-bold" : ""}`}>
                     {format(day, "d")}
                   </div>
                   {/* Bookings for this day - Mobile optimized */}
@@ -132,7 +130,7 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
                         className={`text-xs p-1 rounded border-l-2 transition-colors ${
                           booking.status === "confirmed" 
                             ? "bg-green-50 border-green-400 text-green-800"
-                            : "bg-yellow-50 border-yellow-400 text-yellow-800"
+                            : "bg-brand-cream border-brand-beige text-brand-dark"
                         }`}
                       >
                         <div className="font-medium truncate text-xs">
@@ -194,7 +192,7 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
                             <div className="flex items-center space-x-2">
                               <Badge 
                                 variant={booking.status === "confirmed" ? "default" : "secondary"}
-                                className={booking.status === "confirmed" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}
+                                className={booking.status === "confirmed" ? "bg-green-100 text-green-800" : "bg-brand-cream text-brand-dark"}
                               >
                                 {booking.status === "confirmed" ? "Confirmed" : "Pending"}
                               </Badge>
@@ -227,7 +225,7 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
                                 </div>
                                 <div>
                                   <span className="font-medium">Status:</span>{" "}
-                                  <span className={booking.status === "confirmed" ? "text-green-600" : "text-yellow-600"}>
+                                  <span className={booking.status === "confirmed" ? "text-green-600" : "text-brand-dark"}>
                                     {booking.status === "confirmed" ? "Confirmed" : "Pending Confirmation"}
                                   </span>
                                 </div>
@@ -252,7 +250,7 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
                   <div className="text-lg font-bold">{currentMonthBookings.length}</div>
                   <p className="text-xs text-gray-500">Total Bookings</p>
                 </div>
-                <Badge variant="secondary" className="bg-blue-100 text-blue-800">Total</Badge>
+                <Badge variant="secondary" className="bg-brand-cream text-brand-dark">Total</Badge>
               </div>
             </CardContent>
           </Card>
@@ -292,9 +290,6 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-2xl font-bold">
-            Bookings Calendar
-          </CardTitle>
           <div className="flex items-center space-x-2">
             <Button variant="outline" size="sm" onClick={previousMonth}>
               <ChevronLeft className="h-4 w-4" />
@@ -327,12 +322,12 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
                 key={day.toISOString()}
                 className={`min-h-[120px] p-1 border rounded-lg transition-colors cursor-pointer ${
                   isCurrentMonth ? "bg-white hover:bg-gray-50" : "bg-gray-50 hover:bg-gray-100"
-                } ${isTodayDate ? "ring-2 ring-blue-500" : ""}`}
+                } ${isTodayDate ? "ring-2 ring-brand-dark" : ""}`}
                 onClick={() => handleDateClick(day)}
               >
                 <div className={`text-sm font-medium mb-1 ${
                   isCurrentMonth ? "text-gray-900" : "text-gray-400"
-                } ${isTodayDate ? "text-blue-600 font-bold" : ""}`}>
+                } ${isTodayDate ? "text-brand-dark font-bold" : ""}`}>
                   {format(day, "d")}
                 </div>
                 {/* Bookings for this day */}
@@ -343,7 +338,7 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
                       className={`text-xs p-1 rounded border-l-2 transition-colors hover:shadow-sm ${
                         booking.status === "confirmed" 
                           ? "bg-green-50 border-green-400 text-green-800 hover:bg-green-100"
-                          : "bg-yellow-50 border-yellow-400 text-yellow-800 hover:bg-yellow-100"
+                          : "bg-brand-cream border-brand-beige text-brand-dark hover:bg-brand-hover"
                       }`}
                     >
                       <div className="font-medium truncate">
@@ -409,7 +404,7 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
                             <div className="flex items-center space-x-2">
                               <Badge 
                                 variant={booking.status === "confirmed" ? "default" : "secondary"}
-                                className={booking.status === "confirmed" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}
+                                className={booking.status === "confirmed" ? "bg-green-100 text-green-800" : "bg-brand-cream text-brand-dark"}
                               >
                                 {booking.status === "confirmed" ? "Confirmed" : "Pending"}
                               </Badge>
@@ -443,7 +438,7 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
                                 </div>
                                 <div>
                                   <span className="font-medium">Status:</span>{" "}
-                                  <span className={booking.status === "confirmed" ? "text-green-600" : "text-yellow-600"}>
+                                  <span className={booking.status === "confirmed" ? "text-green-600" : "text-brand-dark"}>
                                     {booking.status === "confirmed" ? "Confirmed" : "Pending Confirmation"}
                                   </span>
                                 </div>
@@ -466,11 +461,11 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
             <span className="text-sm text-gray-600">Confirmed</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-yellow-200 border-l-2 border-yellow-400 rounded"></div>
+            <div className="w-3 h-3 bg-brand-beige border-l-2 border-brand-dark rounded"></div>
             <span className="text-sm text-gray-600">Pending</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 border-2 border-blue-500 rounded"></div>
+            <div className="w-3 h-3 border-2 border-brand-dark rounded"></div>
             <span className="text-sm text-gray-600">Today</span>
           </div>
         </div>
@@ -480,7 +475,7 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center space-x-2">
-                <Badge variant="secondary" className="bg-blue-100 text-blue-800">Total</Badge>
+                <Badge variant="secondary" className="bg-brand-cream text-brand-dark">Total</Badge>
                 <span className="text-2xl font-bold">{currentMonthBookings.length}</span>
               </div>
               <p className="text-sm text-gray-500 mt-1">

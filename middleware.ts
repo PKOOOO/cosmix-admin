@@ -19,9 +19,9 @@ const clerkAuthMiddleware = authMiddleware({
         "/api/:storeId/saloons(.*)",     // ← Keep for backward compatibility
         "/api/:storeId/bookings(.*)",    // ← Keep for backward compatibility
         "/api/:storeId/checkout(.*)",    // ← For checkout (payment flow)
-        "/api/webhook(.*)",              // ← Allow Stripe webhook (singular)
+        "/api/webhook(.*)",              // ← Allow webhooks (singular)
         "/api/webhooks(.*)",
-        "/api/webhooks/stripe(.*)",
+        "/api/webhooks/paytrail(.*)",
         "/api/uploadthing(.*)",
     ],
     ignoredRoutes: [
@@ -38,11 +38,11 @@ function withCors(middleware: any) {
         if (request.method === "OPTIONS") {
             const origin = request.headers.get("origin");
             const allowedOrigins = [
-                process.env.FRONTEND_STORE_URL || "http://10.107.119.187:3001",
-                "http://10.107.119.187:3000",
-                "http://10.107.119.187:3001",
+                process.env.FRONTEND_STORE_URL || "http://10.145.204.187:3001",
+                "http://10.145.204.187:3000",
+                "http://10.145.204.187:3001",
                 "http://localhost:8081",  // Expo development server
-                "exp://10.107.119.187:8081",  // Expo on physical device
+                "exp://10.145.204.187:8081",  // Expo on physical device
             ];
             const isAllowedOrigin = origin && allowedOrigins.includes(origin);
             const corsHeaders = {
@@ -62,11 +62,11 @@ function withCors(middleware: any) {
         if (response instanceof NextResponse && request.nextUrl.pathname.startsWith("/api/")) {
             const origin = request.headers.get("origin");
             const allowedOrigins = [
-                process.env.FRONTEND_STORE_URL || "http://10.107.119.187:3001",
-                "http://10.107.119.187:3000",
-                "http://10.107.119.187:3001",
+                process.env.FRONTEND_STORE_URL || "http://10.145.204.187:3001",
+                "http://10.145.204.187:3000",
+                "http://10.145.204.187:3001",
                 "http://localhost:8081",  // Expo development server
-                "exp://10.107.119.187:8081",  // Expo on physical device
+                "exp://10.145.204.187:8081",  // Expo on physical device
             ];
             const isAllowedOrigin = origin && allowedOrigins.includes(origin);
             

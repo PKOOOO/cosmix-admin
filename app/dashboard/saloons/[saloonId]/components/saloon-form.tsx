@@ -5,18 +5,20 @@ import { Saloon } from "@prisma/client";
 import { Trash } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { AlertModal } from "@/components/modals/alert-modal";
 import ImageUpload from "@/components/ui/image-upload";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { MapboxLocationPicker } from "@/components/ui/mapbox-location-picker";
 
 const formSchema = z.object({
     name: z.string().min(1, "Name is required."),
@@ -24,6 +26,9 @@ const formSchema = z.object({
     shortIntro: z.string().optional(),
     address: z.string().optional(),
     images: z.object({ url: z.string() }).array(),
+    selectedServices: z.array(z.string()).optional(),
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
 });
 
 type SaloonFormValues = z.infer<typeof formSchema>;
@@ -39,6 +44,13 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
 
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [services, setServices] = useState<any[]>([]);
+    const [loadingServices, setLoadingServices] = useState(false);
+    const [selectedLocation, setSelectedLocation] = useState<{
+        latitude: number;
+        longitude: number;
+        address: string;
+    } | null>(null);
 
     const title = initialData ? "Edit saloon" : "Create saloon";
     const description = initialData ? "Edit saloon details" : "Add a new saloon";
@@ -53,26 +65,80 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
             shortIntro: initialData.shortIntro ?? "",
             address: initialData.address ?? "",
             images: initialData.images || [],
+            selectedServices: [],
+            latitude: initialData.latitude || undefined,
+            longitude: initialData.longitude || undefined,
         } : {
             name: "",
             description: "",
             shortIntro: "",
             address: "",
             images: [],
+            selectedServices: [],
+            latitude: undefined,
+            longitude: undefined,
         },
     });
+
+    // Fetch all sub-services for selection and existing salon services
+    useEffect(() => {
+        const fetchServices = async () => {
+            try {
+                setLoadingServices(true);
+                
+                // Fetch all available sub-services
+                const servicesResponse = await axios.get('/api/services');
+                const subServices = servicesResponse.data.filter((service: any) => service.parentServiceId);
+                setServices(subServices);
+                
+                // If editing, fetch existing salon services
+                if (initialData) {
+                    const saloonServicesResponse = await axios.get(`/api/saloons/${initialData.id}/services`);
+                    const selectedServiceIds = saloonServicesResponse.data.map((saloonService: any) => saloonService.service.id);
+                    form.setValue('selectedServices', selectedServiceIds);
+                }
+            } catch (error) {
+                console.error('Error fetching services:', error);
+                toast.error("Failed to fetch services");
+            } finally {
+                setLoadingServices(false);
+            }
+        };
+        fetchServices();
+    }, [initialData, form]);
+
+    // Initialize selected location from initial data
+    useEffect(() => {
+        if (initialData && initialData.latitude && initialData.longitude) {
+            setSelectedLocation({
+                latitude: initialData.latitude,
+                longitude: initialData.longitude,
+                address: initialData.address || 'Selected location'
+            });
+        }
+    }, [initialData]);
+
+    const handleLocationSelect = (location: { latitude: number; longitude: number; address: string }) => {
+        setSelectedLocation(location);
+        form.setValue('latitude', location.latitude);
+        form.setValue('longitude', location.longitude);
+        form.setValue('address', location.address);
+    };
 
     const onSubmit = async (data: SaloonFormValues) => {
         try {
             setLoading(true);
             
+            // Extract selectedServices from data
+            const { selectedServices, ...saloonData } = data;
+            
             if (initialData) {
                 await axios.patch(
                     `/api/saloons/${initialData.id}`,
-                    data
+                    { ...saloonData, selectedServices }
                 );
             } else {
-                await axios.post(`/api/saloons`, data);
+                await axios.post(`/api/saloons`, { ...saloonData, selectedServices });
             }
     
             router.refresh();
@@ -128,25 +194,6 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                 onConfirm={onDelete}
                 loading={loading}
             />
-            
-            {/* Header Section */}
-            <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
-                <Heading title={title} />
-                {initialData && (
-                    <Button
-                        disabled={loading}
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => setOpen(true)}
-                        className="w-full sm:w-auto"
-                    >
-                        <Trash className="h-4 w-4 mr-2" />
-                        Delete Saloon
-                    </Button>
-                )}
-            </div>
-            
-            <Separator className="mb-6" />
             
             {/* Main content container with proper bottom padding for mobile */}
             <div className="pb-20 md:pb-0">
@@ -253,6 +300,80 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                             />
                         </div>
 
+                        {/* Location Selection */}
+                        <div className="md:col-span-4">
+                            <MapboxLocationPicker
+                                onLocationSelect={handleLocationSelect}
+                                initialLocation={selectedLocation || undefined}
+                                disabled={loading}
+                            />
+                        </div>
+
+                        {/* Service Selection */}
+                        <div className="md:col-span-4">
+                            <FormField
+                                control={form.control}
+                                name="selectedServices"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Available Services</FormLabel>
+                                        <FormDescription>
+                                            Select which sub-services will be available in this saloon
+                                        </FormDescription>
+                                        <FormControl>
+                                            <div className="space-y-4">
+                                                {loadingServices ? (
+                                                    <div className="text-center py-4">
+                                                        <p className="text-sm text-muted-foreground">Loading services...</p>
+                                                    </div>
+                                                ) : services.length === 0 ? (
+                                                    <div className="text-center py-4">
+                                                        <p className="text-sm text-muted-foreground">No sub-services available. Admins need to create sub-services first.</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="grid gap-3 max-h-60 overflow-y-auto border rounded-md p-4">
+                                                        {services.map((service) => (
+                                                            <div key={service.id} className="flex items-start space-x-3">
+                                                                <Checkbox
+                                                                    id={service.id}
+                                                                    checked={field.value?.includes(service.id) || false}
+                                                                    onCheckedChange={(checked) => {
+                                                                        const currentValues = field.value || [];
+                                                                        if (checked) {
+                                                                            field.onChange([...currentValues, service.id]);
+                                                                        } else {
+                                                                            field.onChange(currentValues.filter((id: string) => id !== service.id));
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <div className="flex-1 space-y-1">
+                                                                    <label
+                                                                        htmlFor={service.id}
+                                                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                                                    >
+                                                                        {service.name}
+                                                                    </label>
+                                                                    {service.description && (
+                                                                        <p className="text-xs text-muted-foreground">
+                                                                            {service.description}
+                                                                        </p>
+                                                                    )}
+                                                                    <p className="text-xs text-brand-dark">
+                                                                        Category: {service.category?.name} • Parent: {service.parentService?.name}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+
                         {/* Desktop Submit Button */}
                         <Button disabled={loading} className="hidden md:flex w-full md:w-auto md:ml-auto" type="submit">
                             {action}
@@ -261,10 +382,26 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                 </Form>
             </div>
             
-            {/* Mobile Sticky Bottom Button - Fixed positioning */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-4 shadow-lg">
-                <Button disabled={loading} className="w-full" type="submit" form="saloon-form">
-                    {action}
+            {/* Mobile Floating Buttons */}
+            <div className="md:hidden fixed bottom-20 right-4 z-[60] flex flex-col gap-3">
+                {initialData && (
+                    <Button
+                        disabled={loading}
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setOpen(true)}
+                        className="w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+                    >
+                        <Trash className="h-4 w-4" />
+                    </Button>
+                )}
+                <Button 
+                    disabled={loading} 
+                    className="w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-brand-dark hover:bg-brand-dark/90 text-white" 
+                    type="submit" 
+                    form="saloon-form"
+                >
+                    <span className="text-sm font-medium">Save</span>
                 </Button>
             </div>
         </div>

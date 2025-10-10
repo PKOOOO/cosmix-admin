@@ -223,25 +223,25 @@ export const PricingClient: React.FC<PricingClientProps> = ({
     return (
         <div className="space-y-6">
             {/* Header with Stats */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
                     <Heading 
                         title={`${saloon.name} - Pricing & Scheduling`}
                         description="Manage service prices, availability, and time slots"
                     />
                 </div>
-                <div className="flex gap-4">
+                <div className="grid grid-cols-3 gap-4 lg:flex lg:gap-4">
                     <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-600">{stats.totalServices}</div>
-                        <div className="text-sm text-muted-foreground">Total Services</div>
+                        <div className="text-xl lg:text-2xl font-bold text-brand-dark">{stats.totalServices}</div>
+                        <div className="text-xs lg:text-sm text-muted-foreground">Total Services</div>
                     </div>
                     <div className="text-center">
-                        <div className="text-2xl font-bold text-green-600">{stats.availableServices}</div>
-                        <div className="text-sm text-muted-foreground">Available</div>
+                        <div className="text-xl lg:text-2xl font-bold text-green-600">{stats.availableServices}</div>
+                        <div className="text-xs lg:text-sm text-muted-foreground">Available</div>
                     </div>
                     <div className="text-center">
-                        <div className="text-2xl font-bold text-purple-600">${stats.totalRevenue}</div>
-                        <div className="text-sm text-muted-foreground">Total Value</div>
+                        <div className="text-xl lg:text-2xl font-bold text-purple-600">${stats.totalRevenue}</div>
+                        <div className="text-xs lg:text-sm text-muted-foreground">Total Value</div>
                     </div>
                 </div>
             </div>
@@ -251,17 +251,20 @@ export const PricingClient: React.FC<PricingClientProps> = ({
             {/* Main Content with Tabs */}
             <Tabs defaultValue="services" className="space-y-6">
                 <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="services" className="flex items-center gap-2">
-                        <Settings className="h-4 w-4" />
-                        Services & Pricing
+                    <TabsTrigger value="services" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
+                        <Settings className="h-3 w-3 lg:h-4 lg:w-4" />
+                        <span className="hidden sm:inline">Services & Pricing</span>
+                        <span className="sm:hidden">Services</span>
                     </TabsTrigger>
-                    <TabsTrigger value="scheduling" className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        Time Slots
+                    <TabsTrigger value="scheduling" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
+                        <Calendar className="h-3 w-3 lg:h-4 lg:w-4" />
+                        <span className="hidden sm:inline">Time Slots</span>
+                        <span className="sm:hidden">Time</span>
                     </TabsTrigger>
-                    <TabsTrigger value="settings" className="flex items-center gap-2">
-                        <Users className="h-4 w-4" />
-                        Saloon Settings
+                    <TabsTrigger value="settings" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
+                        <Users className="h-3 w-3 lg:h-4 lg:w-4" />
+                        <span className="hidden sm:inline">Saloon Settings</span>
+                        <span className="sm:hidden">Settings</span>
                     </TabsTrigger>
                 </TabsList>
 
@@ -294,15 +297,17 @@ export const PricingClient: React.FC<PricingClientProps> = ({
                             <div className="grid gap-4">
                                 {saloon.saloonServices.map((saloonService) => (
                                     <Card key={saloonService.serviceId} className="hover:shadow-md transition-shadow">
-                                        <CardContent className="p-6">
-                                            <div className="flex items-start justify-between">
+                                        <CardContent className="p-4 lg:p-6">
+                                            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                                                 <div className="space-y-3 flex-1">
-                                                    <div className="flex items-center gap-3">
-                                                        <h4 className="font-semibold text-lg">{saloonService.service.name}</h4>
-                                                        <Badge variant="secondary">{saloonService.service.category.name}</Badge>
-                                                        <Badge variant={saloonService.isAvailable ? "default" : "destructive"}>
-                                                            {saloonService.isAvailable ? "Available" : "Unavailable"}
-                                                        </Badge>
+                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                                                        <h4 className="font-semibold text-base lg:text-lg">{saloonService.service.name}</h4>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            <Badge variant="secondary" className="text-xs">{saloonService.service.category.name}</Badge>
+                                                            <Badge variant={saloonService.isAvailable ? "default" : "destructive"} className="text-xs">
+                                                                {saloonService.isAvailable ? "Available" : "Unavailable"}
+                                                            </Badge>
+                                                        </div>
                                                     </div>
                                                     
                                                     {saloonService.service.description && (
@@ -311,69 +316,73 @@ export const PricingClient: React.FC<PricingClientProps> = ({
                                                         </p>
                                                     )}
                                                     
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                                        <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
-                                                            <DollarSign className="h-4 w-4 text-green-600" />
+                                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-4">
+                                                        <div className="flex items-center gap-2 p-2 lg:p-3 bg-green-50 rounded-lg">
+                                                            <DollarSign className="h-3 w-3 lg:h-4 lg:w-4 text-green-600" />
                                                             <div>
-                                                                <div className="font-semibold text-green-600">${saloonService.price}</div>
+                                                                <div className="font-semibold text-green-600 text-sm lg:text-base">${saloonService.price}</div>
                                                                 <div className="text-xs text-muted-foreground">Price</div>
                                                             </div>
                                                         </div>
-                                                        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
-                                                            <Clock className="h-4 w-4 text-blue-600" />
+                                                        <div className="flex items-center gap-2 p-2 lg:p-3 bg-brand-cream rounded-lg">
+                                                            <Clock className="h-3 w-3 lg:h-4 lg:w-4 text-brand-dark" />
                                                             <div>
-                                                                <div className="font-semibold text-blue-600">{formatDuration(saloonService.durationMinutes)}</div>
+                                                                <div className="font-semibold text-brand-dark text-sm lg:text-base">{formatDuration(saloonService.durationMinutes)}</div>
                                                                 <div className="text-xs text-muted-foreground">Duration</div>
                                                             </div>
                                                         </div>
-                                                        <div className="flex items-center gap-2 p-3 bg-purple-50 rounded-lg">
-                                                            <Calendar className="h-4 w-4 text-purple-600" />
+                                                        <div className="flex items-center gap-2 p-2 lg:p-3 bg-purple-50 rounded-lg">
+                                                            <Calendar className="h-3 w-3 lg:h-4 lg:w-4 text-purple-600" />
                                                             <div>
-                                                                <div className="font-semibold text-purple-600">{saloonService.availableDays.length}</div>
+                                                                <div className="font-semibold text-purple-600 text-sm lg:text-base">{saloonService.availableDays.length}</div>
                                                                 <div className="text-xs text-muted-foreground">Days</div>
                                                             </div>
                                                         </div>
-                                                        <div className="flex items-center gap-2 p-3 bg-orange-50 rounded-lg">
-                                                            <Star className="h-4 w-4 text-orange-600" />
+                                                        <div className="flex items-center gap-2 p-2 lg:p-3 bg-brand-cream rounded-lg">
+                                                            <Star className="h-3 w-3 lg:h-4 lg:w-4 text-brand-dark" />
                                                             <div>
-                                                                <div className="font-semibold text-orange-600">0</div>
+                                                                <div className="font-semibold text-brand-dark text-sm lg:text-base">0</div>
                                                                 <div className="text-xs text-muted-foreground">Bookings</div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 
-                                                <div className="flex items-center gap-2 ml-4">
+                                                <div className="flex items-center gap-2 lg:ml-4">
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
                                                         onClick={() => setEditingService(
                                                             editingService === saloonService.serviceId ? null : saloonService.serviceId
                                                         )}
+                                                        className="flex-1 lg:flex-none"
                                                     >
-                                                        <Edit className="h-4 w-4" />
+                                                        <Edit className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-0" />
+                                                        <span className="lg:hidden text-xs">Edit</span>
                                                     </Button>
                                                     <Button
                                                         variant="destructive"
                                                         size="sm"
                                                         onClick={() => handleDeleteService(saloonService.serviceId)}
                                                         disabled={loading}
+                                                        className="flex-1 lg:flex-none"
                                                     >
-                                                        <Trash2 className="h-4 w-4" />
+                                                        <Trash2 className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-0" />
+                                                        <span className="lg:hidden text-xs">Delete</span>
                                                     </Button>
                                                 </div>
                                             </div>
                                             
                                             {/* Edit Form */}
                                             {editingService === saloonService.serviceId && (
-                                                <div className="mt-6 pt-6 border-t space-y-4">
-                                                    <h5 className="font-medium">Edit Service Details</h5>
-                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div className="mt-4 lg:mt-6 pt-4 lg:pt-6 border-t space-y-4">
+                                                    <h5 className="font-medium text-sm lg:text-base">Edit Service Details</h5>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                                         <div>
                                                             <Label htmlFor={`price-${saloonService.serviceId}`}>
                                                                 Price ($) 
                                                                 {updatingServices.has(saloonService.serviceId) && (
-                                                                    <span className="text-xs text-blue-600 ml-2">Saving...</span>
+                                                                    <span className="text-xs text-brand-dark ml-2">Saving...</span>
                                                                 )}
                                                             </Label>
                                                             <Input
@@ -405,7 +414,7 @@ export const PricingClient: React.FC<PricingClientProps> = ({
                                                             <Label htmlFor={`duration-${saloonService.serviceId}`}>
                                                                 Duration
                                                                 {updatingServices.has(saloonService.serviceId) && (
-                                                                    <span className="text-xs text-blue-600 ml-2">Saving...</span>
+                                                                    <span className="text-xs text-brand-dark ml-2">Saving...</span>
                                                                 )}
                                                             </Label>
                                                             <Select 
@@ -470,26 +479,28 @@ export const PricingClient: React.FC<PricingClientProps> = ({
                                 <h3 className="text-lg font-semibold">Operating Hours</h3>
                                 <div className="space-y-3">
                                     {Object.entries(saloonSettings.operatingHours).map(([day, hours]) => (
-                                        <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 border rounded-lg">
-                                            <div className="w-full sm:w-24 text-sm font-medium capitalize flex-shrink-0">
-                                                {day}
-                                            </div>
-                                            <div className="flex items-center gap-3 flex-1">
-                                                <Switch
-                                                    checked={hours.isOpen}
-                                                    onCheckedChange={(checked) => {
-                                                        setSaloonSettings(prev => ({
-                                                            ...prev,
-                                                            operatingHours: {
-                                                                ...prev.operatingHours,
-                                                                [day]: { ...hours, isOpen: checked }
-                                                            }
-                                                        }));
-                                                    }}
-                                                />
-                                                <span className="text-sm text-muted-foreground">
-                                                    {hours.isOpen ? 'Open' : 'Closed'}
-                                                </span>
+                                        <div key={day} className="flex flex-col gap-3 p-3 border rounded-lg">
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-sm font-medium capitalize">
+                                                    {day}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Switch
+                                                        checked={hours.isOpen}
+                                                        onCheckedChange={(checked) => {
+                                                            setSaloonSettings(prev => ({
+                                                                ...prev,
+                                                                operatingHours: {
+                                                                    ...prev.operatingHours,
+                                                                    [day]: { ...hours, isOpen: checked }
+                                                                }
+                                                            }));
+                                                        }}
+                                                    />
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {hours.isOpen ? 'Open' : 'Closed'}
+                                                    </span>
+                                                </div>
                                             </div>
                                             {hours.isOpen && (
                                                 <div className="flex items-center gap-2 flex-wrap">
@@ -505,9 +516,9 @@ export const PricingClient: React.FC<PricingClientProps> = ({
                                                                 }
                                                             }));
                                                         }}
-                                                        className="w-24 text-sm [&::-webkit-calendar-picker-indicator]:hidden"
+                                                        className="w-20 text-xs [&::-webkit-calendar-picker-indicator]:hidden"
                                                     />
-                                                    <span className="text-sm text-muted-foreground">to</span>
+                                                    <span className="text-xs text-muted-foreground">to</span>
                                                     <Input
                                                         type="time"
                                                         value={hours.close}
@@ -520,7 +531,7 @@ export const PricingClient: React.FC<PricingClientProps> = ({
                                                                 }
                                                             }));
                                                         }}
-                                                        className="w-24 text-sm [&::-webkit-calendar-picker-indicator]:hidden"
+                                                        className="w-20 text-xs [&::-webkit-calendar-picker-indicator]:hidden"
                                                     />
                                                 </div>
                                             )}
@@ -531,10 +542,10 @@ export const PricingClient: React.FC<PricingClientProps> = ({
 
                             {/* Settings Section */}
                             <div className="space-y-4">
-                                <h3 className="text-lg font-semibold">Scheduling Settings</h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <h3 className="text-base lg:text-lg font-semibold">Scheduling Settings</h3>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="breakTime">Break Time Between Appointments</Label>
+                                        <Label htmlFor="breakTime" className="text-sm">Break Time Between Appointments</Label>
                                         <div className="flex items-center gap-2">
                                             <Input
                                                 id="breakTime"
@@ -543,14 +554,14 @@ export const PricingClient: React.FC<PricingClientProps> = ({
                                                 max="60"
                                                 value={saloonSettings.breakTime}
                                                 onChange={(e) => setSaloonSettings(prev => ({ ...prev, breakTime: parseInt(e.target.value) || 0 }))}
-                                                className="w-20"
+                                                className="w-16 text-sm"
                                             />
-                                            <span className="text-sm text-muted-foreground">minutes</span>
+                                            <span className="text-xs text-muted-foreground">minutes</span>
                                         </div>
                                     </div>
                                     
                                     <div className="space-y-2">
-                                        <Label htmlFor="maxBookings">Max Bookings Per Time Slot</Label>
+                                        <Label htmlFor="maxBookings" className="text-sm">Max Bookings Per Time Slot</Label>
                                         <div className="flex items-center gap-2">
                                             <Input
                                                 id="maxBookings"
@@ -559,20 +570,20 @@ export const PricingClient: React.FC<PricingClientProps> = ({
                                                 max="10"
                                                 value={saloonSettings.maxBookingsPerSlot}
                                                 onChange={(e) => setSaloonSettings(prev => ({ ...prev, maxBookingsPerSlot: parseInt(e.target.value) || 1 }))}
-                                                className="w-20"
+                                                className="w-16 text-sm"
                                             />
-                                            <span className="text-sm text-muted-foreground">bookings</span>
+                                            <span className="text-xs text-muted-foreground">bookings</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Save Button */}
-                            <div className="flex justify-end pt-4 border-t">
+                            <div className="flex justify-center sm:justify-end pt-4 border-t">
                                 <Button 
                                     onClick={saveTimeSlots}
                                     disabled={loadingTimeSlots}
-                                    className="min-w-[120px]"
+                                    className="w-full sm:w-auto min-w-[120px]"
                                 >
                                     {loadingTimeSlots ? "Saving..." : "Save Settings"}
                                 </Button>
@@ -595,38 +606,38 @@ export const PricingClient: React.FC<PricingClientProps> = ({
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 <div>
-                                    <Label>Saloon Information</Label>
+                                    <Label className="text-sm">Saloon Information</Label>
                                     <div className="space-y-3 mt-2">
                                         <div className="flex items-center gap-2">
-                                            <MapPin className="h-4 w-4" />
-                                            <span className="text-sm">Address: {saloon.address || 'Not set'}</span>
+                                            <MapPin className="h-3 w-3 lg:h-4 lg:w-4" />
+                                            <span className="text-xs lg:text-sm">Address: Not set</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Phone className="h-4 w-4" />
-                                            <span className="text-sm">Phone: Not set</span>
+                                            <Phone className="h-3 w-3 lg:h-4 lg:w-4" />
+                                            <span className="text-xs lg:text-sm">Phone: Not set</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Mail className="h-4 w-4" />
-                                            <span className="text-sm">Email: Not set</span>
+                                            <Mail className="h-3 w-3 lg:h-4 lg:w-4" />
+                                            <span className="text-xs lg:text-sm">Email: Not set</span>
                                         </div>
                                     </div>
                                 </div>
                                 
                                 <div>
-                                    <Label>Booking Settings</Label>
+                                    <Label className="text-sm">Booking Settings</Label>
                                     <div className="space-y-3 mt-2">
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm">Allow online booking</span>
+                                            <span className="text-xs lg:text-sm">Allow online booking</span>
                                             <Switch defaultChecked />
                                         </div>
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm">Require advance booking</span>
+                                            <span className="text-xs lg:text-sm">Require advance booking</span>
                                             <Switch />
                                         </div>
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm">Send booking confirmations</span>
+                                            <span className="text-xs lg:text-sm">Send booking confirmations</span>
                                             <Switch defaultChecked />
                                         </div>
                                     </div>

@@ -12,6 +12,7 @@ import { User, Bell, Shield, Palette } from "lucide-react";
 import { useState } from "react";
 import { useTheme } from "next-themes";
 import toast from "react-hot-toast";
+import { UserButton } from "@clerk/nextjs";
 
 export const SettingsClient = () => {
     const [notifications, setNotifications] = useState(true);
@@ -48,21 +49,44 @@ export const SettingsClient = () => {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Full Name</Label>
-                                <Input id="name" placeholder="Enter your full name" />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="email">Email Address</Label>
-                                <Input id="email" type="email" placeholder="Enter your email" />
+                        {/* Mobile Profile Section */}
+                        <div className="md:hidden">
+                            <div className="flex flex-col items-center space-y-4 p-4 border rounded-lg bg-brand-cream">
+                                <div className="text-center">
+                                    <h3 className="text-lg font-semibold text-brand-dark">Your Profile</h3>
+                                    <p className="text-sm text-muted-foreground">Manage your account settings</p>
+                                </div>
+                                <UserButton 
+                                    afterSignOutUrl="/"
+                                    appearance={{
+                                        elements: {
+                                            avatarBox: "w-20 h-20",
+                                            userButtonPopoverCard: "bg-white border border-gray-200 shadow-lg",
+                                            userButtonPopoverActionButton: "hover:bg-brand-hover",
+                                        }
+                                    }}
+                                />
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="bio">Bio</Label>
-                            <Textarea id="bio" placeholder="Tell us about yourself" />
+
+                        {/* Desktop Profile Form */}
+                        <div className="hidden md:block space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Full Name</Label>
+                                    <Input id="name" placeholder="Enter your full name" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Email Address</Label>
+                                    <Input id="email" type="email" placeholder="Enter your email" />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="bio">Bio</Label>
+                                <Textarea id="bio" placeholder="Tell us about yourself" />
+                            </div>
+                            <Button onClick={handleSave}>Save Profile</Button>
                         </div>
-                        <Button onClick={handleSave}>Save Profile</Button>
                     </CardContent>
                 </Card>
 

@@ -33,13 +33,13 @@ const IntegrationPage = async () => {
         redirect('/dashboard/saloons');
     }
 
-    // Check Stripe connection status
-    const stripeConnected = !!user.stripeId;
+    // Check Paytrail configuration status
+    const paytrailConfigured = !!(process.env.PAYTRAIL_MERCHANT_ID && process.env.PAYTRAIL_SECRET_KEY);
 
     return (
         <div className="flex-col">
             <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
-                <IntegrationClient connections={{ stripe: stripeConnected }} />
+                <IntegrationClient connections={{ paytrail: paytrailConfigured }} />
             </div>
         </div>
     );

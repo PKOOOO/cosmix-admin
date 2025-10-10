@@ -13,7 +13,6 @@ model User {
   clerkId    String     @unique
   email      String     @unique
   name       String?
-  stripeId   String?    @unique
   isAdmin    Boolean    @default(false)  // Admin status - first user becomes admin
 
   bookings   Booking[]
@@ -36,6 +35,10 @@ model Saloon {
   images         SaloonImage[]
   rating         Float          @default(0.0)
   address        String?
+  
+  // Location coordinates for map display
+  latitude       Float?
+  longitude      Float?
 
   user           User           @relation(fields: [userId], references: [id])
   saloonServices SaloonService[]

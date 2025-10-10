@@ -1,24 +1,70 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Cosmix Admin - Salon Management System
+
+A comprehensive salon management system built with Next.js, featuring Paytrail payment integration for Finnish businesses.
+
+## Features
+
+- **Admin Panel**: Global category and service management
+- **Salon Management**: Create and manage salon locations
+- **Service Management**: Parent services and sub-services
+- **Booking System**: Customer booking management
+- **Payment Processing**: Paytrail integration for Finnish payments
+- **User Management**: Role-based access control
+
+## Payment Integration
+
+This application uses **Paytrail** for payment processing, specifically designed for Finnish businesses. Paytrail supports:
+
+- All Finnish online banks (Nordea, Osuuspankki, Danske Bank, etc.)
+- Credit and debit cards (Visa, Mastercard, American Express)
+- Mobile payments (MobilePay, Siirto)
+- Buy now, pay later options (Walley, OP Lasku)
+
+## Environment Variables
+
+Create a `.env.local` file with the following variables:
+
+```bash
+# Paytrail Configuration
+PAYTRAIL_MERCHANT_ID=your_merchant_id_here
+PAYTRAIL_SECRET_KEY=your_secret_key_here
+PAYTRAIL_TEST_MODE=true
+
+# Application URL
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Database
+DATABASE_URL=your_database_url
+
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_key
+CLERK_SECRET_KEY=your_clerk_secret
+```
 
 ## Getting Started
 
-First, run the development server:
+First, install dependencies:
+
+```bash
+npm install
+```
+
+Set up your environment variables (see above).
+
+Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+```bash
+npx prisma generate
+npx prisma db push
+```
 
 ## Learn More
 

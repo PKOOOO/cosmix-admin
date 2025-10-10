@@ -16,14 +16,13 @@ export async function GET(req: Request) {
                 },
                 saloonServices: {
                     include: {
-                        service: {
-                            select: {
-                                id: true,
-                                name: true,
-                                price: true,
-                                duration: true,
+                            service: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    description: true,
+                                }
                             }
-                        }
                     }
                 }
             },
@@ -56,8 +55,6 @@ export async function POST(req: Request) {
                 name,
                 description: description || "",
                 address: address || "",
-                phone: phone || "",
-                email: email || "",
                 userId: "public-user", // You might want to handle this differently
             },
             include: {
