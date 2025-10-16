@@ -39,7 +39,7 @@ function withCors(middleware: any) {
             const origin = request.headers.get("origin");
             const allowedOrigins = [
                 process.env.FRONTEND_STORE_URL || "http://192.168.1.148:3001",
-                "http://192.168.1.148:3000",
+                "https://cosmix-admin.vercel.app",
                 "http://192.168.1.148:3001",
                 "http://localhost:8081",  // Expo development server
                 "exp://192.168.1.148:8081",  // Expo on physical device
@@ -63,7 +63,7 @@ function withCors(middleware: any) {
             const origin = request.headers.get("origin");
             const allowedOrigins = [
                 process.env.FRONTEND_STORE_URL || "http://192.168.1.148:3001",
-                "http://192.168.1.148:3000",
+                "https://cosmix-admin.vercel.app",
                 "http://192.168.1.148:3001",
                 "http://localhost:8081",  // Expo development server
                 "exp://192.168.1.148:8081",  // Expo on physical device
