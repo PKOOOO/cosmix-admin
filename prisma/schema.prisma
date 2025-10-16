@@ -75,6 +75,7 @@ model Category {
   saloon      Saloon?   @relation(fields: [saloonId], references: [id], onDelete: Cascade)
   name        String
   isGlobal    Boolean   @default(false)  // True for admin-created global categories
+  popular     Boolean   @default(false)
   
   services    Service[]
 
@@ -141,7 +142,8 @@ model Booking {
   saloon       Saloon   @relation(fields: [saloonId], references: [id])
 
   bookingTime  DateTime
-  status       String   @default("pending") // pending, confirmed, cancelled, completed
+  status       String   @default("confirmed") // confirmed, completed, cancelled, no_show
+  paymentMethod String  @default("pay_at_venue") // pay_at_venue, online (for future use)
 
   customerName  String?
   customerPhone String?
@@ -156,6 +158,7 @@ model Booking {
   @@index([saloonId])
   @@index([status])
   @@index([bookingTime])
+  @@index([paymentMethod])
 }
 
 // ------------------- SALOON REVIEWS -------------------

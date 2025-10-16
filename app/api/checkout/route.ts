@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { auth } from "@clerk/nextjs/server";
-import { paytrail, PAYTRAIL_CURRENCY } from "@/lib/paytrail";
+import { sendBookingConfirmationToUser, sendBookingNotificationToSalon } from "@/lib/email";
 
 export async function POST(req: Request) {
     try {
         const { saloonServiceIds, customerInfo } = await req.json();
         
-        console.log('Checkout request received:', { saloonServiceIds, customerInfo });
+        console.log('Checkout request received (Pay at Venue):', { saloonServiceIds, customerInfo });
         
         // Resolve authenticated Clerk user if present
         let resolvedClerkUserId: string | null = null;
@@ -21,9 +21,10 @@ export async function POST(req: Request) {
             console.log('Checkout: auth() failed or not available');
         }
 
-        // Create bookings and process payments with Paytrail
+        // Create bookings without payment processing
         
         const bookings = [];
+        const emailPromises = [];
         
         for (const saloonServiceId of saloonServiceIds) {
             const [saloonId, serviceId] = saloonServiceId.split(':');
@@ -35,7 +36,11 @@ export async function POST(req: Request) {
                     serviceId: serviceId
                 },
                 include: {
-                    saloon: true,
+                    saloon: {
+                        include: {
+                            user: true // Include salon owner for email
+                        }
+                    },
                     service: true
                 }
             });
@@ -100,14 +105,15 @@ export async function POST(req: Request) {
                 }
             }
             
-            // Create booking
+            // Create booking with confirmed status and pay_at_venue method
             const booking = await prismadb.booking.create({
                 data: {
                     userId: userId!,
                     saloonId: saloonId,
                     serviceId: serviceId,
                     bookingTime: customerInfo.bookingTime,
-                    status: 'pending',
+                    status: 'confirmed', // Directly confirmed since no payment needed
+                    paymentMethod: 'pay_at_venue',
                     totalAmount: saloonService.price,
                     notes: customerInfo.notes || '',
                     customerName: customerInfo.name,
@@ -117,56 +123,74 @@ export async function POST(req: Request) {
             });
             
             bookings.push(booking);
+            
+            // Prepare email data
+            const bookingDate = new Date(customerInfo.bookingTime).toLocaleDateString('fi-FI', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            const bookingTime = new Date(customerInfo.bookingTime).toLocaleTimeString('fi-FI', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            // Send confirmation email to customer
+            if (customerInfo.email) {
+                const userEmailPromise = sendBookingConfirmationToUser({
+                    customerName: customerInfo.name,
+                    customerEmail: customerInfo.email,
+                    saloonName: saloonService.saloon.name,
+                    serviceName: saloonService.service.name,
+                    bookingTime: bookingTime,
+                    bookingDate: bookingDate,
+                    totalAmount: saloonService.price,
+                    notes: customerInfo.notes
+                });
+                emailPromises.push(userEmailPromise);
+            }
+            
+            // Send notification email to salon owner
+            if (saloonService.saloon.user.email) {
+                const salonEmailPromise = sendBookingNotificationToSalon({
+                    customerName: customerInfo.name,
+                    customerEmail: customerInfo.email,
+                    customerPhone: customerInfo.phone,
+                    saloonName: saloonService.saloon.name,
+                    serviceName: saloonService.service.name,
+                    bookingTime: bookingTime,
+                    bookingDate: bookingDate,
+                    totalAmount: saloonService.price,
+                    notes: customerInfo.notes,
+                    salonEmail: saloonService.saloon.user.email
+                });
+                emailPromises.push(salonEmailPromise);
+            }
         }
         
-        // Create Paytrail Payment
+        // Send all emails in parallel
+        try {
+            await Promise.all(emailPromises);
+            console.log('All confirmation emails sent successfully');
+        } catch (emailError) {
+            console.error('Error sending confirmation emails:', emailError);
+            // Don't fail the booking if email fails
+        }
+        
         const totalAmount = bookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
         
-        // Create Paytrail payment request
-        const paymentRequest = {
-            stamp: `booking_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            reference: `REF_${bookings.map(b => b.id).join('_')}`,
-            amount: Math.round(totalAmount * 100), // Convert to cents
-            currency: PAYTRAIL_CURRENCY,
-            language: 'FI',
-            items: bookings.map(booking => ({
-                unitPrice: Math.round((booking.totalAmount || 0) * 100),
-                units: 1,
-                vatPercentage: 24, // Finland VAT
-                productCode: `service_${booking.serviceId}`,
-                description: `Service booking for ${booking.customerName}`,
-            })),
-            customer: {
-                email: customerInfo.email,
-                firstName: customerInfo.name?.split(' ')[0] || 'Customer',
-                lastName: customerInfo.name?.split(' ').slice(1).join(' ') || '',
-                phone: customerInfo.phone || '',
-            },
-            redirectUrls: {
-                success: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success`,
-                cancel: `${process.env.NEXT_PUBLIC_APP_URL}/payment/cancel`,
-            },
-            callbackUrls: {
-                success: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/paytrail/success`,
-                cancel: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/paytrail/cancel`,
-            },
-            metadata: {
-                bookingIds: bookings.map(b => b.id).join(','),
-                customerEmail: customerInfo.email,
-                customerName: customerInfo.name,
-            },
-        };
-        
-        const payment = await paytrail.createPayment(paymentRequest);
-        
         const response = {
-            paymentUrl: (payment as any).href,
-            transactionId: (payment as any).transactionId,
+            success: true,
+            message: 'Booking confirmed! You will receive a confirmation email shortly.',
             bookingIds: bookings.map(b => b.id),
-            amount: totalAmount
+            amount: totalAmount,
+            paymentMethod: 'pay_at_venue',
+            status: 'confirmed'
         };
         
-        console.log('Checkout completed with Paytrail Payment:', response);
+        console.log('Checkout completed (Pay at Venue):', response);
         
         return NextResponse.json(response);
         

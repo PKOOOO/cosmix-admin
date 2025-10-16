@@ -7,6 +7,7 @@ import { Plus, Trash, Edit, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertModal } from "@/components/modals/alert-modal";
@@ -28,6 +29,7 @@ export const AdminCategoriesClient = () => {
   const [openDelete, setOpenDelete] = useState(false);
   const [editingCategory, setEditingCategory] = useState<GlobalCategory | null>(null);
   const [categoryName, setCategoryName] = useState("");
+  const [popular, setPopular] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -52,7 +54,7 @@ export const AdminCategoriesClient = () => {
 
     try {
       setLoading(true);
-      await axios.post('/api/admin/categories', { name: categoryName });
+      await axios.post('/api/admin/categories', { name: categoryName, popular });
       toast.success("Category created successfully");
       setCategoryName("");
       setOpen(false);
@@ -73,7 +75,7 @@ export const AdminCategoriesClient = () => {
 
     try {
       setLoading(true);
-      await axios.patch(`/api/admin/categories/${editingCategory.id}`, { name: categoryName });
+      await axios.patch(`/api/admin/categories/${editingCategory.id}`, { name: categoryName, popular });
       toast.success("Category updated successfully");
       setCategoryName("");
       setEditingCategory(null);
@@ -108,6 +110,7 @@ export const AdminCategoriesClient = () => {
   const openEditDialog = (category: GlobalCategory) => {
     setEditingCategory(category);
     setCategoryName(category.name);
+    setPopular((category as any).popular ?? false);
     setOpen(true);
   };
 
@@ -119,6 +122,7 @@ export const AdminCategoriesClient = () => {
   const resetForm = () => {
     setCategoryName("");
     setEditingCategory(null);
+    setPopular(false);
     setOpen(false);
   };
 
@@ -160,6 +164,10 @@ export const AdminCategoriesClient = () => {
                   onChange={(e) => setCategoryName(e.target.value)}
                   placeholder="Enter category name"
                 />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox id="popular" checked={popular} onCheckedChange={(v) => setPopular(!!v)} />
+                <Label htmlFor="popular">Popular</Label>
               </div>
             </div>
             <DialogFooter>

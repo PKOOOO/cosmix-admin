@@ -32,7 +32,7 @@ export async function GET(
             description: saloonService.service.description,
             categoryId: saloonService.service.categoryId,
             parentServiceId: saloonService.service.parentServiceId,
-            isPopular: saloonService.service.isPopular,
+            isPopular: saloonService.service.category?.popular ?? false,
             createdAt: saloonService.service.createdAt,
             updatedAt: saloonService.service.updatedAt,
             category: saloonService.service.category,

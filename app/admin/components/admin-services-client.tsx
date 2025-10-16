@@ -123,8 +123,10 @@ export const AdminServicesClient = () => {
 
     try {
       setLoading(true);
+      const isEditingSub = (editingService as any)?.parentServiceId;
       await axios.patch(`/api/admin/services/${editingService.id}`, {
-        name: serviceName
+        name: serviceName,
+        description: serviceDescription
       });
       toast.success("Service updated successfully");
       resetForm();
@@ -158,7 +160,9 @@ export const AdminServicesClient = () => {
   const openEditModal = (service: ParentService) => {
     setEditingService(service);
     setServiceName(service.name);
+    setServiceDescription(service.description || "");
     setSelectedCategoryId(service.category.id);
+    // popular removed from services
     setOpen(true);
   };
 
@@ -250,6 +254,8 @@ export const AdminServicesClient = () => {
                   />
                 </div>
               )}
+
+              {/* Popular removed from services */}
 
               {!editingService && (
                 <div className="space-y-2">
