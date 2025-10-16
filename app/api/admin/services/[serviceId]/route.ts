@@ -10,47 +10,77 @@ export async function PATCH(
     try {
         await requireAdmin();
         const body = await req.json();
-        const { name } = body;
+        const { name, description } = body;
+
+        console.log('[ADMIN_SERVICE_PATCH] Request body:', { name, description, serviceId: params.serviceId });
 
         if (!name) {
             return new NextResponse("Name is required", { status: 400 });
         }
 
-        // Check if the service exists and is a parent service
-        const existingService = await prismadb.service.findFirst({
+        // Check if the service exists (both parent and sub-services)
+        const existingService = await prismadb.service.findUnique({
             where: {
-                id: params.serviceId,
-                parentServiceId: null // Parent services have no parent
+                id: params.serviceId
             }
         });
 
         if (!existingService) {
-            return new NextResponse("Parent service not found", { status: 404 });
+            return new NextResponse("Service not found", { status: 404 });
         }
 
-        // Check if another parent service with the same name exists in the same category
-        const duplicateService = await prismadb.service.findFirst({
-            where: {
-                name: name,
-                categoryId: existingService.categoryId,
-                parentServiceId: null,
-                id: { not: params.serviceId }
-            }
-        });
+        // Check for duplicate names based on service type
+        let duplicateService;
+        
+        if (existingService.parentServiceId) {
+            // This is a sub-service - check for duplicates under the same parent
+            duplicateService = await prismadb.service.findFirst({
+                where: {
+                    name: name,
+                    parentServiceId: existingService.parentServiceId,
+                    id: { not: params.serviceId }
+                }
+            });
 
-        if (duplicateService) {
-            return new NextResponse("Parent service with this name already exists in this category", { status: 409 });
+            if (duplicateService) {
+                return new NextResponse("Sub-service with this name already exists under this parent service", { status: 409 });
+            }
+        } else {
+            // This is a parent service - check for duplicates in the same category
+            duplicateService = await prismadb.service.findFirst({
+                where: {
+                    name: name,
+                    categoryId: existingService.categoryId,
+                    parentServiceId: null,
+                    id: { not: params.serviceId }
+                }
+            });
+
+            if (duplicateService) {
+                return new NextResponse("Parent service with this name already exists in this category", { status: 409 });
+            }
         }
 
         // Update the service
+        const updateData: any = { name };
+        
+        // Handle description field - include it if it's provided (even if null/empty)
+        if (description !== undefined) {
+            updateData.description = description;
+        }
+
+        // No popular on services anymore
+        
+        console.log('[ADMIN_SERVICE_PATCH] Update data:', updateData);
+        
         const service = await prismadb.service.update({
             where: {
                 id: params.serviceId
             },
-            data: {
-                name
-            }
+            data: updateData
         });
+        
+        console.log('[ADMIN_SERVICE_PATCH] Updated service:', { id: service.id, name: service.name, description: service.description });
 
         return NextResponse.json(service);
 
@@ -70,27 +100,28 @@ export async function DELETE(
     try {
         await requireAdmin();
 
-        // Check if the service exists and is a parent service
-        const existingService = await prismadb.service.findFirst({
+        // Check if the service exists (both parent and sub-services)
+        const existingService = await prismadb.service.findUnique({
             where: {
-                id: params.serviceId,
-                parentServiceId: null
+                id: params.serviceId
             }
         });
 
         if (!existingService) {
-            return new NextResponse("Parent service not found", { status: 404 });
+            return new NextResponse("Service not found", { status: 404 });
         }
 
-        // Check if service has sub-services
-        const subServicesCount = await prismadb.service.count({
-            where: {
-                parentServiceId: params.serviceId
-            }
-        });
+        // If it's a parent service, check if it has sub-services
+        if (!existingService.parentServiceId) {
+            const subServicesCount = await prismadb.service.count({
+                where: {
+                    parentServiceId: params.serviceId
+                }
+            });
 
-        if (subServicesCount > 0) {
-            return new NextResponse("Cannot delete parent service with existing sub-services", { status: 400 });
+            if (subServicesCount > 0) {
+                return new NextResponse("Cannot delete parent service with existing sub-services", { status: 400 });
+            }
         }
 
         // Check if service is used in any saloon services

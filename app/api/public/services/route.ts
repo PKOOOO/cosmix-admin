@@ -7,8 +7,9 @@ export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
         const category = searchParams.get('category');
+        const subOnly = searchParams.get('subOnly') === 'true';
 
-        let whereClause = {};
+        let whereClause: any = {};
         
         if (category) {
             whereClause = {
@@ -18,6 +19,15 @@ export async function GET(req: Request) {
                         mode: 'insensitive'
                     }
                 }
+            };
+        }
+
+        // popular removed from services
+
+        if (subOnly) {
+            whereClause = {
+                ...whereClause,
+                parentServiceId: { not: null }
             };
         }
 

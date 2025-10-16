@@ -10,7 +10,7 @@ export async function PATCH(
     try {
         await requireAdmin();
         const body = await req.json();
-        const { name } = body;
+        const { name, popular } = body;
 
         if (!name) {
             return new NextResponse("Name is required", { status: 400 });
@@ -47,7 +47,8 @@ export async function PATCH(
                 id: params.categoryId
             },
             data: {
-                name
+                name,
+                ...(popular !== undefined ? { popular: !!popular } : {})
             }
         });
 

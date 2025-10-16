@@ -7,7 +7,7 @@ export async function POST(req: Request) {
     try {
         const user = await requireAdmin();
         const body = await req.json();
-        const { name } = body;
+        const { name, popular } = body;
 
         if (!name) {
             return new NextResponse("Name is required", { status: 400 });
@@ -30,7 +30,8 @@ export async function POST(req: Request) {
             data: {
                 name,
                 isGlobal: true,
-                saloonId: null // Global categories don't belong to a specific saloon
+                saloonId: null, // Global categories don't belong to a specific saloon
+                popular: !!popular
             }
         });
 

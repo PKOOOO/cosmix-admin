@@ -5,8 +5,17 @@ import prismadb from "@/lib/prismadb";
 // Public API route for fetching categories (no authentication required)
 export async function GET(req: Request) {
     try {
-        // Get all categories from all saloons
+        const { searchParams } = new URL(req.url);
+        const popularOnly = searchParams.get('popular') === 'true';
+        const globalOnly = searchParams.get('global') === 'true';
+
+        const where: any = {};
+        if (popularOnly) where.popular = true;
+        if (globalOnly) where.isGlobal = true;
+
+        // Get categories
         const categories = await prismadb.category.findMany({
+            where,
             include: {
                 saloon: {
                     select: {

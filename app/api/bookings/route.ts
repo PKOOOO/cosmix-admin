@@ -54,6 +54,8 @@ export async function POST(req: Request) {
                 serviceId,
                 saloonId,
                 bookingTime,
+                status: 'confirmed',
+                paymentMethod: 'pay_at_venue',
             },
         });
 
