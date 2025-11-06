@@ -112,6 +112,7 @@ model Service {
   id              String          @id @default(uuid())
   name            String
   description     String?
+  workTypes       ServiceWorkType[] @default([])
 
   categoryId      String
   category        Category        @relation(fields: [categoryId], references: [id])
@@ -127,6 +128,12 @@ model Service {
   updatedAt DateTime @updatedAt
 
   @@map("services")
+}
+
+enum ServiceWorkType {
+  UUDET
+  POISTO
+  HUOLTO
 }
 
 // ------------------- BOOKING -------------------

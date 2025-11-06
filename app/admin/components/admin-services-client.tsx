@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertModal } from "@/components/modals/alert-modal";
 import toast from "react-hot-toast";
 
+type WorkType = 'UUDET' | 'POISTO' | 'HUOLTO';
+
 interface GlobalCategory {
   id: string;
   name: string;
@@ -23,6 +25,7 @@ interface ParentService {
   id: string;
   name: string;
   description?: string;
+  workTypes?: WorkType[];
   category: {
     id: string;
     name: string;
@@ -46,6 +49,7 @@ export const AdminServicesClient = () => {
   const [serviceDescription, setServiceDescription] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [selectedParentServiceId, setSelectedParentServiceId] = useState("");
+  const [workTypes, setWorkTypes] = useState<WorkType[]>([]);
   const [isCreatingSubService, setIsCreatingSubService] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -94,14 +98,15 @@ export const AdminServicesClient = () => {
 
     try {
       setLoading(true);
-      const payload = {
+      const payload: any = {
         name: serviceName,
         categoryId: selectedCategoryId,
-        ...(isCreatingSubService && {
-          parentServiceId: selectedParentServiceId,
-          description: serviceDescription
-        })
+        description: serviceDescription,
       };
+      if (isCreatingSubService) {
+        payload.parentServiceId = selectedParentServiceId;
+        payload.workTypes = workTypes;
+      }
       
       await axios.post('/api/admin/services', payload);
       toast.success(`${isCreatingSubService ? 'Sub-service' : 'Parent service'} created successfully`);
@@ -126,7 +131,8 @@ export const AdminServicesClient = () => {
       const isEditingSub = (editingService as any)?.parentServiceId;
       await axios.patch(`/api/admin/services/${editingService.id}`, {
         name: serviceName,
-        description: serviceDescription
+        description: serviceDescription,
+        ...(isEditingSub ? { workTypes } : {})
       });
       toast.success("Service updated successfully");
       resetForm();
@@ -157,11 +163,16 @@ export const AdminServicesClient = () => {
     }
   };
 
+  const toggleWorkType = (value: WorkType) => {
+    setWorkTypes((prev) => prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]);
+  };
+
   const openEditModal = (service: ParentService) => {
     setEditingService(service);
     setServiceName(service.name);
     setServiceDescription(service.description || "");
     setSelectedCategoryId(service.category.id);
+    setWorkTypes(((service as any).workTypes as WorkType[]) || []);
     // popular removed from services
     setOpen(true);
   };
@@ -176,6 +187,7 @@ export const AdminServicesClient = () => {
     setServiceDescription("");
     setSelectedCategoryId("");
     setSelectedParentServiceId("");
+    setWorkTypes([]);
     setIsCreatingSubService(false);
     setEditingService(null);
     setOpen(false);
@@ -242,16 +254,50 @@ export const AdminServicesClient = () => {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="description">Description (optional)</Label>
+                <textarea
+                  id="description"
+                  value={serviceDescription}
+                  onChange={(e) => setServiceDescription(e.target.value)}
+                  placeholder="Enter service description"
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              </div>
+
+              {/* Work types for sub-services */}
               {(isCreatingSubService || (editingService && (editingService as any).parentServiceId)) && (
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <textarea
-                    id="description"
-                    value={serviceDescription}
-                    onChange={(e) => setServiceDescription(e.target.value)}
-                    placeholder="Enter service description"
-                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  />
+                  <Label>Work Types (optional)</Label>
+                  <div className="flex gap-6 text-sm">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        name="workTypeUudet"
+                        checked={workTypes.includes('UUDET')}
+                        onChange={() => toggleWorkType('UUDET')}
+                      />
+                      Uudet
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        name="workTypePoisto"
+                        checked={workTypes.includes('POISTO')}
+                        onChange={() => toggleWorkType('POISTO')}
+                      />
+                      Poisto
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        name="workTypeHuolto"
+                        checked={workTypes.includes('HUOLTO')}
+                        onChange={() => toggleWorkType('HUOLTO')}
+                      />
+                      Huolto
+                    </label>
+                  </div>
                 </div>
               )}
 
@@ -410,6 +456,7 @@ export const AdminServicesClient = () => {
                   <div className="space-y-1 text-xs text-muted-foreground">
                     <p>Category: {service.category.name}</p>
                     <p>Parent: {(service as any).parentService?.name}</p>
+                    <p>Types: {(service as any).workTypes && (service as any).workTypes.length > 0 ? (service as any).workTypes.map((t: WorkType) => ({ UUDET: 'Uudet', POISTO: 'Poisto', HUOLTO: 'Huolto' } as const)[t]).join(', ') : '—'}</p>
                     <p>Created: {new Date(service.createdAt).toLocaleDateString()}</p>
                   </div>
                 </CardContent>

@@ -10,9 +10,9 @@ export async function PATCH(
     try {
         await requireAdmin();
         const body = await req.json();
-        const { name, description } = body;
+        const { name, description, workTypes } = body;
 
-        console.log('[ADMIN_SERVICE_PATCH] Request body:', { name, description, serviceId: params.serviceId });
+        console.log('[ADMIN_SERVICE_PATCH] Request body:', { name, description, workTypes, serviceId: params.serviceId });
 
         if (!name) {
             return new NextResponse("Name is required", { status: 400 });
@@ -61,15 +61,18 @@ export async function PATCH(
             }
         }
 
-        // Update the service
+        // Build update data
         const updateData: any = { name };
-        
-        // Handle description field - include it if it's provided (even if null/empty)
         if (description !== undefined) {
             updateData.description = description;
         }
-
-        // No popular on services anymore
+        if (workTypes !== undefined) {
+            const validWorkTypes = ["UUDET", "POISTO", "HUOLTO"] as const;
+            if (!Array.isArray(workTypes) || !workTypes.every((w) => validWorkTypes.includes(w))) {
+                return new NextResponse("workTypes must be an array of UUDET, POISTO, HUOLTO", { status: 400 });
+            }
+            updateData.workTypes = workTypes;
+        }
         
         console.log('[ADMIN_SERVICE_PATCH] Update data:', updateData);
         
@@ -80,7 +83,7 @@ export async function PATCH(
             data: updateData
         });
         
-        console.log('[ADMIN_SERVICE_PATCH] Updated service:', { id: service.id, name: service.name, description: service.description });
+        console.log('[ADMIN_SERVICE_PATCH] Updated service:', { id: service.id, name: service.name, description: service.description, workTypes: (service as any).workTypes });
 
         return NextResponse.json(service);
 
