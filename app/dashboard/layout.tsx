@@ -3,9 +3,7 @@ import prismadb from "@/lib/prismadb";
 import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import NextTopLoader from 'nextjs-toploader';
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
-import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import { DashboardNavbar } from "@/components/dashboard-navbar";
 
 export default async function DashboardLayout({
     children,
@@ -58,15 +56,12 @@ export default async function DashboardLayout({
           showSpinner={false}
           shadow="0 0 10px #423120,0 0 5px #423120"
         />
-        <SidebarProvider>
-          <AppSidebar hasSaloons={hasSaloons} />
-          <div className="flex-1 w-full max-w-full overflow-hidden relative">
-            <main className="p-3 md:p-6 w-full max-w-full overflow-hidden pb-20 md:pb-6">
-              {children}
-            </main>
-            <MobileBottomNav hasSaloons={hasSaloons} />
-          </div>
-        </SidebarProvider>
+        <DashboardNavbar hasSaloons={hasSaloons} />
+        <div className="w-full max-w-full overflow-hidden relative">
+          <main className="p-0 md:p-6 w-full max-w-full overflow-hidden pt-16 md:pt-0">
+            {children}
+          </main>
+        </div>
     </>
    );
 };
