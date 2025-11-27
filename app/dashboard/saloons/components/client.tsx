@@ -18,7 +18,7 @@ interface SaloonClientProps {
 }
 
 export const SaloonClient: React.FC<SaloonClientProps> = ({
-    data 
+    data
 }) => {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -27,11 +27,11 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
 
     const onDelete = async () => {
         if (!deleteId) return;
-        
+
         try {
             setLoading(true);
             const response = await axios.delete(`/api/saloons/${deleteId}`);
-            
+
             if (!response.data.hasRemainingSaloons) {
                 toast.success("Saloon deleted. Please create a new salon to continue.");
                 setOpen(false);
@@ -62,27 +62,21 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
 
     return (
         <div className="relative min-h-screen">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-6 md:mt-8 gap-4 mb-6">
-                <Heading title={`Saloons (${data.length})`} />
-                <Button onClick={() => router.push('/dashboard/saloons/new')}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add New Saloon
-                </Button>
-            </div>
-            
+
+
             {data.length === 0 ? (
                 <Card>
                     <CardContent className="flex flex-col items-center justify-center py-12">
-                        <p className="text-muted-foreground mb-4">No saloons yet</p>
+
                         <Button onClick={() => router.push('/dashboard/saloons/new')}>
                             <Plus className="mr-2 h-4 w-4" />
-                            Create Your First Saloon
+                            Luo Saloon
                         </Button>
                     </CardContent>
                 </Card>
             ) : (
                 <>
-                    <div className="flex justify-center pb-24 md:pb-0">
+                    <div className="flex justify-center">
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 w-full max-w-6xl">
                             {data.map((saloon) => (
                                 <Card key={saloon.id} className="overflow-hidden flex flex-col">
@@ -132,81 +126,36 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
                                             </div>
                                         )}
 
-                                        {/* Sub-Services */}
-                                        <div className="flex-1">
-                                            <h4 className="text-sm font-semibold mb-3">
-                                                Sub-Services ({saloon.subServices.length})
-                                            </h4>
-                                            {saloon.subServices.length === 0 ? (
-                                                <p className="text-sm text-muted-foreground italic">
-                                                    No sub-services configured
-                                                </p>
-                                            ) : (
-                                                <div className="space-y-2 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-3 md:space-y-0">
-                                                    {saloon.subServices.map((service, serviceIndex) => (
-                                                        <div
-                                                            key={`${service.name}-${serviceIndex}`}
-                                                            className={`p-3 rounded-lg border ${
-                                                                !service.isAvailable 
-                                                                    ? 'bg-muted opacity-60' 
-                                                                    : 'bg-background'
-                                                            }`}
-                                                        >
-                                                            <div className="flex flex-col gap-1">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="text-sm font-medium truncate">
-                                                                        {service.name}
-                                                                    </span>
-                                                                    {!service.isAvailable && (
-                                                                        <Badge variant="secondary" className="text-xs flex-shrink-0">
-                                                                            Unavailable
-                                                                        </Badge>
-                                                                    )}
-                                                                </div>
-                                                                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                                                    <span className="flex items-center gap-1">
-                                                                        <DollarSign className="h-3 w-3" />
-                                                                        {service.price.toFixed(2)}€
-                                                                    </span>
-                                                                    <span className="flex items-center gap-1">
-                                                                        <Clock className="h-3 w-3" />
-                                                                        {service.duration} min
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Actions - Desktop only */}
-                                        <div className="hidden md:flex flex-wrap gap-2 pt-4 border-t">
+                                        {/* Actions */}
+                                        <div className="flex flex-col md:flex-row gap-2 pt-4 border-t">
                                             <Button
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() => router.push(`/dashboard/saloons/${saloon.id}`)}
+                                                className="w-full md:w-auto py-8 md:py-2"
                                             >
                                                 <Edit className="mr-2 h-4 w-4" />
-                                                Edit
+                                                muokkaa salonki
                                             </Button>
                                             {saloon.subServices.length > 0 && (
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => router.push(`/dashboard/saloons/${saloon.id}/pricing`)}
+                                                    className="w-full md:w-auto py-8 md:py-2"
                                                 >
                                                     <DollarSign className="mr-2 h-4 w-4" />
-                                                    Pricing
+                                                    Aseta Salon hinta
                                                 </Button>
                                             )}
                                             <Button
                                                 variant="destructive"
                                                 size="sm"
                                                 onClick={() => handleDeleteClick(saloon.id)}
+                                                className="w-full md:w-auto py-8 md:py-2"
                                             >
                                                 <Trash className="mr-2 h-4 w-4" />
-                                                Delete
+                                                DPoista salonki
                                             </Button>
                                         </div>
                                     </CardContent>
@@ -214,43 +163,6 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
                             ))}
                         </div>
                     </div>
-
-                    {/* Mobile Sticky Buttons - Only for first saloon */}
-                    {data.length > 0 && (
-                        <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 shadow-lg z-50 md:hidden">
-                            <div className="flex gap-2 max-w-screen-sm mx-auto">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => router.push(`/dashboard/saloons/${data[0].id}`)}
-                                    className="flex-1"
-                                >
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Edit
-                                </Button>
-                                {data[0].subServices.length > 0 && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => router.push(`/dashboard/saloons/${data[0].id}/pricing`)}
-                                        className="flex-1"
-                                    >
-                                        <DollarSign className="mr-2 h-4 w-4" />
-                                        Pricing
-                                    </Button>
-                                )}
-                                <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => handleDeleteClick(data[0].id)}
-                                    className="flex-1"
-                                >
-                                    <Trash className="mr-2 h-4 w-4" />
-                                    Delete
-                                </Button>
-                            </div>
-                        </div>
-                    )}
                 </>
             )}
 

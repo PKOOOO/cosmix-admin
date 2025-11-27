@@ -1,6 +1,6 @@
 "use client";
 
-import { 
+import {
   Settings,
   Package,
   BarChart3,
@@ -42,21 +42,21 @@ export function MobileBottomNav({ hasSaloons }: MobileBottomNavProps) {
   const mobileRoutes = [
     {
       href: '/dashboard',
-      label: 'Overview',
+      label: 'Palvelutilastot',
       icon: BarChart3,
       active: pathname === '/dashboard',
       disabled: !hasSaloons,
     },
     {
       href: '/dashboard/saloons',
-      label: 'Saloons',
+      label: 'Palvelusi',
       icon: List,
       active: pathname === '/dashboard/saloons',
       disabled: false, // Always allow access to saloons
     },
     {
       href: '/dashboard/bookings',
-      label: 'Bookings',
+      label: 'Varaukset',
       icon: CalendarCheck,
       active: pathname === '/dashboard/bookings',
       disabled: !hasSaloons,
@@ -68,17 +68,10 @@ export function MobileBottomNav({ hasSaloons }: MobileBottomNavProps) {
       active: pathname === '/dashboard/integration',
       disabled: !hasSaloons,
     },
-    {
-      href: '/dashboard/settings',
-      label: 'Settings',
-      icon: Settings,
-      active: pathname === '/dashboard/settings',
-      disabled: !hasSaloons,
-    },
   ];
 
   // Filter routes based on admin status and availability
-  const availableRoutes = mobileRoutes.filter(route => 
+  const availableRoutes = mobileRoutes.filter(route =>
     !route.disabled && (!(route as any).adminOnly || isAdmin)
   );
 
@@ -91,8 +84,8 @@ export function MobileBottomNav({ hasSaloons }: MobileBottomNavProps) {
             href={route.href}
             className={cn(
               "flex flex-col items-center justify-center min-w-0 flex-1 px-2 py-1 rounded-lg transition-colors",
-              route.active 
-                ? "text-primary" 
+              route.active
+                ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >

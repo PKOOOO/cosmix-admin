@@ -1,6 +1,6 @@
 "use client";
 
-import { 
+import {
   Settings,
   Package,
   CreditCard,
@@ -58,14 +58,14 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
   const routes = [
     {
       href: '/dashboard',
-      label: 'Overview',
+      label: 'Palvelutilastot',
       icon: BarChart3,
       active: pathname === '/dashboard',
       disabled: !hasSaloons,
     },
     {
       href: '/dashboard/integration',
-      label: 'Paytrail Integration',
+      label: 'Palkkaintegraatio',
       icon: CloudIcon,
       active: pathname === '/dashboard/integration',
       disabled: !hasSaloons,
@@ -80,7 +80,7 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
     },
     {
       href: '/dashboard/bookings',
-      label: 'Bookings',
+      label: 'Varaukset',
       icon: CalendarCheck,
       active: pathname === '/dashboard/bookings',
       disabled: !hasSaloons,
@@ -95,7 +95,7 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
     },
     {
       href: '/dashboard/saloons',
-      label: 'Saloons',
+      label: 'Palvelusi',
       icon: List,
       active: pathname === '/dashboard/saloons',
       disabled: false, // Always allow access to saloons
@@ -135,12 +135,12 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
               {mainRoutes.map((route) => (
                 <SidebarMenuItem key={route.href}>
                   <SidebarMenuButton asChild size="lg" className="h-12 md:h-8 text-base md:text-sm">
-                    <a 
+                    <a
                       href={route.disabled ? "#" : route.href}
                       className={cn(
                         "flex items-center gap-3 px-4 py-3 md:px-2 md:py-2 rounded-lg transition-colors",
-                        route.disabled ? "text-muted-foreground cursor-not-allowed opacity-50" : 
-                        route.active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                        route.disabled ? "text-muted-foreground cursor-not-allowed opacity-50" :
+                          route.active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                       )}
                       onClick={route.disabled ? (e) => e.preventDefault() : undefined}
                     >
@@ -161,12 +161,12 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
               {saloonManagementRoutes.map((route) => (
                 <SidebarMenuItem key={route.href}>
                   <SidebarMenuButton asChild size="lg" className="h-12 md:h-8 text-base md:text-sm">
-                    <a 
+                    <a
                       href={route.disabled ? "#" : route.href}
                       className={cn(
                         "flex items-center gap-3 px-4 py-3 md:px-2 md:py-2 rounded-lg transition-colors",
-                        route.disabled ? "text-muted-foreground cursor-not-allowed opacity-50" : 
-                        route.active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                        route.disabled ? "text-muted-foreground cursor-not-allowed opacity-50" :
+                          route.active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                       )}
                       onClick={route.disabled ? (e) => e.preventDefault() : undefined}
                     >
@@ -187,12 +187,12 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
               {systemRoutes.map((route) => (
                 <SidebarMenuItem key={route.href}>
                   <SidebarMenuButton asChild size="lg" className="h-12 md:h-8 text-base md:text-sm">
-                    <a 
+                    <a
                       href={route.disabled ? "#" : route.href}
                       className={cn(
                         "flex items-center gap-3 px-4 py-3 md:px-2 md:py-2 rounded-lg transition-colors",
-                        route.disabled ? "text-muted-foreground cursor-not-allowed opacity-50" : 
-                        route.active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                        route.disabled ? "text-muted-foreground cursor-not-allowed opacity-50" :
+                          route.active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                       )}
                       onClick={route.disabled ? (e) => e.preventDefault() : undefined}
                     >
@@ -214,7 +214,7 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
                 {adminRoutes.map((route) => (
                   <SidebarMenuItem key={route.href}>
                     <SidebarMenuButton asChild size="lg" className="h-12 md:h-8 text-base md:text-sm">
-                      <a 
+                      <a
                         href={route.href}
                         className={cn(
                           "flex items-center gap-3 px-4 py-3 md:px-2 md:py-2 rounded-lg transition-colors",
@@ -232,7 +232,7 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
           </SidebarGroup>
         )}
       </SidebarContent>
-      
+
       {/* User Profile at Bottom */}
       <SidebarFooter className="p-2">
         <div className="flex items-center justify-center">

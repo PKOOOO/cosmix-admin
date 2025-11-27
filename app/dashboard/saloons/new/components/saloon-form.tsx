@@ -115,10 +115,10 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
     const onSubmit = async (data: SaloonFormValues) => {
         try {
             setLoading(true);
-            
+
             // Extract selectedServices from data
             const { selectedServices, ...saloonData } = data;
-            
+
             if (initialData) {
                 await axios.patch(
                     `/api/saloons/${initialData.id}`,
@@ -127,7 +127,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
             } else {
                 await axios.post(`/api/saloons`, { ...saloonData, selectedServices });
             }
-    
+
             router.refresh();
             router.push('/dashboard/saloons');
             toast.success(toastMessage);
@@ -140,13 +140,13 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
 
     const onDelete = async () => {
         if (!initialData) return;
-        
+
         try {
             setLoading(true);
             const response = await axios.delete(
                 `/api/saloons/${initialData.id}`
             );
-            
+
             // Check if user has remaining salons
             if (!response.data.hasRemainingSaloons) {
                 // No remaining salons, navigate to create new salon
@@ -181,10 +181,10 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                 onConfirm={onDelete}
                 loading={loading}
             />
-            
+
             {/* Header Section */}
             <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
-                <Heading title={title} />
+
                 {initialData && (
                     <Button
                         disabled={loading}
@@ -198,9 +198,9 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                     </Button>
                 )}
             </div>
-            
-            <Separator className="mb-6" />
-            
+
+
+
             {/* Main content container with proper bottom padding for mobile */}
             <div className="pb-20 md:pb-0">
                 <Form {...form}>
@@ -209,13 +209,12 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                         onSubmit={form.handleSubmit(onSubmit)}
                         className="space-y-4 md:space-y-6 w-full max-w-full"
                     >
-                        {/* Image Upload Section */}
+
                         <FormField
                             control={form.control}
                             name="images"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Images</FormLabel>
                                     <FormControl>
                                         <ImageUpload
                                             value={field.value.map((image) => image.url)}
@@ -228,7 +227,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                 </FormItem>
                             )}
                         />
-                        
+
                         {/* Form Fields Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                             <FormField
@@ -248,7 +247,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                     </FormItem>
                                 )}
                             />
-                            
+
                             <FormField
                                 control={form.control}
                                 name="shortIntro"
@@ -266,7 +265,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                     </FormItem>
                                 )}
                             />
-                            
+
                             <FormField
                                 control={form.control}
                                 name="address"
@@ -284,26 +283,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                     </FormItem>
                                 )}
                             />
-                            
-                            <FormField
-                                control={form.control}
-                                name="description"
-                                render={({ field }) => (
-                                    <FormItem className="md:col-span-3">
-                                        <FormLabel>Description</FormLabel>
-                                        <FormControl>
-                                            <Textarea
-                                                disabled={loading}
-                                                placeholder="Enter description"
-                                                {...field}
-                                                value={field.value || ""}
-                                                className="min-h-[100px]"
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+
                         </div>
 
                         {/* Location Selection */}
@@ -326,7 +306,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                         const categoryName = service.category?.name || 'Uncategorized';
                                         const parentName = service.parentService?.name || 'No Parent';
                                         const key = `${categoryName}::${parentName}`;
-                                        
+
                                         if (!acc[key]) {
                                             acc[key] = {
                                                 category: categoryName,
@@ -342,7 +322,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                     const filteredGroups = Object.entries(groupedServices).filter(([key, group]: [string, any]) => {
                                         if (!searchQuery) return true;
                                         const query = searchQuery.toLowerCase();
-                                        return group.services.some((s: any) => 
+                                        return group.services.some((s: any) =>
                                             s.name.toLowerCase().includes(query) ||
                                             s.description?.toLowerCase().includes(query) ||
                                             group.category.toLowerCase().includes(query) ||
@@ -396,17 +376,13 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
 
                                     return (
                                         <FormItem>
-                                            <FormLabel>Available Services</FormLabel>
-                                            <FormDescription>
-                                                Select which sub-services will be available in this saloon
-                                            </FormDescription>
                                             <FormControl>
                                                 <div className="space-y-4">
                                                     {/* Search Bar */}
                                                     <div className="relative">
                                                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                                         <Input
-                                                            placeholder="Search services by name, category, or parent..."
+                                                            placeholder="Search services by name or category..."
                                                             value={searchQuery}
                                                             onChange={(e) => setSearchQuery(e.target.value)}
                                                             className="pl-10"
@@ -614,7 +590,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                     </form>
                 </Form>
             </div>
-            
+
             {/* Mobile Sticky Bottom Button - Fixed positioning */}
             <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-4 shadow-lg">
                 <Button disabled={loading} className="w-full" type="submit" form="saloon-form">

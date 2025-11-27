@@ -1,6 +1,6 @@
 "use client";
 
-import { 
+import {
   Settings,
   BarChart3,
   List,
@@ -45,10 +45,10 @@ const NavLink = ({ route }: { route: Route }) => (
     onClick={route.disabled ? (e) => e.preventDefault() : undefined}
     className={cn(
       "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-      route.disabled 
-        ? "text-muted-foreground cursor-not-allowed opacity-50" 
-        : route.active 
-          ? "bg-primary text-primary-foreground" 
+      route.disabled
+        ? "text-muted-foreground cursor-not-allowed opacity-50"
+        : route.active
+          ? "bg-primary text-primary-foreground"
           : "text-foreground hover:bg-accent hover:text-accent-foreground"
     )}
   >
@@ -85,21 +85,21 @@ export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
   const routes: Route[] = [
     {
       href: '/dashboard',
-      label: 'Overview',
+      label: 'Palvelutilastot',
       icon: BarChart3,
       active: pathname === '/dashboard',
       disabled: !hasSaloons,
     },
     {
       href: '/dashboard/integration',
-      label: 'Paytrail Integration',
+      label: 'Palkkaintegraatio',
       icon: CloudIcon,
       active: pathname === '/dashboard/integration',
       disabled: !hasSaloons,
     },
     {
       href: '/dashboard/bookings',
-      label: 'Bookings',
+      label: 'Varaukset',
       icon: CalendarCheck,
       active: pathname === '/dashboard/bookings',
       disabled: !hasSaloons,
@@ -114,17 +114,10 @@ export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
     },
     {
       href: '/dashboard/saloons',
-      label: 'Saloons',
+      label: 'Palvelusi',
       icon: List,
       active: pathname === '/dashboard/saloons',
       disabled: false,
-    },
-    {
-      href: '/dashboard/settings',
-      label: 'Settings',
-      icon: Settings,
-      active: pathname === '/dashboard/settings',
-      disabled: !hasSaloons,
     },
   ];
 
@@ -160,16 +153,16 @@ export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
 
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-background border-b">
         <div className="flex items-center justify-between px-4 py-3">
-          <h2 className="text-lg font-semibold">Dashboard</h2>
+          <UserButton afterSignOutUrl="/" />
           <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
             <DrawerTrigger asChild>
               <Button variant="ghost" size="icon">
                 <Menu className="h-5 w-5" />
               </Button>
             </DrawerTrigger>
-            <DrawerContent className="h-[85vh] w-full fixed bottom-0 left-0 rounded-t-2xl bg-background shadow-lg">
+            <DrawerContent className="h-[60vh] w-full fixed bottom-0 left-0 rounded-t-2xl bg-background shadow-lg">
               <DrawerHeader className="flex items-center justify-between px-4 py-3 border-b">
-                <DrawerTitle>Menu</DrawerTitle>
+                <DrawerTitle></DrawerTitle>
                 <DrawerClose asChild>
                   <button className="p-2 text-muted-foreground rounded-md hover:bg-accent">
                     ✕
@@ -185,10 +178,10 @@ export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
                       onClick={route.disabled ? (e) => e.preventDefault() : () => setIsDrawerOpen(false)}
                       className={cn(
                         "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
-                        route.disabled 
-                          ? "text-muted-foreground cursor-not-allowed opacity-50" 
-                          : route.active 
-                            ? "bg-primary text-primary-foreground" 
+                        route.disabled
+                          ? "text-muted-foreground cursor-not-allowed opacity-50"
+                          : route.active
+                            ? "bg-primary text-primary-foreground"
                             : "text-foreground hover:bg-accent hover:text-accent-foreground"
                       )}
                     >
@@ -205,8 +198,8 @@ export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
                         onClick={() => setIsDrawerOpen(false)}
                         className={cn(
                           "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
-                          adminRoute.active 
-                            ? "bg-primary text-primary-foreground" 
+                          adminRoute.active
+                            ? "bg-primary text-primary-foreground"
                             : "text-foreground hover:bg-accent hover:text-accent-foreground"
                         )}
                       >
@@ -215,11 +208,6 @@ export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
                       </Link>
                     );
                   })()}
-                </div>
-                <div className="mt-6 pt-6 border-t">
-                  <div className="flex items-center justify-center">
-                    <UserButton afterSignOutUrl="/" />
-                  </div>
                 </div>
               </div>
             </DrawerContent>

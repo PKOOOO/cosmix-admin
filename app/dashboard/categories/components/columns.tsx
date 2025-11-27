@@ -16,36 +16,17 @@ export type CategoryColumn = {
 export const columns: ColumnDef<CategoryColumn>[] = [
     {
         accessorKey: "name",
-        header: "Name",
-    },
-    {
-        accessorKey: "saloonName",
-        header: "Saloon",
-        cell: ({ row }) => (
-            <span>
-                {row.original.isGlobal ? (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        Global
-                    </span>
-                ) : (
-                    row.original.saloonName || "N/A"
-                )}
-            </span>
-        )
+        header: "Nimi",
     },
     {
         accessorKey: "servicesCount",
-        header: "Services",
+        header: "Palvelut",
         cell: ({ row }) => (
-            <span>{row.original.servicesCount} services</span>
+            <span>{row.original.servicesCount} palvelua</span>
         )
     },
     {
         accessorKey: "createdAt",
         header: "Date",
     },
-    {
-        id: "actions",
-        cell: ({ row }) => <CellAction data={row.original} />,
-    }
 ];
