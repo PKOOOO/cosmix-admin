@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
                 where: {
                     OR: [
                         { isGlobal: true }, // Global categories available to all users
-                        { 
+                        {
                             saloon: {
                                 userId: user.id
                             }
@@ -229,11 +229,11 @@ export async function POST(req: Request) {
         const { userId } = auth();
         const body = await req.json();
 
-        const { 
-            name, 
-            description, 
-            categoryId, 
-            parentServiceId, 
+        const {
+            name,
+            description,
+            categoryId,
+            parentServiceId,
             saloonIds, // Changed from saloonId to saloonIds array
             isParent
         } = body;
@@ -310,7 +310,7 @@ export async function POST(req: Request) {
         }
 
         return NextResponse.json(service);
-        
+
     } catch (error) {
         console.log("[SERVICE_POST]", error);
         return new NextResponse("Internal error", { status: 500 });

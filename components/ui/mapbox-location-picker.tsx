@@ -49,9 +49,9 @@ export const MapboxLocationPicker: React.FC<LocationPickerProps> = ({
   // Handle map click to select location
   const handleMapClick = useCallback((event: any) => {
     if (disabled) return;
-    
+
     const { lng, lat } = event.lngLat;
-    
+
     // Reverse geocode to get address
     fetch(
       `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}`
@@ -94,7 +94,7 @@ export const MapboxLocationPicker: React.FC<LocationPickerProps> = ({
   const handleSearchResultSelect = useCallback((result: SearchResult) => {
     const [lng, lat] = result.center;
     const location = { latitude: lat, longitude: lng, address: result.place_name };
-    
+
     setSelectedLocation(location);
     setViewState(prev => ({
       ...prev,
@@ -117,20 +117,12 @@ export const MapboxLocationPicker: React.FC<LocationPickerProps> = ({
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MapPin className="h-5 w-5" />
-          Location Selection
-        </CardTitle>
-        <CardDescription>
-          Click on the map or search for a location to set your salon&apos;s position
-        </CardDescription>
-      </CardHeader>
+    <Card className="w-full overflow-hidden">
+
       <CardContent className="space-y-4">
         {/* Search Bar */}
         <div className="relative">
-          <div className="flex gap-2">
+          <div className="flex gap-2 mt-4">
             <Input
               placeholder="Search for a location..."
               value={searchQuery}
@@ -148,7 +140,7 @@ export const MapboxLocationPicker: React.FC<LocationPickerProps> = ({
               <Search className="h-4 w-4" />
             </Button>
           </div>
-          
+
           {/* Search Results */}
           {showSearchResults && searchResults.length > 0 && (
             <div className="absolute top-full left-0 right-0 z-10 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
@@ -164,41 +156,6 @@ export const MapboxLocationPicker: React.FC<LocationPickerProps> = ({
               ))}
             </div>
           )}
-        </div>
-
-        {/* Map */}
-        <div className="relative">
-          <div className="h-96 w-full rounded-lg overflow-hidden border border-gray-200">
-            <Map
-              ref={mapRef}
-              {...viewState}
-              onMove={evt => setViewState(evt.viewState)}
-              onClick={handleMapClick}
-              mapboxAccessToken={MAPBOX_TOKEN}
-              style={{ width: '100%', height: '100%' }}
-              mapStyle="mapbox://styles/mapbox/streets-v12"
-              cursor={disabled ? 'default' : 'crosshair'}
-              attributionControl={false}
-            >
-              {/* Selected Location Marker */}
-              {selectedLocation && (
-                <Marker
-                  longitude={selectedLocation.longitude}
-                  latitude={selectedLocation.latitude}
-                  anchor="bottom"
-                >
-                  <div className="bg-brand-dark text-white p-2 rounded-full shadow-lg">
-                    <MapPin className="h-4 w-4" />
-                  </div>
-                </Marker>
-              )}
-            </Map>
-          </div>
-          
-          {/* Map Instructions */}
-          <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-md text-sm text-gray-600 border">
-            {disabled ? 'Location selection disabled' : 'Click on the map to select location'}
-          </div>
         </div>
 
         {/* Selected Location Info */}
@@ -219,6 +176,34 @@ export const MapboxLocationPicker: React.FC<LocationPickerProps> = ({
           </div>
         )}
       </CardContent>
+
+      {/* Map - Full Width at Bottom */}
+      <div className="h-96 w-full overflow-hidden">
+        <Map
+          ref={mapRef}
+          {...viewState}
+          onMove={evt => setViewState(evt.viewState)}
+          onClick={handleMapClick}
+          mapboxAccessToken={MAPBOX_TOKEN}
+          style={{ width: '100%', height: '100%' }}
+          mapStyle="mapbox://styles/mapbox/streets-v12"
+          cursor={disabled ? 'default' : 'crosshair'}
+          attributionControl={false}
+        >
+          {/* Selected Location Marker */}
+          {selectedLocation && (
+            <Marker
+              longitude={selectedLocation.longitude}
+              latitude={selectedLocation.latitude}
+              anchor="bottom"
+            >
+              <div className="bg-brand-dark text-white p-2 rounded-full shadow-lg">
+                <MapPin className="h-4 w-4" />
+              </div>
+            </Marker>
+          )}
+        </Map>
+      </div>
     </Card>
   );
 };

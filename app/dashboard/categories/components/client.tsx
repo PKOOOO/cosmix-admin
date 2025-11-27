@@ -14,7 +14,7 @@ interface CategoryClientProps {
 }
 
 export const CategoryClient: React.FC<CategoryClientProps> = ({
-    data 
+    data
 }) => {
     const router = useRouter();
     const [isAdmin, setIsAdmin] = useState(false);
@@ -39,8 +39,8 @@ export const CategoryClient: React.FC<CategoryClientProps> = ({
         <div className="relative min-h-screen">
             <div className="flex items-center justify-between mt-6 md:mt-8">
                 <Heading
-                    title={`Categories (${data.length})`}
-                /> 
+                    title={`(${data.length}) Luokat`}
+                />
                 {!loading && isAdmin && (
                     <Button onClick={() => router.push('/dashboard/categories/new')} className="hidden sm:flex">
                         <Plus className="mr-2 h-4 w-4" />
@@ -48,16 +48,16 @@ export const CategoryClient: React.FC<CategoryClientProps> = ({
                     </Button>
                 )}
             </div>
-            
+
             <div className="pb-20 sm:pb-0">
                 <DataTable searchKey="name" columns={columns} data={data} />
             </div>
-            
+
             {/* Mobile Sticky Bottom Button - Only for admins */}
             {!loading && isAdmin && (
                 <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 p-3">
-                    <Button 
-                        onClick={() => router.push('/dashboard/categories/new')} 
+                    <Button
+                        onClick={() => router.push('/dashboard/categories/new')}
                         className="w-full bg-black hover:bg-gray-800 text-white"
                     >
                         <Plus className="mr-2 h-4 w-4" />

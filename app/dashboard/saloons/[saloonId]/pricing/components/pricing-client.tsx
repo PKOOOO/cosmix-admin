@@ -47,9 +47,9 @@ interface PricingClientProps {
     availableServices: Service[];
 }
 
-export const PricingClient: React.FC<PricingClientProps> = ({ 
-    saloon, 
-    availableServices 
+export const PricingClient: React.FC<PricingClientProps> = ({
+    saloon,
+    availableServices
 }) => {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -79,11 +79,11 @@ export const PricingClient: React.FC<PricingClientProps> = ({
             setLoadingTimeSlots(true);
             const response = await axios.get(`/api/saloons/${saloon.id}/time-slots`);
             const slots = response.data;
-            
+
             // Convert database format to UI format
             const operatingHours: any = {};
             const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-            
+
             days.forEach((day, index) => {
                 const slot = slots.find((s: any) => s.dayOfWeek === index);
                 if (slot) {
@@ -100,14 +100,14 @@ export const PricingClient: React.FC<PricingClientProps> = ({
                     };
                 }
             });
-            
+
             setSaloonSettings(prev => ({
                 ...prev,
                 operatingHours,
                 breakTime: slots[0]?.breakTimeMinutes || 15,
                 maxBookingsPerSlot: slots[0]?.maxBookingsPerSlot || 1
             }));
-            
+
             setTimeSlots(slots);
         } catch (error) {
             console.error('Failed to load time slots:', error);
@@ -120,7 +120,7 @@ export const PricingClient: React.FC<PricingClientProps> = ({
     const saveTimeSlots = async () => {
         try {
             setLoadingTimeSlots(true);
-            
+
             const timeSlotsToSave = Object.entries(saloonSettings.operatingHours).map(([day, hours], index) => ({
                 dayOfWeek: index,
                 startTime: hours.open,
@@ -130,11 +130,11 @@ export const PricingClient: React.FC<PricingClientProps> = ({
                 breakTimeMinutes: saloonSettings.breakTime,
                 maxBookingsPerSlot: saloonSettings.maxBookingsPerSlot
             }));
-            
+
             await axios.post(`/api/saloons/${saloon.id}/time-slots`, {
                 timeSlots: timeSlotsToSave
             });
-            
+
             toast.success("Time slots saved successfully");
             await loadTimeSlots(); // Reload to get updated data
         } catch (error) {
@@ -203,7 +203,7 @@ export const PricingClient: React.FC<PricingClientProps> = ({
         const slots = [];
         const start = new Date(`2000-01-01T${startTime}`);
         const end = new Date(`2000-01-01T${endTime}`);
-        
+
         while (start < end) {
             slots.push(start.toTimeString().slice(0, 5));
             start.setMinutes(start.getMinutes() + duration);
@@ -225,48 +225,17 @@ export const PricingClient: React.FC<PricingClientProps> = ({
             {/* Header with Stats */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
-                    <Heading 
-                        title={`${saloon.name} - Pricing & Scheduling`}
-                        description="Manage service prices, availability, and time slots"
+                    <Heading
+                        title={`${saloon.name} - Pricing`}
+
                     />
                 </div>
-                <div className="grid grid-cols-3 gap-4 lg:flex lg:gap-4">
-                    <div className="text-center">
-                        <div className="text-xl lg:text-2xl font-bold text-brand-dark">{stats.totalServices}</div>
-                        <div className="text-xs lg:text-sm text-muted-foreground">Total Services</div>
-                    </div>
-                    <div className="text-center">
-                        <div className="text-xl lg:text-2xl font-bold text-green-600">{stats.availableServices}</div>
-                        <div className="text-xs lg:text-sm text-muted-foreground">Available</div>
-                    </div>
-                    <div className="text-center">
-                        <div className="text-xl lg:text-2xl font-bold text-purple-600">${stats.totalRevenue}</div>
-                        <div className="text-xs lg:text-sm text-muted-foreground">Total Value</div>
-                    </div>
-                </div>
+
             </div>
-            
-            <Separator />
 
             {/* Main Content with Tabs */}
             <Tabs defaultValue="services" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="services" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
-                        <Settings className="h-3 w-3 lg:h-4 lg:w-4" />
-                        <span className="hidden sm:inline">Services & Pricing</span>
-                        <span className="sm:hidden">Services</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="scheduling" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
-                        <Calendar className="h-3 w-3 lg:h-4 lg:w-4" />
-                        <span className="hidden sm:inline">Time Slots</span>
-                        <span className="sm:hidden">Time</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="settings" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
-                        <Users className="h-3 w-3 lg:h-4 lg:w-4" />
-                        <span className="hidden sm:inline">Saloon Settings</span>
-                        <span className="sm:hidden">Settings</span>
-                    </TabsTrigger>
-                </TabsList>
+
 
                 {/* Services & Pricing Tab */}
                 <TabsContent value="services" className="space-y-6">
@@ -274,11 +243,7 @@ export const PricingClient: React.FC<PricingClientProps> = ({
 
                     {/* Current Services */}
                     <div className="space-y-4">
-                        <h3 className="text-lg font-semibold flex items-center gap-2">
-                            <Settings className="h-5 w-5" />
-                            Current Services
-                        </h3>
-                        
+
                         {saloon.saloonServices.length === 0 ? (
                             <Card>
                                 <CardContent className="py-12 text-center">
@@ -304,42 +269,25 @@ export const PricingClient: React.FC<PricingClientProps> = ({
                                                         <h4 className="font-semibold text-base lg:text-lg">{saloonService.service.name}</h4>
                                                         <div className="flex flex-wrap gap-2">
                                                             <Badge variant="secondary" className="text-xs">{saloonService.service.category.name}</Badge>
-                                                            <Badge variant={saloonService.isAvailable ? "default" : "destructive"} className="text-xs">
-                                                                {saloonService.isAvailable ? "Available" : "Unavailable"}
-                                                            </Badge>
+
                                                         </div>
                                                     </div>
-                                                    
+
                                                     {saloonService.service.description && (
                                                         <p className="text-sm text-muted-foreground">
                                                             {saloonService.service.description}
                                                         </p>
                                                     )}
-                                                    
+
                                                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-4">
-                                                        <div className="flex items-center gap-2 p-2 lg:p-3 bg-green-50 rounded-lg">
-                                                            <DollarSign className="h-3 w-3 lg:h-4 lg:w-4 text-green-600" />
+                                                        <div className="flex items-center gap-2 p-2 lg:p-3 bg-brand-cream rounded-lg">
                                                             <div>
-                                                                <div className="font-semibold text-green-600 text-sm lg:text-base">${saloonService.price}</div>
+                                                                <div className="font-semibold text-brand-dark text-sm lg:text-base">${saloonService.price}</div>
                                                                 <div className="text-xs text-muted-foreground">Price</div>
                                                             </div>
                                                         </div>
+
                                                         <div className="flex items-center gap-2 p-2 lg:p-3 bg-brand-cream rounded-lg">
-                                                            <Clock className="h-3 w-3 lg:h-4 lg:w-4 text-brand-dark" />
-                                                            <div>
-                                                                <div className="font-semibold text-brand-dark text-sm lg:text-base">{formatDuration(saloonService.durationMinutes)}</div>
-                                                                <div className="text-xs text-muted-foreground">Duration</div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 p-2 lg:p-3 bg-purple-50 rounded-lg">
-                                                            <Calendar className="h-3 w-3 lg:h-4 lg:w-4 text-purple-600" />
-                                                            <div>
-                                                                <div className="font-semibold text-purple-600 text-sm lg:text-base">{saloonService.availableDays.length}</div>
-                                                                <div className="text-xs text-muted-foreground">Days</div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 p-2 lg:p-3 bg-brand-cream rounded-lg">
-                                                            <Star className="h-3 w-3 lg:h-4 lg:w-4 text-brand-dark" />
                                                             <div>
                                                                 <div className="font-semibold text-brand-dark text-sm lg:text-base">0</div>
                                                                 <div className="text-xs text-muted-foreground">Bookings</div>
@@ -347,7 +295,7 @@ export const PricingClient: React.FC<PricingClientProps> = ({
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
+
                                                 <div className="flex items-center gap-2 lg:ml-4">
                                                     <Button
                                                         variant="outline"
@@ -372,15 +320,14 @@ export const PricingClient: React.FC<PricingClientProps> = ({
                                                     </Button>
                                                 </div>
                                             </div>
-                                            
+
                                             {/* Edit Form */}
                                             {editingService === saloonService.serviceId && (
                                                 <div className="mt-4 lg:mt-6 pt-4 lg:pt-6 border-t space-y-4">
-                                                    <h5 className="font-medium text-sm lg:text-base">Edit Service Details</h5>
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                                         <div>
                                                             <Label htmlFor={`price-${saloonService.serviceId}`}>
-                                                                Price ($) 
+                                                                Price ($)
                                                                 {updatingServices.has(saloonService.serviceId) && (
                                                                     <span className="text-xs text-brand-dark ml-2">Saving...</span>
                                                                 )}
@@ -409,47 +356,7 @@ export const PricingClient: React.FC<PricingClientProps> = ({
                                                                 }}
                                                             />
                                                         </div>
-                                                        
-                                                        <div>
-                                                            <Label htmlFor={`duration-${saloonService.serviceId}`}>
-                                                                Duration
-                                                                {updatingServices.has(saloonService.serviceId) && (
-                                                                    <span className="text-xs text-brand-dark ml-2">Saving...</span>
-                                                                )}
-                                                            </Label>
-                                                            <Select 
-                                                                defaultValue={saloonService.durationMinutes.toString()}
-                                                                disabled={updatingServices.has(saloonService.serviceId)}
-                                                                onValueChange={(value) => {
-                                                                    const newDuration = parseInt(value);
-                                                                    if (newDuration !== saloonService.durationMinutes) {
-                                                                        handleUpdateService(saloonService.serviceId, { durationMinutes: newDuration });
-                                                                    }
-                                                                }}
-                                                            >
-                                                                <SelectTrigger>
-                                                                    <SelectValue />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectItem value="30">30 minutes</SelectItem>
-                                                                    <SelectItem value="45">45 minutes</SelectItem>
-                                                                    <SelectItem value="60">1 hour</SelectItem>
-                                                                    <SelectItem value="90">1.5 hours</SelectItem>
-                                                                    <SelectItem value="120">2 hours</SelectItem>
-                                                                    <SelectItem value="180">3 hours</SelectItem>
-                                                                </SelectContent>
-                                                            </Select>
-                                                        </div>
-                                                        
-                                                        <div className="flex items-center space-x-2">
-                                                            <Switch
-                                                                checked={saloonService.isAvailable}
-                                                                onCheckedChange={(checked) => {
-                                                                    handleUpdateService(saloonService.serviceId, { isAvailable: checked });
-                                                                }}
-                                                            />
-                                                            <Label>Available</Label>
-                                                        </div>
+
                                                     </div>
                                                 </div>
                                             )}
@@ -559,7 +466,7 @@ export const PricingClient: React.FC<PricingClientProps> = ({
                                             <span className="text-xs text-muted-foreground">minutes</span>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="space-y-2">
                                         <Label htmlFor="maxBookings" className="text-sm">Max Bookings Per Time Slot</Label>
                                         <div className="flex items-center gap-2">
@@ -580,7 +487,7 @@ export const PricingClient: React.FC<PricingClientProps> = ({
 
                             {/* Save Button */}
                             <div className="flex justify-center sm:justify-end pt-4 border-t">
-                                <Button 
+                                <Button
                                     onClick={saveTimeSlots}
                                     disabled={loadingTimeSlots}
                                     className="w-full sm:w-auto min-w-[120px]"
@@ -624,7 +531,7 @@ export const PricingClient: React.FC<PricingClientProps> = ({
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div>
                                     <Label className="text-sm">Booking Settings</Label>
                                     <div className="space-y-3 mt-2">

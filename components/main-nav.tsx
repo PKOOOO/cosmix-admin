@@ -9,12 +9,12 @@ export function MainNav({
     className,
     ...props
 }: React.HTMLAttributes<HTMLElement>) {
-const pathname = usePathname();
+    const pathname = usePathname();
 
     const routes = [
         {
             href: '/dashboard',
-            label: 'Overview',
+            label: 'Palvelutilastot',
             active: pathname === '/dashboard',
         },
         {
@@ -29,37 +29,32 @@ const pathname = usePathname();
         },
         {
             href: '/dashboard/saloons',
-            label: 'Saloons',
+            label: 'Palvelusi',
             active: pathname === '/dashboard/saloons',
         },
         {
             href: '/dashboard/bookings',
-            label: 'Bookings',
+            label: 'Varaukset',
             active: pathname === '/dashboard/bookings',
         },
-        {
-            href: '/dashboard/settings',
-            label: 'Settings',
-            active: pathname === '/dashboard/settings',
-        },
     ];
-    
+
     return (
         <nav
-        className={cn("flex items-center space-x-4 lg:space-x-6", className)}
+            className={cn("flex items-center space-x-4 lg:space-x-6", className)}
         >
-        {routes.map((route) => (
-            <Link
-                key={route.href}
-                href={route.href}
-                className={cn(
-                    "text-sm font-medium transition-colors hover:text-primary",
-                    route.active ? "text-black dark:text-white" : "text-muted-foreground"
-                )}
-            >
-                {route.label}
-            </Link>
-        ))}
+            {routes.map((route) => (
+                <Link
+                    key={route.href}
+                    href={route.href}
+                    className={cn(
+                        "text-sm font-medium transition-colors hover:text-primary",
+                        route.active ? "text-black dark:text-white" : "text-muted-foreground"
+                    )}
+                >
+                    {route.label}
+                </Link>
+            ))}
         </nav>
     )
 };

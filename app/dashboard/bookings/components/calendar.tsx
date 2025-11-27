@@ -81,7 +81,7 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
       <Card className="w-full">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            
+
             <div className="flex items-center space-x-1">
               <Button variant="outline" size="sm" onClick={previousMonth} className="p-2">
                 <ChevronLeft className="h-4 w-4" />
@@ -112,14 +112,12 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
               return (
                 <div
                   key={day.toISOString()}
-                  className={`min-h-[60px] p-1 border rounded-lg transition-colors cursor-pointer ${
-                    isCurrentMonth ? "bg-white hover:bg-gray-50" : "bg-gray-50 hover:bg-gray-100"
-                  } ${isTodayDate ? "ring-2 ring-brand-dark" : ""}`}
+                  className={`min-h-[60px] p-1 border rounded-lg transition-colors cursor-pointer ${isCurrentMonth ? "bg-white hover:bg-gray-50" : "bg-gray-50 hover:bg-gray-100"
+                    } ${isTodayDate ? "ring-2 ring-brand-dark" : ""}`}
                   onClick={() => handleDateClick(day)}
                 >
-                  <div className={`text-sm font-medium mb-1 ${
-                    isCurrentMonth ? "text-gray-900" : "text-gray-400"
-                  } ${isTodayDate ? "text-brand-dark font-bold" : ""}`}>
+                  <div className={`text-sm font-medium mb-1 ${isCurrentMonth ? "text-gray-900" : "text-gray-400"
+                    } ${isTodayDate ? "text-brand-dark font-bold" : ""}`}>
                     {format(day, "d")}
                   </div>
                   {/* Bookings for this day - Mobile optimized */}
@@ -127,11 +125,10 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
                     {dayBookings.slice(0, 2).map((booking) => (
                       <div
                         key={booking.id}
-                        className={`text-xs p-1 rounded border-l-2 transition-colors ${
-                          booking.status === "confirmed" 
+                        className={`text-xs p-1 rounded border-l-2 transition-colors ${booking.status === "confirmed"
                             ? "bg-green-50 border-green-400 text-green-800"
                             : "bg-brand-cream border-brand-beige text-brand-dark"
-                        }`}
+                          }`}
                       >
                         <div className="font-medium truncate text-xs">
                           {booking.serviceName}
@@ -173,8 +170,8 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
                     No bookings for this day
                   </h3>
                   <p className="text-gray-500 text-sm">
-                    {selectedDate && isSameDay(selectedDate, new Date()) 
-                      ? "You have no bookings scheduled for today." 
+                    {selectedDate && isSameDay(selectedDate, new Date())
+                      ? "You have no bookings scheduled for today."
                       : "No appointments scheduled for this date."}
                   </p>
                 </div>
@@ -190,7 +187,7 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
                         <CardContent className="p-4">
                           <div className="flex justify-between items-start mb-3">
                             <div className="flex items-center space-x-2">
-                              <Badge 
+                              <Badge
                                 variant={booking.status === "confirmed" ? "default" : "secondary"}
                                 className={booking.status === "confirmed" ? "bg-green-100 text-green-800" : "bg-brand-cream text-brand-dark"}
                               >
@@ -241,46 +238,7 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
           </DialogContent>
         </Dialog>
 
-        {/* Mobile Statistics */}
-        <div className="grid grid-cols-1 gap-3 mt-4">
-          <Card>
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-lg font-bold">{currentMonthBookings.length}</div>
-                  <p className="text-xs text-gray-500">Total Bookings</p>
-                </div>
-                <Badge variant="secondary" className="bg-brand-cream text-brand-dark">Total</Badge>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-lg font-bold">
-                    {currentMonthBookings.filter(b => b.status === "confirmed").length}
-                  </div>
-                  <p className="text-xs text-gray-500">Confirmed</p>
-                </div>
-                <Badge variant="secondary" className="bg-green-100 text-green-800">Confirmed</Badge>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-lg font-bold">
-                    ${currentMonthBookings.reduce((sum, booking) => sum + booking.totalAmount, 0).toFixed(2)}
-                  </div>
-                  <p className="text-xs text-gray-500">Revenue</p>
-                </div>
-                <DollarSign className="w-5 h-5 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+
       </Card>
     );
   }
@@ -320,14 +278,12 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
             return (
               <div
                 key={day.toISOString()}
-                className={`min-h-[120px] p-1 border rounded-lg transition-colors cursor-pointer ${
-                  isCurrentMonth ? "bg-white hover:bg-gray-50" : "bg-gray-50 hover:bg-gray-100"
-                } ${isTodayDate ? "ring-2 ring-brand-dark" : ""}`}
+                className={`min-h-[120px] p-1 border rounded-lg transition-colors cursor-pointer ${isCurrentMonth ? "bg-white hover:bg-gray-50" : "bg-gray-50 hover:bg-gray-100"
+                  } ${isTodayDate ? "ring-2 ring-brand-dark" : ""}`}
                 onClick={() => handleDateClick(day)}
               >
-                <div className={`text-sm font-medium mb-1 ${
-                  isCurrentMonth ? "text-gray-900" : "text-gray-400"
-                } ${isTodayDate ? "text-brand-dark font-bold" : ""}`}>
+                <div className={`text-sm font-medium mb-1 ${isCurrentMonth ? "text-gray-900" : "text-gray-400"
+                  } ${isTodayDate ? "text-brand-dark font-bold" : ""}`}>
                   {format(day, "d")}
                 </div>
                 {/* Bookings for this day */}
@@ -335,11 +291,10 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
                   {dayBookings.slice(0, 3).map((booking) => (
                     <div
                       key={booking.id}
-                      className={`text-xs p-1 rounded border-l-2 transition-colors hover:shadow-sm ${
-                        booking.status === "confirmed" 
+                      className={`text-xs p-1 rounded border-l-2 transition-colors hover:shadow-sm ${booking.status === "confirmed"
                           ? "bg-green-50 border-green-400 text-green-800 hover:bg-green-100"
                           : "bg-brand-cream border-brand-beige text-brand-dark hover:bg-brand-hover"
-                      }`}
+                        }`}
                     >
                       <div className="font-medium truncate">
                         {booking.serviceName}
@@ -385,8 +340,8 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
                     No bookings for this day
                   </h3>
                   <p className="text-gray-500">
-                    {selectedDate && isSameDay(selectedDate, new Date()) 
-                      ? "You have no bookings scheduled for today." 
+                    {selectedDate && isSameDay(selectedDate, new Date())
+                      ? "You have no bookings scheduled for today."
                       : "No appointments scheduled for this date."}
                   </p>
                 </div>
@@ -402,7 +357,7 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
                         <CardContent className="p-4">
                           <div className="flex justify-between items-start mb-3">
                             <div className="flex items-center space-x-2">
-                              <Badge 
+                              <Badge
                                 variant={booking.status === "confirmed" ? "default" : "secondary"}
                                 className={booking.status === "confirmed" ? "bg-green-100 text-green-800" : "bg-brand-cream text-brand-dark"}
                               >
