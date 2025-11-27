@@ -151,68 +151,65 @@ export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
         </div>
       </nav>
 
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-background border-b">
-        <div className="flex items-center justify-between px-4 py-3">
-          <UserButton afterSignOutUrl="/" />
-          <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-            <DrawerTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </DrawerTrigger>
-            <DrawerContent className="h-[60vh] w-full fixed bottom-0 left-0 rounded-t-2xl bg-background shadow-lg">
-              <DrawerHeader className="flex items-center justify-between px-4 py-3 border-b">
-                <DrawerTitle></DrawerTitle>
-                <DrawerClose asChild>
-                  <button className="p-2 text-muted-foreground rounded-md hover:bg-accent">
-                    ✕
-                  </button>
-                </DrawerClose>
-              </DrawerHeader>
-              <div className="flex-1 overflow-y-auto px-4 py-4">
-                <div className="space-y-1">
-                  {availableRoutes.map((route) => (
+      <div className="md:hidden fixed top-4 left-4 z-50">
+        <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+          <DrawerTrigger asChild>
+            <Button variant="secondary" size="icon" className="shadow-lg rounded-full h-10 w-10 bg-background/80 backdrop-blur-sm border">
+              <Menu className="h-5 w-5" />
+            </Button>
+          </DrawerTrigger>
+          <DrawerContent className="h-[60vh] w-full fixed bottom-0 left-0 rounded-t-2xl bg-background shadow-lg">
+            <DrawerHeader className="flex items-center justify-between px-4 py-3 border-b">
+              <DrawerTitle></DrawerTitle>
+              <DrawerClose asChild>
+                <button className="p-2 text-muted-foreground rounded-md hover:bg-accent">
+                  ✕
+                </button>
+              </DrawerClose>
+            </DrawerHeader>
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              <div className="space-y-1">
+                {availableRoutes.map((route) => (
+                  <Link
+                    key={route.href}
+                    href={route.disabled ? "#" : route.href}
+                    onClick={route.disabled ? (e) => e.preventDefault() : () => setIsDrawerOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                      route.disabled
+                        ? "text-muted-foreground cursor-not-allowed opacity-50"
+                        : route.active
+                          ? "bg-primary text-primary-foreground"
+                          : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                    )}
+                  >
+                    <route.icon className="h-5 w-5" />
+                    <span className="font-medium">{route.label}</span>
+                  </Link>
+                ))}
+                {!loading && isAdmin && (() => {
+                  const adminRoute = adminRoutes[0];
+                  const AdminIcon = adminRoute.icon;
+                  return (
                     <Link
-                      key={route.href}
-                      href={route.disabled ? "#" : route.href}
-                      onClick={route.disabled ? (e) => e.preventDefault() : () => setIsDrawerOpen(false)}
+                      href={adminRoute.href}
+                      onClick={() => setIsDrawerOpen(false)}
                       className={cn(
                         "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
-                        route.disabled
-                          ? "text-muted-foreground cursor-not-allowed opacity-50"
-                          : route.active
-                            ? "bg-primary text-primary-foreground"
-                            : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                        adminRoute.active
+                          ? "bg-primary text-primary-foreground"
+                          : "text-foreground hover:bg-accent hover:text-accent-foreground"
                       )}
                     >
-                      <route.icon className="h-5 w-5" />
-                      <span className="font-medium">{route.label}</span>
+                      <AdminIcon className="h-5 w-5" />
+                      <span className="font-medium">{adminRoute.label}</span>
                     </Link>
-                  ))}
-                  {!loading && isAdmin && (() => {
-                    const adminRoute = adminRoutes[0];
-                    const AdminIcon = adminRoute.icon;
-                    return (
-                      <Link
-                        href={adminRoute.href}
-                        onClick={() => setIsDrawerOpen(false)}
-                        className={cn(
-                          "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
-                          adminRoute.active
-                            ? "bg-primary text-primary-foreground"
-                            : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                        )}
-                      >
-                        <AdminIcon className="h-5 w-5" />
-                        <span className="font-medium">{adminRoute.label}</span>
-                      </Link>
-                    );
-                  })()}
-                </div>
+                  );
+                })()}
               </div>
-            </DrawerContent>
-          </Drawer>
-        </div>
+            </div>
+          </DrawerContent>
+        </Drawer>
       </div>
     </Fragment>
   );
