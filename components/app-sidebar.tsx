@@ -86,14 +86,6 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
       disabled: !hasSaloons,
     },
     {
-      href: '/dashboard/categories',
-      label: 'Categories',
-      icon: List,
-      active: pathname === '/dashboard/categories',
-      disabled: !hasSaloons,
-      adminOnly: false, // Regular users can view categories but not create them
-    },
-    {
       href: '/dashboard/saloons',
       label: 'Palvelusi',
       icon: List,
