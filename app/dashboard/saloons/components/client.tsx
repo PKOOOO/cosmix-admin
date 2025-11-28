@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertModal } from "@/components/modals/alert-modal";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { UserButton } from "@clerk/nextjs";
 
 interface SaloonClientProps {
     data: SaloonColumn[]
@@ -109,6 +110,10 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
                                                         </div>
                                                     )}
                                                 </div>
+                                            </div>
+                                            {/* User Profile Button - Mobile Only */}
+                                            <div className="md:hidden flex-shrink-0">
+                                                <UserButton afterSignOutUrl="/" />
                                             </div>
                                         </div>
                                     </CardHeader>
