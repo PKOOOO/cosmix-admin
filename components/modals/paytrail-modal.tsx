@@ -16,8 +16,8 @@ interface PaytrailModalProps {
 }
 
 export default function PaytrailModal({
-  isOpen,
-  onClose,
+  isOpen: initialIsOpen,
+  onClose: initialOnClose,
   title,
   type,
   logo,
@@ -25,14 +25,27 @@ export default function PaytrailModal({
   trigger,
   children,
 }: PaytrailModalProps) {
+  const [isOpen, setIsOpen] = useState(initialIsOpen);
+
+  const handleOpen = () => setIsOpen(true);
+  const handleClose = () => {
+    setIsOpen(false);
+    initialOnClose();
+  };
+
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={title}
-      description={description}
-    >
-      {children}
-    </Modal>
+    <>
+      <div onClick={handleOpen}>
+        {trigger}
+      </div>
+      <Modal
+        isOpen={isOpen}
+        onClose={handleClose}
+        title={title}
+        description={description}
+      >
+        {children}
+      </Modal>
+    </>
   );
 }

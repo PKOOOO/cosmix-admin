@@ -12,9 +12,10 @@ type Props = {
 }
 
 const IntegrationList = (props: Props) => {
-    return ( 
+    return (
         <div className="p-6">
-            <h1 className="text-2xl font-bold mb-6">Integrations</h1>
+            <h1 className="text-2xl font-bold mb-6">
+                Paytrail-integraatio tulossa pian</h1>
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 max-w-4xl'>
                 {INTERGRATION_LIST_ITEMS.map((item) => (
                     <Card key={item.id} className="w-full">
@@ -28,8 +29,8 @@ const IntegrationList = (props: Props) => {
                                             fill
                                             className="object-contain rounded-md"
                                         />
-                                    </div>   
-                                    <h2 className='font-bold capitalize text-lg'>{item.name}</h2>                         
+                                    </div>
+                                    <h2 className='font-bold capitalize text-lg'>{item.name}</h2>
                                 </div>
                                 <IntegrationTrigger
                                     connections={props.connections}
@@ -43,7 +44,7 @@ const IntegrationList = (props: Props) => {
                         </CardContent>
                     </Card>
                 ))}
-            </div> 
+            </div>
         </div>
     )
 }
