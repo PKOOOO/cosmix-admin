@@ -585,15 +585,15 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                 </Form>
             </div>
 
-            {/* Mobile Floating Buttons */}
-            <div className="md:hidden fixed bottom-20 right-4 z-[60] flex flex-col gap-3">
+            {/* Mobile Bottom Submit Button */}
+            <div className="md:hidden fixed bottom-14 left-0 right-0 z-[60] px-4 pb-2">
                 <Button
                     disabled={loading}
-                    className="w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-brand-dark hover:bg-brand-dark/90 text-white"
+                    className="w-full h-12 shadow-lg hover:shadow-xl transition-all duration-200 bg-brand-dark hover:bg-brand-dark/90 text-white font-medium"
                     type="submit"
                     form="saloon-form"
                 >
-                    <span className="text-sm font-medium">Tallentaa</span>
+                    Tallentaa
                 </Button>
             </div>
         </div>

@@ -23,11 +23,6 @@ export function MainNav({
             active: pathname === '/dashboard/services',
         },
         {
-            href: '/dashboard/categories',
-            label: 'Categories',
-            active: pathname === '/dashboard/categories',
-        },
-        {
             href: '/dashboard/saloons',
             label: 'Palvelusi',
             active: pathname === '/dashboard/saloons',
