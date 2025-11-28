@@ -35,7 +35,7 @@ const IntegrationList = (props: Props) => {
                                 <IntegrationTrigger
                                     connections={props.connections}
                                     title={item.title}
-                                    description={item.modalDescription}
+                                    description={item.description}
                                     logo={item.logo}
                                     name={item.name}
                                 />
