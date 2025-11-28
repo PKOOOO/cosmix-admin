@@ -14,31 +14,31 @@ interface Props {
     connections: {
         [key in 'paytrail']: boolean
     }
-    
+
 }
 
-const IntegrationTrigger = ({ 
-    name, 
-    logo, 
-    title, 
-    description, 
+const IntegrationTrigger = ({
+    name,
+    logo,
+    title,
+    description,
     connections,
- }: Props) => {
+}: Props) => {
     return (
         <PaytrailModal
-        title={title}
-        type="integration"
-        logo={logo}
-        description={description}
-        trigger={
-            <Card className="px-3 py-2 cursor-pointer flex gap-2">
-                <CloudIcon />
-                {connections[name] ? 'Connected' : 'Connect'}
+            title={title}
+            type="integration"
+            logo={logo}
+            description={description}
+            trigger={
+                <Card className="px-3 py-2 cursor-pointer flex gap-2">
+                    <CloudIcon />
+                    {connections[name] ? 'yhdistetty' : 'yhdistä'}
 
-            </Card>
-        }
-        isOpen={false}
-        onClose={() => {}}
+                </Card>
+            }
+            isOpen={false}
+            onClose={() => { }}
         >
             <Separator orientation="horizontal" />
             <IntegrationModalbody

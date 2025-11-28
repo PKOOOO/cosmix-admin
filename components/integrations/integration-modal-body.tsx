@@ -20,7 +20,6 @@ export const IntegrationModalbody = ({
         case 'paytrail':
             return (
                 <div className="flex flex-col gap-2">
-                    <h2 className="font-bold">Paytrail Payment Integration</h2>
                     {[
                         'Process payments from Finnish banks',
                         'Accept credit and debit cards',
@@ -37,16 +36,11 @@ export const IntegrationModalbody = ({
                         </div>
                     ))}
                     <div className="flex justify-between mt-10">
-                        <Button variant="outline" asChild>
-                            <a href="https://www.paytrail.com/en/merchant-onboarding" target="_blank" rel="noopener noreferrer">
-                                Learn More
-                            </a>
-                        </Button>
                         <PaytrailConnect connected={connections.paytrail} />
                     </div>
                 </div>
             )
-            default:
-                return <></>
+        default:
+            return <></>
     }
 }

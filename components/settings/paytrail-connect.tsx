@@ -15,10 +15,10 @@ export const PaytrailConnect = ({ connected }: PaytrailConnectProps) => {
   const handleConnect = async () => {
     try {
       setLoading(true);
-      
+
       // Check if Paytrail is configured
       const response = await axios.post('/api/paytrail/merchant');
-      
+
       if (response.data.configured) {
         toast.success("Paytrail is already configured and ready to use!");
       } else {
@@ -41,10 +41,9 @@ export const PaytrailConnect = ({ connected }: PaytrailConnectProps) => {
       {connected ? (
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-          <span className="text-sm text-green-600">Connected</span>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleDisconnect}
             disabled
           >
@@ -52,18 +51,18 @@ export const PaytrailConnect = ({ connected }: PaytrailConnectProps) => {
           </Button>
         </div>
       ) : (
-        <Button 
-          onClick={handleConnect} 
+        <Button
+          onClick={handleConnect}
           disabled={loading}
           className="w-fit"
         >
           {loading ? "Checking..." : "Verify Configuration"}
         </Button>
       )}
-      
+
       <div className="text-xs text-muted-foreground mt-2">
-        {connected 
-          ? "Paytrail is configured and ready for payments" 
+        {connected
+          ? ""
           : "Configure PAYTRAIL_MERCHANT_ID and PAYTRAIL_SECRET_KEY in environment variables"
         }
       </div>
