@@ -13,7 +13,8 @@ export const PostSignInClient = () => {
     // Add a small delay to ensure user creation is complete
     const timer = setTimeout(() => {
       setIsRedirecting(true);
-      router.push('/dashboard/saloons');
+      // Use hard navigation instead of client-side routing
+      window.location.href = '/dashboard/saloons';
     }, 1000); // 1 second delay
 
     return () => clearTimeout(timer);
@@ -24,8 +25,8 @@ export const PostSignInClient = () => {
       <div className="text-center">
         <h1 className="text-2xl font-semibold mb-4">Welcome!</h1>
         <p className="text-muted-foreground">
-          {isRedirecting 
-            ? "Redirecting you to create your first saloon..." 
+          {isRedirecting
+            ? "Redirecting you to create your first saloon..."
             : "Setting up your account..."
           }
         </p>
