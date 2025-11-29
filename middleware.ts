@@ -5,7 +5,6 @@ import type { NextRequest } from "next/server";
 // This is the core Clerk authentication middleware.
 const clerkAuthMiddleware = authMiddleware({
     publicRoutes: [
-        "/",
         "/sign-in(.*)",
         "/sign-up(.*)",
         "/api/stores(.*)",
@@ -28,7 +27,27 @@ const clerkAuthMiddleware = authMiddleware({
         "/api/webhooks/user",
         "/api/uploadthing",
         "/api/:storeId/webhook"
-    ]
+    ],
+    afterAuth(auth, req) {
+        // If user is on root path
+        if (req.nextUrl.pathname === '/') {
+            if (!auth.userId) {
+                // Not authenticated - redirect to sign-up
+                const signUpUrl = new URL('/sign-up', req.url);
+                return Response.redirect(signUpUrl);
+            } else {
+                // Authenticated - redirect to dashboard
+                const dashboardUrl = new URL('/dashboard', req.url);
+                return Response.redirect(dashboardUrl);
+            }
+        }
+
+        // If user not signed in and route is protected, redirect to sign-up
+        if (!auth.userId && !auth.isPublicRoute) {
+            const signUpUrl = new URL('/sign-up', req.url);
+            return Response.redirect(signUpUrl);
+        }
+    }
 });
 
 // A custom middleware function to apply CORS headers.
@@ -71,7 +90,7 @@ function withCors(middleware: any) {
                 "exp://192.168.1.148:8081",  // Expo on physical device
             ];
             const isAllowedOrigin = origin && allowedOrigins.includes(origin);
-            
+
             response.headers.set("Access-Control-Allow-Origin", isAllowedOrigin ? origin : allowedOrigins[0]);
             response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
             response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Requested-With, Origin");
