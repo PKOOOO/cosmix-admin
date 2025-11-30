@@ -51,12 +51,47 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
     const [services, setServices] = useState<any[]>([]);
     const [loadingServices, setLoadingServices] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
+    const [currentStep, setCurrentStep] = useState(1);
+    const [canSubmit, setCanSubmit] = useState(false);
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
     const [selectedLocation, setSelectedLocation] = useState<{
         latitude: number;
         longitude: number;
         address: string;
     } | null>(null);
+
+    const nextStep = async () => {
+        let fieldsToValidate: any[] = [];
+
+        switch (currentStep) {
+            case 1:
+                fieldsToValidate = ['name'];
+                break;
+            case 2:
+                fieldsToValidate = ['shortIntro'];
+                break;
+            case 3:
+                fieldsToValidate = ['images'];
+                break;
+            case 4:
+                fieldsToValidate = ['address', 'latitude', 'longitude'];
+                break;
+            case 5:
+                // Final step, no next step
+                return;
+        }
+
+        const isValid = await form.trigger(fieldsToValidate);
+        if (isValid) {
+            setCurrentStep((prev) => prev + 1);
+        }
+    };
+
+    const prevStep = () => {
+        setCurrentStep((prev) => prev - 1);
+        setCanSubmit(false);
+    };
+
 
     const title = initialData ? "Edit saloon" : "Create saloon";
     const description = initialData ? "Edit saloon details" : "Add a new saloon";
@@ -124,13 +159,17 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                     `/api/saloons/${initialData.id}`,
                     { ...saloonData, selectedServices }
                 );
+                router.refresh();
+                router.push('/dashboard/saloons');
+                toast.success(toastMessage);
             } else {
-                await axios.post(`/api/saloons`, { ...saloonData, selectedServices });
-            }
+                const response = await axios.post(`/api/saloons`, { ...saloonData, selectedServices });
+                const newSaloonId = response.data.id;
 
-            router.refresh();
-            router.push('/dashboard/saloons');
-            toast.success(toastMessage);
+                router.refresh();
+                router.push(`/dashboard/saloons/${newSaloonId}/pricing`);
+                toast.success(toastMessage);
+            }
         } catch (error) {
             toast.error("Something went wrong. Please try again.");
         } finally {
@@ -206,263 +245,354 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                 <Form {...form}>
                     <form
                         id="saloon-form"
-                        onSubmit={form.handleSubmit(onSubmit)}
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            if (currentStep === 5 && canSubmit) {
+                                form.handleSubmit(onSubmit)(e);
+                                setCanSubmit(false);
+                            }
+                        }}
                         className="space-y-4 md:space-y-6 w-full max-w-full"
                     >
 
-                        <FormField
-                            control={form.control}
-                            name="images"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormControl>
-                                        <ImageUpload
-                                            value={field.value.map((image) => image.url)}
-                                            disabled={loading}
-                                            onChange={(url) => field.onChange([...field.value, { url }])}
-                                            onRemove={(url) => field.onChange([...field.value.filter((current) => current.url !== url)])}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        {/* Form Fields Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-                            <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Name</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                disabled={loading}
-                                                placeholder="Enter saloon name"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="shortIntro"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Short Introduction</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                disabled={loading}
-                                                placeholder="Enter short introduction"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="address"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Address</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                disabled={loading}
-                                                placeholder="Enter address"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                        </div>
-
-                        {/* Location Selection */}
-                        <div className="md:col-span-4">
-                            <MapboxLocationPicker
-                                onLocationSelect={handleLocationSelect}
-                                initialLocation={selectedLocation || undefined}
-                                disabled={loading}
-                            />
-                        </div>
-
-                        {/* Service Selection */}
-                        <div className="md:col-span-4">
-                            <FormField
-                                control={form.control}
-                                name="selectedServices"
-                                render={({ field }) => {
-                                    // Group services by category and parent
-                                    const groupedServices = services.reduce((acc: any, service: any) => {
-                                        const categoryName = service.category?.name || 'Uncategorized';
-                                        const parentName = service.parentService?.name || 'No Parent';
-                                        const key = `${categoryName}::${parentName}`;
-
-                                        if (!acc[key]) {
-                                            acc[key] = {
-                                                category: categoryName,
-                                                parent: parentName,
-                                                services: []
-                                            };
-                                        }
-                                        acc[key].services.push(service);
-                                        return acc;
-                                    }, {});
-
-                                    // Filter services based on search
-                                    const filteredGroups = Object.entries(groupedServices).filter(([key, group]: [string, any]) => {
-                                        if (!searchQuery) return true;
-                                        const query = searchQuery.toLowerCase();
-                                        return group.services.some((s: any) =>
-                                            s.name.toLowerCase().includes(query) ||
-                                            s.description?.toLowerCase().includes(query) ||
-                                            group.category.toLowerCase().includes(query) ||
-                                            group.parent.toLowerCase().includes(query)
-                                        );
-                                    }).map(([key, group]: [string, any]) => ({
-                                        key,
-                                        ...group,
-                                        services: group.services.filter((s: any) => {
-                                            if (!searchQuery) return true;
-                                            const query = searchQuery.toLowerCase();
-                                            return s.name.toLowerCase().includes(query) ||
-                                                s.description?.toLowerCase().includes(query) ||
-                                                group.category.toLowerCase().includes(query) ||
-                                                group.parent.toLowerCase().includes(query);
-                                        })
-                                    }));
-
-                                    const toggleGroup = (key: string) => {
-                                        const newExpanded = new Set(expandedGroups);
-                                        if (newExpanded.has(key)) {
-                                            newExpanded.delete(key);
-                                        } else {
-                                            newExpanded.add(key);
-                                        }
-                                        setExpandedGroups(newExpanded);
-                                    };
-
-                                    const toggleAllInGroup = (groupServices: any[], checked: boolean) => {
-                                        const currentValues = field.value || [];
-                                        if (checked) {
-                                            const newIds = groupServices
-                                                .map((s: any) => s.id)
-                                                .filter((id: string) => !currentValues.includes(id));
-                                            field.onChange([...currentValues, ...newIds]);
-                                        } else {
-                                            const groupIds = groupServices.map((s: any) => s.id);
-                                            field.onChange(currentValues.filter((id: string) => !groupIds.includes(id)));
-                                        }
-                                    };
-
-                                    const isGroupAllSelected = (groupServices: any[]) => {
-                                        const currentValues = field.value || [];
-                                        return groupServices.every((s: any) => currentValues.includes(s.id));
-                                    };
-
-                                    const isGroupSomeSelected = (groupServices: any[]) => {
-                                        const currentValues = field.value || [];
-                                        return groupServices.some((s: any) => currentValues.includes(s.id));
-                                    };
-
-                                    return (
+                        {/* Step 1: Name */}
+                        {currentStep === 1 && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <Heading title="Mikä on salooninne nimi?" />
+                                <FormField
+                                    control={form.control}
+                                    name="name"
+                                    render={({ field }) => (
                                         <FormItem>
                                             <FormControl>
-                                                <div className="space-y-4">
-                                                    {/* Search Bar */}
-                                                    <div className="relative">
-                                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                                        <Input
-                                                            placeholder="Search services by name or category..."
-                                                            value={searchQuery}
-                                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                                            className="pl-10"
-                                                        />
-                                                    </div>
+                                                <Input
+                                                    disabled={loading}
+                                                    placeholder="salongin nimi"
+                                                    className="text-lg text-gray-500 py-6"
+                                                    autoFocus
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                        )}
 
-                                                    {loadingServices ? (
-                                                        <div className="text-center py-8">
-                                                            <p className="text-sm text-muted-foreground">Loading services...</p>
+                        {/* Step 2: Short Intro */}
+                        {currentStep === 2 && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <Heading title="Kerro lyhyt esittely yrityksestäsi." />
+                                <FormField
+                                    control={form.control}
+                                    name="shortIntro"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormControl>
+                                                <Input
+                                                    disabled={loading}
+                                                    placeholder="esim. Premium-hius- ja kauneuspalvelut Helsingissä"
+                                                    className="text-lg py-6"
+                                                    autoFocus
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                        )}
+
+                        {/* Step 3: Images */}
+                        {currentStep === 3 && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <Heading title="Lisää salonkikuva" />
+                                <FormField
+                                    control={form.control}
+                                    name="images"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormControl>
+                                                <ImageUpload
+                                                    value={field.value.map((image) => image.url)}
+                                                    disabled={loading}
+                                                    onChange={(url) => field.onChange([...field.value, { url }])}
+                                                    onRemove={(url) => field.onChange([...field.value.filter((current) => current.url !== url)])}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                        )}
+
+                        {/* Step 4: Address & Map */}
+                        {currentStep === 4 && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <Heading title="Missä sijaitset?" />
+
+                                <div className="mt-4">
+                                    <MapboxLocationPicker
+                                        onLocationSelect={handleLocationSelect}
+                                        initialLocation={selectedLocation || undefined}
+                                        disabled={loading}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step 5: Services */}
+                        {currentStep === 5 && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+
+                                <FormField
+                                    control={form.control}
+                                    name="selectedServices"
+                                    render={({ field }) => {
+                                        // Group services by category and parent
+                                        const groupedServices = services.reduce((acc: any, service: any) => {
+                                            const categoryName = service.category?.name || 'Uncategorized';
+                                            const parentName = service.parentService?.name || 'No Parent';
+                                            const key = `${categoryName}::${parentName}`;
+
+                                            if (!acc[key]) {
+                                                acc[key] = {
+                                                    category: categoryName,
+                                                    parent: parentName,
+                                                    services: []
+                                                };
+                                            }
+                                            acc[key].services.push(service);
+                                            return acc;
+                                        }, {});
+
+                                        // Filter services based on search
+                                        const filteredGroups = Object.entries(groupedServices).filter(([key, group]: [string, any]) => {
+                                            if (!searchQuery) return true;
+                                            const query = searchQuery.toLowerCase();
+                                            return group.services.some((s: any) =>
+                                                s.name.toLowerCase().includes(query) ||
+                                                s.description?.toLowerCase().includes(query) ||
+                                                group.category.toLowerCase().includes(query) ||
+                                                group.parent.toLowerCase().includes(query)
+                                            );
+                                        }).map(([key, group]: [string, any]) => ({
+                                            key,
+                                            ...group,
+                                            services: group.services.filter((s: any) => {
+                                                if (!searchQuery) return true;
+                                                const query = searchQuery.toLowerCase();
+                                                return s.name.toLowerCase().includes(query) ||
+                                                    s.description?.toLowerCase().includes(query) ||
+                                                    group.category.toLowerCase().includes(query) ||
+                                                    group.parent.toLowerCase().includes(query);
+                                            })
+                                        }));
+
+                                        const toggleGroup = (key: string) => {
+                                            const newExpanded = new Set(expandedGroups);
+                                            if (newExpanded.has(key)) {
+                                                newExpanded.delete(key);
+                                            } else {
+                                                newExpanded.add(key);
+                                            }
+                                            setExpandedGroups(newExpanded);
+                                        };
+
+                                        const toggleAllInGroup = (groupServices: any[], checked: boolean) => {
+                                            const currentValues = field.value || [];
+                                            if (checked) {
+                                                const newIds = groupServices
+                                                    .map((s: any) => s.id)
+                                                    .filter((id: string) => !currentValues.includes(id));
+                                                field.onChange([...currentValues, ...newIds]);
+                                            } else {
+                                                const groupIds = groupServices.map((s: any) => s.id);
+                                                field.onChange(currentValues.filter((id: string) => !groupIds.includes(id)));
+                                            }
+                                        };
+
+                                        const isGroupAllSelected = (groupServices: any[]) => {
+                                            const currentValues = field.value || [];
+                                            return groupServices.every((s: any) => currentValues.includes(s.id));
+                                        };
+
+                                        return (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <div className="space-y-4">
+                                                        {/* Search Bar */}
+                                                        <div className="relative">
+                                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                            <Input
+                                                                placeholder="valitse tai etsi palveluita"
+                                                                value={searchQuery}
+                                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Enter') {
+                                                                        e.preventDefault();
+                                                                    }
+                                                                }}
+                                                                className="pl-10"
+                                                            />
                                                         </div>
-                                                    ) : services.length === 0 ? (
-                                                        <div className="text-center py-8">
-                                                            <p className="text-sm text-muted-foreground">No sub-services available. Admins need to create sub-services first.</p>
-                                                        </div>
-                                                    ) : filteredGroups.length === 0 ? (
-                                                        <div className="text-center py-8">
-                                                            <p className="text-sm text-muted-foreground">No services match your search.</p>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="border rounded-md overflow-hidden">
-                                                            {/* Desktop Table View */}
-                                                            <div className="hidden md:block max-h-[500px] overflow-y-auto">
-                                                                <table className="w-full">
-                                                                    <thead className="bg-muted sticky top-0 z-10">
-                                                                        <tr>
-                                                                            <th className="text-left p-3 text-sm font-medium w-12">
-                                                                                <Checkbox
-                                                                                    checked={services.length > 0 && (field.value || []).length === services.length}
-                                                                                    onCheckedChange={(checked) => {
-                                                                                        if (checked) {
-                                                                                            field.onChange(services.map((s: any) => s.id));
-                                                                                        } else {
-                                                                                            field.onChange([]);
-                                                                                        }
-                                                                                    }}
-                                                                                />
-                                                                            </th>
-                                                                            <th className="text-left p-3 text-sm font-medium">Service Name</th>
-                                                                            <th className="text-left p-3 text-sm font-medium">Description</th>
-                                                                            <th className="text-left p-3 text-sm font-medium">Category</th>
-                                                                            <th className="text-left p-3 text-sm font-medium">Parent Service</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        {filteredGroups.map((group) => (
-                                                                            <React.Fragment key={group.key}>
-                                                                                <tr className="bg-muted/50 border-t">
-                                                                                    <td colSpan={5} className="p-2">
-                                                                                        <div className="flex items-center justify-between">
-                                                                                            <div className="flex items-center gap-2">
-                                                                                                <button
-                                                                                                    type="button"
-                                                                                                    onClick={() => toggleGroup(group.key)}
-                                                                                                    className="p-1 hover:bg-background rounded"
-                                                                                                >
-                                                                                                    {expandedGroups.has(group.key) ? (
-                                                                                                        <ChevronDown className="h-4 w-4" />
-                                                                                                    ) : (
-                                                                                                        <ChevronRight className="h-4 w-4" />
-                                                                                                    )}
-                                                                                                </button>
-                                                                                                <span className="text-sm font-semibold">
-                                                                                                    {group.category} → {group.parent}
-                                                                                                </span>
-                                                                                                <span className="text-xs text-muted-foreground">
-                                                                                                    ({group.services.length} {group.services.length === 1 ? 'service' : 'services'})
-                                                                                                </span>
+
+                                                        {loadingServices ? (
+                                                            <div className="text-center py-8">
+                                                                <p className="text-sm text-muted-foreground">Loading services...</p>
+                                                            </div>
+                                                        ) : services.length === 0 ? (
+                                                            <div className="text-center py-8">
+                                                                <p className="text-sm text-muted-foreground">No sub-services available. Admins need to create sub-services first.</p>
+                                                            </div>
+                                                        ) : filteredGroups.length === 0 ? (
+                                                            <div className="text-center py-8">
+                                                                <p className="text-sm text-muted-foreground">No services match your search.</p>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="border rounded-md overflow-hidden">
+                                                                {/* Desktop Table View */}
+                                                                <div className="hidden md:block max-h-[500px] overflow-y-auto">
+                                                                    <table className="w-full">
+                                                                        <thead className="bg-muted sticky top-0 z-10">
+                                                                            <tr>
+                                                                                <th className="text-left p-3 text-sm font-medium w-12">
+                                                                                    <Checkbox
+                                                                                        checked={services.length > 0 && (field.value || []).length === services.length}
+                                                                                        onCheckedChange={(checked) => {
+                                                                                            if (checked) {
+                                                                                                field.onChange(services.map((s: any) => s.id));
+                                                                                            } else {
+                                                                                                field.onChange([]);
+                                                                                            }
+                                                                                        }}
+                                                                                    />
+                                                                                </th>
+                                                                                <th className="text-left p-3 text-sm font-medium">Service Name</th>
+                                                                                <th className="text-left p-3 text-sm font-medium">Description</th>
+                                                                                <th className="text-left p-3 text-sm font-medium">Category</th>
+                                                                                <th className="text-left p-3 text-sm font-medium">Parent Service</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            {filteredGroups.map((group) => (
+                                                                                <React.Fragment key={group.key}>
+                                                                                    <tr className="bg-muted/50 border-t">
+                                                                                        <td colSpan={5} className="p-2">
+                                                                                            <div className="flex items-center justify-between">
+                                                                                                <div className="flex items-center gap-2">
+                                                                                                    <button
+                                                                                                        type="button"
+                                                                                                        onClick={() => toggleGroup(group.key)}
+                                                                                                        className="p-1 hover:bg-background rounded"
+                                                                                                    >
+                                                                                                        {expandedGroups.has(group.key) ? (
+                                                                                                            <ChevronDown className="h-4 w-4" />
+                                                                                                        ) : (
+                                                                                                            <ChevronRight className="h-4 w-4" />
+                                                                                                        )}
+                                                                                                    </button>
+                                                                                                    <span className="text-sm font-semibold">
+                                                                                                        {group.category} → {group.parent}
+                                                                                                    </span>
+                                                                                                    <span className="text-xs text-muted-foreground">
+                                                                                                        ({group.services.length} {group.services.length === 1 ? 'service' : 'services'})
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                                <Checkbox
+                                                                                                    checked={isGroupAllSelected(group.services)}
+                                                                                                    onCheckedChange={(checked) => toggleAllInGroup(group.services, checked as boolean)}
+                                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                                />
                                                                                             </div>
-                                                                                            <Checkbox
-                                                                                                checked={isGroupAllSelected(group.services)}
-                                                                                                onCheckedChange={(checked) => toggleAllInGroup(group.services, checked as boolean)}
-                                                                                                onClick={(e) => e.stopPropagation()}
-                                                                                            />
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                    {expandedGroups.has(group.key) && group.services.map((service: any) => (
+                                                                                        <tr key={service.id} className="border-t hover:bg-muted/30">
+                                                                                            <td className="p-3">
+                                                                                                <Checkbox
+                                                                                                    checked={field.value?.includes(service.id) || false}
+                                                                                                    onCheckedChange={(checked) => {
+                                                                                                        const currentValues = field.value || [];
+                                                                                                        if (checked) {
+                                                                                                            field.onChange([...currentValues, service.id]);
+                                                                                                        } else {
+                                                                                                            field.onChange(currentValues.filter((id: string) => id !== service.id));
+                                                                                                        }
+                                                                                                    }}
+                                                                                                />
+                                                                                            </td>
+                                                                                            <td className="p-3">
+                                                                                                <label
+                                                                                                    htmlFor={service.id}
+                                                                                                    className="text-sm font-medium cursor-pointer"
+                                                                                                >
+                                                                                                    {service.name}
+                                                                                                </label>
+                                                                                            </td>
+                                                                                            <td className="p-3">
+                                                                                                <p className="text-xs text-muted-foreground line-clamp-2">
+                                                                                                    {service.description || '—'}
+                                                                                                </p>
+                                                                                            </td>
+                                                                                            <td className="p-3">
+                                                                                                <span className="text-xs text-muted-foreground">
+                                                                                                    {group.category}
+                                                                                                </span>
+                                                                                            </td>
+                                                                                            <td className="p-3">
+                                                                                                <span className="text-xs text-muted-foreground">
+                                                                                                    {group.parent}
+                                                                                                </span>
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    ))}
+                                                                                </React.Fragment>
+                                                                            ))}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+
+                                                                {/* Mobile Card View */}
+                                                                <div className="md:hidden max-h-[500px] overflow-y-auto p-4 space-y-3">
+                                                                    {filteredGroups.map((group) => (
+                                                                        <Collapsible
+                                                                            key={group.key}
+                                                                            open={expandedGroups.has(group.key)}
+                                                                            onOpenChange={() => toggleGroup(group.key)}
+                                                                        >
+                                                                            <CollapsibleTrigger className="w-full">
+                                                                                <div className="flex items-center justify-between p-3 bg-muted rounded-md">
+                                                                                    <div className="flex items-center gap-2 flex-1">
+                                                                                        {expandedGroups.has(group.key) ? (
+                                                                                            <ChevronDown className="h-4 w-4" />
+                                                                                        ) : (
+                                                                                            <ChevronRight className="h-4 w-4" />
+                                                                                        )}
+                                                                                        <div className="text-left">
+                                                                                            <p className="text-sm font-semibold">{group.category}</p>
+                                                                                            <p className="text-xs text-muted-foreground">{group.parent}</p>
+                                                                                            <p className="text-xs text-muted-foreground mt-1">
+                                                                                                {group.services.length} {group.services.length === 1 ? 'service' : 'services'}
+                                                                                            </p>
                                                                                         </div>
-                                                                                    </td>
-                                                                                </tr>
-                                                                                {expandedGroups.has(group.key) && group.services.map((service: any) => (
-                                                                                    <tr key={service.id} className="border-t hover:bg-muted/30">
-                                                                                        <td className="p-3">
+                                                                                    </div>
+                                                                                    <Checkbox
+                                                                                        checked={isGroupAllSelected(group.services)}
+                                                                                        onCheckedChange={(checked) => toggleAllInGroup(group.services, checked as boolean)}
+                                                                                        onClick={(e) => e.stopPropagation()}
+                                                                                    />
+                                                                                </div>
+                                                                            </CollapsibleTrigger>
+                                                                            <CollapsibleContent>
+                                                                                <div className="space-y-2 mt-2 pl-4">
+                                                                                    {group.services.map((service: any) => (
+                                                                                        <div key={service.id} className="flex items-start gap-3 p-2 border rounded-md">
                                                                                             <Checkbox
+                                                                                                id={service.id}
                                                                                                 checked={field.value?.includes(service.id) || false}
                                                                                                 onCheckedChange={(checked) => {
                                                                                                     const currentValues = field.value || [];
@@ -473,128 +603,83 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                                                                                     }
                                                                                                 }}
                                                                                             />
-                                                                                        </td>
-                                                                                        <td className="p-3">
-                                                                                            <label
-                                                                                                htmlFor={service.id}
-                                                                                                className="text-sm font-medium cursor-pointer"
-                                                                                            >
-                                                                                                {service.name}
-                                                                                            </label>
-                                                                                        </td>
-                                                                                        <td className="p-3">
-                                                                                            <p className="text-xs text-muted-foreground line-clamp-2">
-                                                                                                {service.description || '—'}
-                                                                                            </p>
-                                                                                        </td>
-                                                                                        <td className="p-3">
-                                                                                            <span className="text-xs text-muted-foreground">
-                                                                                                {group.category}
-                                                                                            </span>
-                                                                                        </td>
-                                                                                        <td className="p-3">
-                                                                                            <span className="text-xs text-muted-foreground">
-                                                                                                {group.parent}
-                                                                                            </span>
-                                                                                        </td>
-                                                                                    </tr>
-                                                                                ))}
-                                                                            </React.Fragment>
-                                                                        ))}
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-
-                                                            {/* Mobile Card View */}
-                                                            <div className="md:hidden max-h-[500px] overflow-y-auto p-4 space-y-3">
-                                                                {filteredGroups.map((group) => (
-                                                                    <Collapsible
-                                                                        key={group.key}
-                                                                        open={expandedGroups.has(group.key)}
-                                                                        onOpenChange={() => toggleGroup(group.key)}
-                                                                    >
-                                                                        <CollapsibleTrigger className="w-full">
-                                                                            <div className="flex items-center justify-between p-3 bg-muted rounded-md">
-                                                                                <div className="flex items-center gap-2 flex-1">
-                                                                                    {expandedGroups.has(group.key) ? (
-                                                                                        <ChevronDown className="h-4 w-4" />
-                                                                                    ) : (
-                                                                                        <ChevronRight className="h-4 w-4" />
-                                                                                    )}
-                                                                                    <div className="text-left">
-                                                                                        <p className="text-sm font-semibold">{group.category}</p>
-                                                                                        <p className="text-xs text-muted-foreground">{group.parent}</p>
-                                                                                        <p className="text-xs text-muted-foreground mt-1">
-                                                                                            {group.services.length} {group.services.length === 1 ? 'service' : 'services'}
-                                                                                        </p>
-                                                                                    </div>
-                                                                                </div>
-                                                                                <Checkbox
-                                                                                    checked={isGroupAllSelected(group.services)}
-                                                                                    onCheckedChange={(checked) => toggleAllInGroup(group.services, checked as boolean)}
-                                                                                    onClick={(e) => e.stopPropagation()}
-                                                                                />
-                                                                            </div>
-                                                                        </CollapsibleTrigger>
-                                                                        <CollapsibleContent>
-                                                                            <div className="space-y-2 mt-2 pl-4">
-                                                                                {group.services.map((service: any) => (
-                                                                                    <div key={service.id} className="flex items-start gap-3 p-2 border rounded-md">
-                                                                                        <Checkbox
-                                                                                            id={service.id}
-                                                                                            checked={field.value?.includes(service.id) || false}
-                                                                                            onCheckedChange={(checked) => {
-                                                                                                const currentValues = field.value || [];
-                                                                                                if (checked) {
-                                                                                                    field.onChange([...currentValues, service.id]);
-                                                                                                } else {
-                                                                                                    field.onChange(currentValues.filter((id: string) => id !== service.id));
-                                                                                                }
-                                                                                            }}
-                                                                                        />
-                                                                                        <div className="flex-1 min-w-0">
-                                                                                            <label
-                                                                                                htmlFor={service.id}
-                                                                                                className="text-sm font-medium cursor-pointer block"
-                                                                                            >
-                                                                                                {service.name}
-                                                                                            </label>
-                                                                                            {service.description && (
-                                                                                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                                                                                    {service.description}
-                                                                                                </p>
-                                                                                            )}
+                                                                                            <div className="flex-1 min-w-0">
+                                                                                                <label
+                                                                                                    htmlFor={service.id}
+                                                                                                    className="text-sm font-medium cursor-pointer block"
+                                                                                                >
+                                                                                                    {service.name}
+                                                                                                </label>
+                                                                                                {service.description && (
+                                                                                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                                                                                        {service.description}
+                                                                                                    </p>
+                                                                                                )}
+                                                                                            </div>
                                                                                         </div>
-                                                                                    </div>
-                                                                                ))}
-                                                                            </div>
-                                                                        </CollapsibleContent>
-                                                                    </Collapsible>
-                                                                ))}
+                                                                                    ))}
+                                                                                </div>
+                                                                            </CollapsibleContent>
+                                                                        </Collapsible>
+                                                                    ))}
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    );
-                                }}
-                            />
-                        </div>
+                                                        )}
+                                                    </div>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        );
+                                    }}
+                                />
+                            </div>
+                        )}
 
-                        {/* Desktop Submit Button */}
-                        <Button disabled={loading} className="hidden md:flex w-full md:w-auto md:ml-auto" type="submit">
-                            {action}
-                        </Button>
+                        {/* Desktop Buttons */}
+                        <div className="hidden md:flex w-full md:w-auto md:ml-auto gap-4">
+                            {currentStep > 1 && (
+                                <Button
+                                    disabled={loading}
+                                    variant="outline"
+                                    type="button"
+                                    onClick={prevStep}
+                                >
+                                    Back
+                                </Button>
+                            )}
+                            <Button
+                                disabled={loading}
+                                type={currentStep === 5 ? "submit" : "button"}
+                                onClick={currentStep === 5 ? () => setCanSubmit(true) : nextStep}
+                            >
+                                {currentStep === 5 ? action : "Continue"}
+                            </Button>
+                        </div>
                     </form>
                 </Form>
             </div>
 
             {/* Mobile Sticky Bottom Button - Fixed positioning */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-4 shadow-lg">
-                <Button disabled={loading} className="w-full" type="submit" form="saloon-form">
-                    {action}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-4 shadow-lg flex gap-3">
+                {currentStep > 1 && (
+                    <Button
+                        disabled={loading}
+                        variant="outline"
+                        type="button"
+                        onClick={prevStep}
+                        className="flex-1"
+                    >
+                        Back
+                    </Button>
+                )}
+                <Button
+                    disabled={loading}
+                    className="flex-1"
+                    type={currentStep === 5 ? "submit" : "button"}
+                    form={currentStep === 5 ? "saloon-form" : undefined}
+                    onClick={currentStep === 5 ? () => setCanSubmit(true) : nextStep}
+                >
+                    {currentStep === 5 ? action : "Continue"}
                 </Button>
             </div>
         </div>

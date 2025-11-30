@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertModal } from "@/components/modals/alert-modal";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, useClerk } from "@clerk/nextjs";
 
 interface SaloonClientProps {
     data: SaloonColumn[]
@@ -22,6 +22,7 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
     data
 }) => {
     const router = useRouter();
+    const { signOut } = useClerk();
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
     const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -111,10 +112,6 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
                                                     )}
                                                 </div>
                                             </div>
-                                            {/* User Profile Button - Mobile Only */}
-                                            <div className="md:hidden flex-shrink-0">
-                                                <UserButton afterSignOutUrl="/" />
-                                            </div>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="space-y-4 flex-1 flex flex-col">
@@ -161,6 +158,13 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
                                             >
                                                 <Trash className="mr-2 h-4 w-4" />
                                                 DPoista salonki
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                onClick={() => signOut()}
+                                                className="w-full md:w-auto py-8 md:py-2 bg-[#3E2723] hover:bg-[#2D1B18] text-white"
+                                            >
+                                                Logout
                                             </Button>
                                         </div>
                                     </CardContent>
