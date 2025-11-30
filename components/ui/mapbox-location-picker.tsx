@@ -41,10 +41,26 @@ export const MapboxLocationPicker: React.FC<LocationPickerProps> = ({
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [isWebView, setIsWebView] = useState(false);
 
   const mapRef = useRef<any>(null);
 
   const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_KEY;
+
+  // Detect if running in WebView
+  useEffect(() => {
+    const checkWebView = () => {
+      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+      // Check for React Native WebView or other mobile WebView indicators
+      const isRNWebView = userAgent.includes('ReactNativeWebView');
+      const isAndroidWebView = userAgent.includes('wv');
+      const isIOSWebView = /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(userAgent);
+
+      return isRNWebView || isAndroidWebView || isIOSWebView;
+    };
+
+    setIsWebView(checkWebView());
+  }, []);
 
   // Handle map click to select location
   const handleMapClick = useCallback((event: any) => {
@@ -189,6 +205,10 @@ export const MapboxLocationPicker: React.FC<LocationPickerProps> = ({
           mapStyle="mapbox://styles/mapbox/streets-v12"
           cursor={disabled ? 'default' : 'crosshair'}
           attributionControl={false}
+          // WebView optimizations
+          preserveDrawingBuffer={isWebView}
+          antialias={true}
+          failIfMajorPerformanceCaveat={false}
         >
           {/* Selected Location Marker */}
           {selectedLocation && (

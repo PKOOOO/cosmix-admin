@@ -20,6 +20,11 @@ const philosopher = Philosopher({
 export const metadata: Metadata = {
   title: "Digihipo Admin",
   description: "Digihipo Admin",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
+  other: {
+    'mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-capable': 'yes',
+  }
 };
 
 export default function RootLayout({
@@ -29,25 +34,25 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-    <html lang="en" suppressHydrationWarning>
-      <body className={philosopher.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
-          <NextTopLoader
-            color="#423120" // Brand dark color
-            height={3}
-            showSpinner={true}
-          />
-          <ToastProvider />
-          <ModalProvider />
-          {children}
-        </ThemeProvider>
+      <html lang="en" suppressHydrationWarning>
+        <body className={philosopher.className}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem={false}
+            disableTransitionOnChange
+          >
+            <NextTopLoader
+              color="#423120" // Brand dark color
+              height={3}
+              showSpinner={true}
+            />
+            <ToastProvider />
+            <ModalProvider />
+            {children}
+          </ThemeProvider>
         </body>
-    </html>
+      </html>
     </ClerkProvider>
   );
 }
