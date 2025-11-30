@@ -96,7 +96,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
     const title = initialData ? "Edit saloon" : "Create saloon";
     const description = initialData ? "Edit saloon details" : "Add a new saloon";
     const toastMessage = initialData ? "Saloon updated successfully." : "Saloon created successfully.";
-    const action = initialData ? "Save changes" : "Create";
+    const action = initialData ? "Save changes" : "Luoda";
 
     const form = useForm<SaloonFormValues>({
         resolver: zodResolver(formSchema),
@@ -644,7 +644,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                     type="button"
                                     onClick={prevStep}
                                 >
-                                    Back
+                                    Takaisin
                                 </Button>
                             )}
                             <Button
@@ -652,7 +652,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                 type={currentStep === 5 ? "submit" : "button"}
                                 onClick={currentStep === 5 ? () => setCanSubmit(true) : nextStep}
                             >
-                                {currentStep === 5 ? action : "Continue"}
+                                {currentStep === 5 ? action : "Seuraavaksi"}
                             </Button>
                         </div>
                     </form>
@@ -669,7 +669,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                         onClick={prevStep}
                         className="flex-1"
                     >
-                        Back
+                        Edellinen
                     </Button>
                 )}
                 <Button
@@ -679,7 +679,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                     form={currentStep === 5 ? "saloon-form" : undefined}
                     onClick={currentStep === 5 ? () => setCanSubmit(true) : nextStep}
                 >
-                    {currentStep === 5 ? action : "Continue"}
+                    {currentStep === 5 ? action : "Jatkaa"}
                 </Button>
             </div>
         </div>

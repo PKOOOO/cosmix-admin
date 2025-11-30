@@ -11,8 +11,8 @@ type Props = {
 function AccountDetailsForm({ errors, register }: Props) {
     return (
         <>
-            <h2 className="text-gravel md:text-4xl font-bold text-center">Account details</h2>
-            <p className="text-iridium md:text-sm text-center">Enter your email and password</p>
+
+            <p className="text-iridium md:text-sm text-center">Anna sähköpostiosoitteesi ja salasanasi</p>
             <div className="w-full max-w-md mx-auto px-4 flex flex-col gap-3">
                 {USER_REGISTRATION_FORM.map((field) => (
                     <FormGenerator

@@ -154,7 +154,7 @@ export const PricingClient: React.FC<PricingClientProps> = ({
         try {
             setUpdatingServices(prev => new Set(prev).add(serviceId));
             await axios.patch(`/api/saloons/${saloon.id}/services/${serviceId}`, updates);
-            toast.success("Service updated successfully");
+
             router.refresh();
         } catch (error) {
             toast.error("Failed to update service");

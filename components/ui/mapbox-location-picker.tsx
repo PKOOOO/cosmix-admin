@@ -59,7 +59,19 @@ export const MapboxLocationPicker: React.FC<LocationPickerProps> = ({
       return isRNWebView || isAndroidWebView || isIOSWebView;
     };
 
-    setIsWebView(checkWebView());
+    const detected = checkWebView();
+    setIsWebView(detected);
+    console.log('WebView detected:', detected);
+  }, []);
+
+  // Handle map load
+  const handleMapLoad = useCallback(() => {
+    console.log('Mapbox map loaded successfully');
+  }, []);
+
+  // Handle map error
+  const handleMapError = useCallback((event: any) => {
+    console.error('Mapbox map error:', event);
   }, []);
 
   // Handle map click to select location
@@ -194,14 +206,16 @@ export const MapboxLocationPicker: React.FC<LocationPickerProps> = ({
       </CardContent>
 
       {/* Map - Full Width at Bottom */}
-      <div className="h-96 w-full overflow-hidden">
+      <div className="h-96 w-full overflow-hidden" style={{ position: 'relative', minHeight: '384px' }}>
         <Map
           ref={mapRef}
           {...viewState}
           onMove={evt => setViewState(evt.viewState)}
           onClick={handleMapClick}
+          onLoad={handleMapLoad}
+          onError={handleMapError}
           mapboxAccessToken={MAPBOX_TOKEN}
-          style={{ width: '100%', height: '100%' }}
+          style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}
           mapStyle="mapbox://styles/mapbox/streets-v12"
           cursor={disabled ? 'default' : 'crosshair'}
           attributionControl={false}
@@ -209,6 +223,8 @@ export const MapboxLocationPicker: React.FC<LocationPickerProps> = ({
           preserveDrawingBuffer={isWebView}
           antialias={true}
           failIfMajorPerformanceCaveat={false}
+          renderWorldCopies={true}
+          touchZoomRotate={true}
         >
           {/* Selected Location Marker */}
           {selectedLocation && (
