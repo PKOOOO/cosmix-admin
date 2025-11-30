@@ -34,9 +34,8 @@ export const useSignInForm = () => {
                     setIsSuccess(true)
                     methods.reset()
                     toast.success('Login successful! Redirecting...')
-
-                    // Add a small delay to ensure session cookie is set before hard redirect
-                    window.location.href = '/dashboard'
+                    router.push('/dashboard')
+                    router.refresh()
                 } else if (result.status === 'needs_second_factor') {
                     setNeedsSecondFactor(true)
                     // Use email_code - TypeScript types are incorrect, but runtime works
@@ -71,9 +70,10 @@ export const useSignInForm = () => {
                 setIsSuccess(true)
                 toast.success('Login successful! Redirecting...')
 
-                // Keep loading true to prevent double clicks
-                // Use hard navigation to dashboard
-                window.location.href = '/dashboard'
+                // Use router.push + refresh for smoother transition and to sync server state
+                // This often handles the session token better than a hard reload immediately after set
+                router.push('/dashboard')
+                router.refresh()
             } else {
                 setLoading(false)
                 console.error('Verification failed, status:', result.status)
