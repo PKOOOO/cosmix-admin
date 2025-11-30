@@ -67,8 +67,6 @@ export const useSignInForm = () => {
             if (result.status === 'complete') {
                 await setActive({ session: result.createdSessionId })
                 setIsSuccess(true)
-                toast.success('Login successful! Redirecting...')
-
                 // Use router.push + refresh for smoother transition and to sync server state
                 // This often handles the session token better than a hard reload immediately after set
                 router.push('/dashboard')
