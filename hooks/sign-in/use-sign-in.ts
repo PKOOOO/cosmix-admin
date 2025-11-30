@@ -34,12 +34,11 @@ export const useSignInForm = () => {
                     setIsSuccess(true)
                     methods.reset()
                     toast.success('Welcome back!')
-                    router.push('/dashboard')
-                    router.refresh()
+                    window.location.href = '/dashboard'
                 } else if (result.status === 'needs_second_factor') {
                     setNeedsSecondFactor(true)
-                    // Use phone_code strategy as required by Clerk types
-                    await signIn.prepareSecondFactor({ strategy: 'phone_code' })
+                    // Use email_code - TypeScript types are incorrect, but runtime works
+                    await signIn.prepareSecondFactor({ strategy: 'email_code' } as any)
                     setLoading(false)
                 }
             } catch (error: any) {
@@ -58,23 +57,27 @@ export const useSignInForm = () => {
         if (!isLoaded) return
         try {
             setLoading(true)
+            console.log('Verifying OTP...', otp)
             const result = await signIn.attemptSecondFactor({
-                strategy: 'phone_code',
+                strategy: 'email_code',
                 code: otp
-            })
+            } as any)
+            console.log('OTP Verification Result:', result.status)
 
             if (result.status === 'complete') {
                 await setActive({ session: result.createdSessionId })
                 setIsSuccess(true)
                 toast.success('Welcome back!')
-                router.push('/dashboard')
-                router.refresh()
+                // Use hard navigation to ensure auth state is correctly picked up by middleware/server
+                window.location.href = '/dashboard'
             } else {
                 setLoading(false)
+                console.error('Verification failed, status:', result.status)
                 toast.error('Verification failed')
             }
         } catch (error: any) {
             setLoading(false)
+            console.error('OTP Verification Error:', error)
             if (error.errors && error.errors[0]) {
                 toast.error(error.errors[0].longMessage)
             } else {
