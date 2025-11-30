@@ -34,7 +34,11 @@ export const useSignInForm = () => {
                     setIsSuccess(true)
                     methods.reset()
                     toast.success('Welcome back!')
-                    window.location.href = '/dashboard'
+
+                    // Add a small delay to ensure session cookie is set before hard redirect
+                    setTimeout(() => {
+                        window.location.href = '/dashboard'
+                    }, 1000)
                 } else if (result.status === 'needs_second_factor') {
                     setNeedsSecondFactor(true)
                     // Use email_code - TypeScript types are incorrect, but runtime works
@@ -68,8 +72,11 @@ export const useSignInForm = () => {
                 await setActive({ session: result.createdSessionId })
                 setIsSuccess(true)
                 toast.success('Welcome back!')
-                // Use hard navigation to ensure auth state is correctly picked up by middleware/server
-                window.location.href = '/dashboard'
+
+                // Add a small delay to ensure session cookie is set before hard redirect
+                setTimeout(() => {
+                    window.location.href = '/dashboard'
+                }, 1000)
             } else {
                 setLoading(false)
                 console.error('Verification failed, status:', result.status)
