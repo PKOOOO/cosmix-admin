@@ -33,7 +33,6 @@ export const useSignInForm = () => {
                     await setActive({ session: result.createdSessionId })
                     setIsSuccess(true)
                     methods.reset()
-                    toast.success('Login successful! Redirecting...')
                     router.push('/dashboard')
                     router.refresh()
                 } else if (result.status === 'needs_second_factor') {
