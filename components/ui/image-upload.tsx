@@ -33,46 +33,46 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
   return (
     <div>
-        <div className="mb-4 flex items-center gap-4">
-            {value.map((url) => (
-            <div key={url} className="relative w-[200px] h-[200px] rounded-md overflow-hidden">
-                <div className="z-10 absolute top-2 right-2">
-                    <Button type="button" onClick={() => onRemove(url)} variant="destructive" size="icon">
-                        <Trash className="h-4 w-4" />
-                    </Button>
-                </div>
-                <Image 
-                    fill
-                    className="object-cover"
-                    alt="Image"
-                    src={url}
-                />
+      <div className="mb-4 flex items-center gap-4">
+        {value.map((url) => (
+          <div key={url} className="relative w-[200px] h-[200px] rounded-md overflow-hidden">
+            <div className="z-10 absolute top-2 right-2">
+              <Button type="button" onClick={() => onRemove(url)} variant="destructive" size="icon">
+                <Trash className="h-4 w-4" />
+              </Button>
             </div>
-            ))}
-        </div>
-        <CldUploadWidget onSuccess={onSuccess} uploadPreset="mwa8epb4">
-            {({ open }) => {
-                const onClick = () => {
-                    // Mark widget as open and defer to next tick
-                    try { (window as any).__cloudinaryOpen = true; } catch {}
-                    setTimeout(() => open(), 0);
-                }
+            <Image
+              fill
+              className="object-cover"
+              alt="Image"
+              src={url}
+            />
+          </div>
+        ))}
+      </div>
+      <CldUploadWidget onSuccess={onSuccess} uploadPreset="mwa8epb4">
+        {({ open }) => {
+          const onClick = () => {
+            // Mark widget as open and defer to next tick
+            try { (window as any).__cloudinaryOpen = true; } catch { }
+            setTimeout(() => open(), 0);
+          }
 
-                return (
-                    <Button
-                    type="button"
-                    disabled={disabled}
-                    variant="secondary"
-                    onClick={onClick}
-                    >
-                        <ImagePlus className="h-4 w-4 mr-2" />
-                        Upload an Image
-                    </Button>
-                )
-            }}
-        </CldUploadWidget>
-        {/* Clear open flag when unmounting */}
-        <script dangerouslySetInnerHTML={{ __html: `window.__cloudinaryOpen = false;` }} />
+          return (
+            <Button
+              type="button"
+              disabled={disabled}
+              variant="secondary"
+              onClick={onClick}
+            >
+              <ImagePlus className="h-4 w-4 mr-2" />
+              Lataa kuva
+            </Button>
+          )
+        }}
+      </CldUploadWidget>
+      {/* Clear open flag when unmounting */}
+      <script dangerouslySetInnerHTML={{ __html: `window.__cloudinaryOpen = false;` }} />
     </div>
   )
 };
