@@ -47,9 +47,9 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
 
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
-    const [saloons, setSaloons] = useState<{id: string, name: string}[]>([]);
-    const [parentServices, setParentServices] = useState<{id: string, name: string}[]>([]);
+    const [categories, setCategories] = useState<{ id: string, name: string }[]>([]);
+    const [saloons, setSaloons] = useState<{ id: string, name: string }[]>([]);
+    const [parentServices, setParentServices] = useState<{ id: string, name: string }[]>([]);
 
     const title = initialData ? "Edit service" : "Create service";
     const description = initialData ? "Edit service details" : "Add a new service";
@@ -112,7 +112,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
     const onSubmit = async (data: ServiceFormValues) => {
         try {
             setLoading(true);
-            
+
             if (initialData) {
                 await axios.patch(
                     `/api/services/${initialData.id}`,
@@ -121,10 +121,10 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
             } else {
                 await axios.post(`/api/services`, data);
             }
-    
+
             router.refresh();
             router.push('/dashboard/services');
-            toast.success(toastMessage);
+
         } catch (error) {
             toast.error("Something went wrong. Please try again.");
         } finally {
@@ -134,11 +134,11 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
 
     const onDelete = async () => {
         if (!initialData) return;
-        
+
         try {
             setLoading(true);
             await axios.delete(`/api/services/${initialData.id}`);
-            
+
             toast.success("Service deleted successfully.");
             setOpen(false);
             setTimeout(() => {
@@ -161,7 +161,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                 onConfirm={onDelete}
                 loading={loading}
             />
-            
+
             {/* Header Section */}
             <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
                 <Heading title={title} />
@@ -178,9 +178,9 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                     </Button>
                 )}
             </div>
-            
+
             <Separator className="mb-6" />
-            
+
             {/* Main content container with proper bottom padding for mobile */}
             <div className="pb-20 md:pb-0">
                 <Form {...form}>
@@ -208,16 +208,16 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                                     </FormItem>
                                 )}
                             />
-                            
+
                             <FormField
                                 control={form.control}
                                 name="categoryId"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Category</FormLabel>
-                                        <Select 
-                                            disabled={loading} 
-                                            onValueChange={field.onChange} 
+                                        <Select
+                                            disabled={loading}
+                                            onValueChange={field.onChange}
                                             value={field.value}
                                         >
                                             <FormControl>
@@ -237,7 +237,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                                     </FormItem>
                                 )}
                             />
-                            
+
                             <FormField
                                 control={form.control}
                                 name="isParent"
@@ -258,8 +258,8 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                                     </FormItem>
                                 )}
                             />
-                            
-                            
+
+
                             {!form.watch("isParent") && (
                                 <FormField
                                     control={form.control}
@@ -267,9 +267,9 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Parent Service</FormLabel>
-                                            <Select 
-                                                disabled={loading} 
-                                                onValueChange={field.onChange} 
+                                            <Select
+                                                disabled={loading}
+                                                onValueChange={field.onChange}
                                                 value={field.value}
                                             >
                                                 <FormControl>
@@ -290,7 +290,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                                     )}
                                 />
                             )}
-                            
+
                             <FormField
                                 control={form.control}
                                 name="description"
@@ -319,7 +319,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                     </form>
                 </Form>
             </div>
-            
+
             {/* Mobile Sticky Bottom Button - Fixed positioning */}
             <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-4 shadow-lg">
                 <Button disabled={loading} className="w-full" type="submit" form="service-form">

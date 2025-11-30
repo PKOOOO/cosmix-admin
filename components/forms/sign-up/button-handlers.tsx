@@ -65,19 +65,19 @@ const ButtonHandler = (props: Props) => {
                     {loading ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Sending Code...
+                            OTP:n lähettäminen
                         </>
                     ) : (
-                        'Continue'
+                        'Jatkaa'
                     )}
                 </Button>
                 <p>
-                    Already have an account?{' '}
+                    Onko sinulla jo tili?{' '}
                     <Link
                         href="/sign-in"
                         className="font-extrabold underline text-lg"
                     >
-                        Sign In
+                        Kirjaudu sisään
                     </Link>
                 </p>
             </div>

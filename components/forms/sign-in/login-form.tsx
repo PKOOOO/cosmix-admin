@@ -23,7 +23,7 @@ const LoginForm = (props: Props) => {
         return (
             <>
                 <p className="text-iridium md:text-sm text-center">
-                    Enter the code sent to your email.
+                    Syötä sähköpostiisi lähetetty koodi
                 </p>
                 <div className="w-full justify-center flex py-5">
                     <OTPInput
@@ -41,10 +41,10 @@ const LoginForm = (props: Props) => {
                         {loading ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Verifying...
+                                Vahvistetaan...
                             </>
                         ) : (
-                            'Verify Code'
+                            'VVahvista koodi'
                         )}
                     </Button>
                 </div>
@@ -54,7 +54,7 @@ const LoginForm = (props: Props) => {
 
     return (
         <>
-            <h2 className="text-gravel md:text-4xl font-bold text-center">Login</h2>
+
             <div className="w-full max-w-md mx-auto px-4 flex flex-col gap-3">
                 {USER_LOGIN_FORM.map((field) => (
                     <FormGenerator

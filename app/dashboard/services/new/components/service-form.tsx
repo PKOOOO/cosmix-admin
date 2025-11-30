@@ -49,9 +49,9 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
 
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
-    const [saloons, setSaloons] = useState<{id: string, name: string}[]>([]);
-    const [parentServices, setParentServices] = useState<{id: string, name: string}[]>([]);
+    const [categories, setCategories] = useState<{ id: string, name: string }[]>([]);
+    const [saloons, setSaloons] = useState<{ id: string, name: string }[]>([]);
+    const [parentServices, setParentServices] = useState<{ id: string, name: string }[]>([]);
     const [isAdmin, setIsAdmin] = useState(false);
 
 
@@ -141,7 +141,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
     const onSubmit = async (data: ServiceFormValues) => {
         try {
             setLoading(true);
-            
+
             if (initialData) {
                 await axios.patch(
                     `/api/services/${initialData.id}`,
@@ -150,10 +150,10 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
             } else {
                 await axios.post(`/api/services`, data);
             }
-    
+
             router.refresh();
             router.push('/dashboard/services');
-            toast.success(toastMessage);
+
         } catch (error) {
             console.error("Form submission error:", error);
             toast.error("Something went wrong. Please try again.");
@@ -164,11 +164,11 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
 
     const onDelete = async () => {
         if (!initialData) return;
-        
+
         try {
             setLoading(true);
             await axios.delete(`/api/services/${initialData.id}`);
-            
+
             toast.success("Service deleted successfully.");
             setOpen(false);
             setTimeout(() => {
@@ -191,8 +191,8 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                 onConfirm={onDelete}
                 loading={loading}
             />
-            
-            
+
+
             {/* Header Section */}
             <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
                 <Heading title={title} />
@@ -209,9 +209,9 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                     </Button>
                 )}
             </div>
-            
+
             <Separator className="mb-6" />
-            
+
             {/* Main content container with proper bottom padding for mobile */}
             <div className="pb-20 md:pb-0">
                 <Form {...form}>
@@ -248,16 +248,16 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                                     </FormItem>
                                 )}
                             />
-                            
+
                             <FormField
                                 control={form.control}
                                 name="categoryId"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Category</FormLabel>
-                                        <Select 
-                                            disabled={loading} 
-                                            onValueChange={field.onChange} 
+                                        <Select
+                                            disabled={loading}
+                                            onValueChange={field.onChange}
                                             value={field.value}
                                         >
                                             <FormControl>
@@ -277,7 +277,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                                     </FormItem>
                                 )}
                             />
-                            
+
                             {isAdmin && (
                                 <FormField
                                     control={form.control}
@@ -300,8 +300,8 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                                     )}
                                 />
                             )}
-                            
-                            
+
+
                             {!form.watch("isParent") && isAdmin && (
                                 <FormField
                                     control={form.control}
@@ -309,9 +309,9 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Parent Service</FormLabel>
-                                            <Select 
-                                                disabled={loading} 
-                                                onValueChange={field.onChange} 
+                                            <Select
+                                                disabled={loading}
+                                                onValueChange={field.onChange}
                                                 value={field.value}
                                             >
                                                 <FormControl>
@@ -343,16 +343,16 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                                     )}
                                 />
                             )}
-                            
+
                             {!isAdmin && (
                                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
                                     <p className="text-sm text-blue-800">
-                                        <strong>Note:</strong> As a regular user, you can only create services for your saloons. 
+                                        <strong>Note:</strong> As a regular user, you can only create services for your saloons.
                                         Sub-services are created by administrators and can be selected when setting up your saloon.
                                     </p>
                                 </div>
                             )}
-                            
+
                             {!form.watch("isParent") && (
                                 <FormField
                                     control={form.control}
@@ -391,7 +391,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                                     )}
                                 />
                             )}
-                            
+
                             <FormField
                                 control={form.control}
                                 name="description"
@@ -414,9 +414,9 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                         </div>
 
                         {/* Desktop Submit Button */}
-                        <Button 
-                            disabled={loading} 
-                            className="hidden md:flex w-full md:w-auto md:ml-auto" 
+                        <Button
+                            disabled={loading}
+                            className="hidden md:flex w-full md:w-auto md:ml-auto"
                             type="submit"
                         >
                             {action}
@@ -424,13 +424,13 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                     </form>
                 </Form>
             </div>
-            
+
             {/* Mobile Sticky Bottom Button - Fixed positioning */}
             <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-4 shadow-lg">
-                <Button 
-                    disabled={loading} 
-                    className="w-full" 
-                    type="submit" 
+                <Button
+                    disabled={loading}
+                    className="w-full"
+                    type="submit"
                     form="service-form"
                 >
                     {action}

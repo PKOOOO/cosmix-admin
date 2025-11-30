@@ -115,19 +115,19 @@ const SignInButtonHandler = () => {
                 {loading ? (
                     <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Logging in...
+
                     </>
                 ) : (
-                    'Login'
+                    'Kirjaudu sisään'
                 )}
             </Button>
             <p>
-                Don’t have an account?{' '}
+                Eikö sinulla ole tiliä?{' '}
                 <Link
                     href="/sign-up"
                     className="font-extrabold underline text-lg"
                 >
-                    Create one
+                    rekisteröidy
                 </Link>
             </p>
         </div>

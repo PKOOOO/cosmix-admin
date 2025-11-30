@@ -65,7 +65,7 @@ export const AdminServicesClient = () => {
       ]);
       setServices(servicesResponse.data);
       setCategories(categoriesResponse.data);
-      
+
       // Filter parent services for sub-service creation
       const parentServicesOnly = servicesResponse.data.filter((service: any) => !service.parentServiceId);
       setParentServices(parentServicesOnly);
@@ -76,7 +76,7 @@ export const AdminServicesClient = () => {
   };
 
   // Filter parent services by selected category
-  const filteredParentServices = parentServices.filter((service: any) => 
+  const filteredParentServices = parentServices.filter((service: any) =>
     service.categoryId === selectedCategoryId
   );
 
@@ -107,7 +107,7 @@ export const AdminServicesClient = () => {
         payload.parentServiceId = selectedParentServiceId;
         payload.workTypes = workTypes;
       }
-      
+
       await axios.post('/api/admin/services', payload);
       toast.success(`${isCreatingSubService ? 'Sub-service' : 'Parent service'} created successfully`);
       resetForm();
@@ -134,7 +134,7 @@ export const AdminServicesClient = () => {
         description: serviceDescription,
         ...(isEditingSub ? { workTypes } : {})
       });
-      toast.success("Service updated successfully");
+
       resetForm();
       fetchData();
     } catch (error) {
@@ -211,8 +211,8 @@ export const AdminServicesClient = () => {
             <Plus className="h-4 w-4 mr-2" />
             Add Parent Service
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => {
               setIsCreatingSubService(true);
               setOpen(true);
@@ -223,26 +223,26 @@ export const AdminServicesClient = () => {
             Add Sub-Service
           </Button>
         </div>
-        
+
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>
-                {editingService 
+                {editingService
                   ? `Edit ${(editingService as any).parentServiceId ? 'Sub-Service' : 'Parent Service'}`
                   : `Create ${isCreatingSubService ? 'Sub-Service' : 'Parent Service'}`
                 }
               </DialogTitle>
               <DialogDescription>
-                {editingService 
-                  ? "Update the service details below." 
+                {editingService
+                  ? "Update the service details below."
                   : isCreatingSubService
                     ? "Add a new sub-service under a parent service."
                     : "Add a new parent service that saloons can use as a template."
                 }
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Service Name</Label>
@@ -363,12 +363,12 @@ export const AdminServicesClient = () => {
                 </div>
               )}
             </div>
-            
+
             <DialogFooter>
               <Button variant="outline" onClick={resetForm}>
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={editingService ? handleUpdate : handleCreate}
                 disabled={loading}
               >
