@@ -68,10 +68,6 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
             const target = e.target as HTMLElement;
             if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
                 setIsKeyboardOpen(true);
-                // Scroll the focused element into view
-                setTimeout(() => {
-                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 300);
             }
         };
 
@@ -269,7 +265,10 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
 
 
             {/* Main content container with proper bottom padding for mobile */}
-            <div className={`pb-20 md:pb-0 ${isKeyboardOpen ? 'pb-96' : ''}`}>
+            <div
+                className={`pb-20 md:pb-0 transition-transform duration-300 ${isKeyboardOpen ? 'pb-96' : ''}`}
+                style={{ transform: isKeyboardOpen ? 'translateY(-150px)' : 'translateY(0)' }}
+            >
                 <Form {...form}>
                     <form
                         id="saloon-form"
@@ -690,7 +689,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
             {/* Mobile Sticky Bottom Button - Fixed positioning */}
             <div
                 className="md:hidden fixed left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-4 shadow-lg flex gap-3 transition-all duration-300"
-                style={{ bottom: isKeyboardOpen ? '60px' : '0px' }}
+                style={{ bottom: isKeyboardOpen ? '280px' : '0px' }}
             >
                 {currentStep > 1 && (
                     <Button
