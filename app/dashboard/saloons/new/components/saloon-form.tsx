@@ -59,6 +59,34 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
         longitude: number;
         address: string;
     } | null>(null);
+    const [keyboardHeight, setKeyboardHeight] = useState(0);
+    const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+    // Detect keyboard by tracking input focus
+    useEffect(() => {
+        const handleFocusIn = (e: FocusEvent) => {
+            const target = e.target as HTMLElement;
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+                setIsKeyboardOpen(true);
+                // Scroll the focused element into view
+                setTimeout(() => {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            }
+        };
+
+        const handleFocusOut = () => {
+            setIsKeyboardOpen(false);
+        };
+
+        document.addEventListener('focusin', handleFocusIn);
+        document.addEventListener('focusout', handleFocusOut);
+
+        return () => {
+            document.removeEventListener('focusin', handleFocusIn);
+            document.removeEventListener('focusout', handleFocusOut);
+        };
+    }, []);
 
     const nextStep = async () => {
         let fieldsToValidate: any[] = [];
@@ -241,7 +269,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
 
 
             {/* Main content container with proper bottom padding for mobile */}
-            <div className="pb-20 md:pb-0">
+            <div className={`pb-20 md:pb-0 ${isKeyboardOpen ? 'pb-96' : ''}`}>
                 <Form {...form}>
                     <form
                         id="saloon-form"
@@ -660,7 +688,10 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
             </div>
 
             {/* Mobile Sticky Bottom Button - Fixed positioning */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-4 shadow-lg flex gap-3">
+            <div
+                className="md:hidden fixed left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-4 shadow-lg flex gap-3 transition-all duration-300"
+                style={{ bottom: isKeyboardOpen ? '60px' : '0px' }}
+            >
                 {currentStep > 1 && (
                     <Button
                         disabled={loading}
