@@ -157,7 +157,7 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
                                                 className="w-full md:w-auto py-8 md:py-2"
                                             >
                                                 <Trash className="mr-2 h-4 w-4" />
-                                                DPoista salonki
+                                                Poista salonki
                                             </Button>
                                             <Button
                                                 size="sm"

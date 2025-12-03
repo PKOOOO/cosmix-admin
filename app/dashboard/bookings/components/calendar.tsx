@@ -1,23 +1,61 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isToday, startOfWeek, endOfWeek, addDays } from "date-fns";
-import { ChevronLeft, ChevronRight, Clock, User, DollarSign, X, Calendar, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, User, DollarSign, X, Calendar, ChevronDown, ChevronUp, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BookingColumn } from "./columns";
+import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 
 interface BookingCalendarProps {
   data: BookingColumn[];
+  onBookingComplete?: (bookingId: string) => void;
 }
 
-export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
+export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data, onBookingComplete }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month');
   const [isMobileView, setIsMobileView] = useState(false);
+  const [completingBookingId, setCompletingBookingId] = useState<string | null>(null);
+  const router = useRouter();
+
+  const handleCompleteBooking = async (bookingId: string) => {
+    try {
+      setCompletingBookingId(bookingId);
+      
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'completed' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to complete booking');
+      }
+
+      toast.success('Varaus merkitty valmiiksi!');
+      
+      // Call the callback if provided
+      if (onBookingComplete) {
+        onBookingComplete(bookingId);
+      }
+      
+      // Refresh the page to update the data
+      router.refresh();
+    } catch (error) {
+      console.error('Error completing booking:', error);
+      toast.error('Virhe varauksen merkitsemisessä valmiiksi');
+    } finally {
+      setCompletingBookingId(null);
+    }
+  };
 
   // Check if mobile view should be used
   const checkMobileView = () => {
@@ -109,6 +147,8 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
               const dayBookings = getBookingsForDay(day);
               const isCurrentMonth = isSameMonth(day, currentDate);
               const isTodayDate = isToday(day);
+              const allCompleted = dayBookings.length > 0 && dayBookings.every(b => b.status === 'completed');
+              const hasActiveBookings = dayBookings.some(b => b.status !== 'completed');
               return (
                 <div
                   key={day.toISOString()}
@@ -120,10 +160,10 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
                     } ${isTodayDate ? "text-brand-dark font-bold" : ""}`}>
                     {format(day, "d")}
                   </div>
-                  {/* Green dot indicator for bookings */}
+                  {/* Dot indicator: green for active bookings, dark brown for all completed */}
                   {dayBookings.length > 0 && (
                     <div className="flex justify-center mt-1">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <div className={`w-2 h-2 rounded-full ${allCompleted ? "bg-[#423120]" : "bg-green-500"}`}></div>
                     </div>
                   )}
                 </div>
@@ -199,6 +239,41 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
                                 </div>
                               </div>
                             </div>
+                            
+                            {/* Complete Booking Button - only show if not already completed */}
+                            {booking.status !== 'completed' && (
+                              <div className="pt-3 mt-3 border-t">
+                                <Button
+                                  onClick={() => handleCompleteBooking(booking.id)}
+                                  disabled={completingBookingId === booking.id}
+                                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                                >
+                                  {completingBookingId === booking.id ? (
+                                    <span className="flex items-center justify-center">
+                                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                      </svg>
+                                      Merkitään...
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center justify-center">
+                                      <CheckCircle className="w-4 h-4 mr-2" />
+                                      Merkitse valmiiksi
+                                    </span>
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+                            
+                            {booking.status === 'completed' && (
+                              <div className="pt-3 mt-3 border-t">
+                                <Badge className="w-full justify-center bg-green-100 text-green-800 py-2">
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  Valmis
+                                </Badge>
+                              </div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
@@ -246,6 +321,7 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
             const dayBookings = getBookingsForDay(day);
             const isCurrentMonth = isSameMonth(day, currentDate);
             const isTodayDate = isToday(day);
+            const allCompleted = dayBookings.length > 0 && dayBookings.every(b => b.status === 'completed');
             return (
               <div
                 key={day.toISOString()}
@@ -257,10 +333,10 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
                   } ${isTodayDate ? "text-brand-dark font-bold" : ""}`}>
                   {format(day, "d")}
                 </div>
-                {/* Green dot indicator for bookings */}
+                {/* Dot indicator: green for active bookings, dark brown for all completed */}
                 {dayBookings.length > 0 && (
                   <div className="flex justify-center mt-2">
-                    <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
+                    <div className={`w-2.5 h-2.5 rounded-full ${allCompleted ? "bg-[#423120]" : "bg-green-500"}`}></div>
                   </div>
                 )}
               </div>
@@ -340,13 +416,48 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
                                 </div>
                                 <div>
                                   <span className="font-medium">Status:</span>{" "}
-                                  <span className={booking.status === "confirmed" ? "text-green-600" : "text-brand-dark"}>
-                                    {booking.status === "confirmed" ? "Confirmed" : "Pending Confirmation"}
+                                  <span className={booking.status === "confirmed" ? "text-green-600" : booking.status === "completed" ? "text-blue-600" : "text-brand-dark"}>
+                                    {booking.status === "confirmed" ? "Confirmed" : booking.status === "completed" ? "Completed" : "Pending Confirmation"}
                                   </span>
                                 </div>
                               </div>
                             </div>
                           </div>
+                          
+                          {/* Complete Booking Button - only show if not already completed */}
+                          {booking.status !== 'completed' && (
+                            <div className="pt-3 mt-3 border-t">
+                              <Button
+                                onClick={() => handleCompleteBooking(booking.id)}
+                                disabled={completingBookingId === booking.id}
+                                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                              >
+                                {completingBookingId === booking.id ? (
+                                  <span className="flex items-center justify-center">
+                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Completing...
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center justify-center">
+                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                    Complete Booking
+                                  </span>
+                                )}
+                              </Button>
+                            </div>
+                          )}
+                          
+                          {booking.status === 'completed' && (
+                            <div className="pt-3 mt-3 border-t">
+                              <Badge className="w-full justify-center bg-green-100 text-green-800 py-2">
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Completed
+                              </Badge>
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     ))}
@@ -359,12 +470,12 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({ data }) => {
         {/* Legend */}
         <div className="flex flex-wrap gap-4 mt-6 pt-4 border-t">
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-green-200 border-l-2 border-green-400 rounded"></div>
-            <span className="text-sm text-gray-600">Confirmed</span>
+            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+            <span className="text-sm text-gray-600">Active Bookings</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-brand-beige border-l-2 border-brand-dark rounded"></div>
-            <span className="text-sm text-gray-600">Pending</span>
+            <div className="w-3 h-3 bg-[#423120] rounded-full"></div>
+            <span className="text-sm text-gray-600">All Completed</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 border-2 border-brand-dark rounded"></div>
