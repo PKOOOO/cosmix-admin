@@ -3,71 +3,14 @@ import SignInFormProvider, { useSignInContext } from '@/components/forms/sign-in
 import LoginForm from '@/components/forms/sign-in/login-form'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import React, { useState } from 'react'
+import React from 'react'
 import { Loader2 } from 'lucide-react'
-
-// Create a wrapper component to consume the context
-const SignInContent = () => {
-    const { loading, needsSecondFactor, onVerifyOTP } = useSignInContext()
-
-    // We need access to the OTP value from LoginForm if we want the button here.
-    // OR, we can move the button into LoginForm for the OTP state?
-    // OR, we can use a portal?
-    // Simplest: The button in page.tsx triggers form submit.
-    // If needsSecondFactor is true, the form submit handler in use-sign-in.ts (onHandleSubmit)
-    // is still attached to the <form>.
-    // We can modify onHandleSubmit to check needsSecondFactor and call onVerifyOTP if so.
-    // BUT, onVerifyOTP needs the 'otp' value which is local state in LoginForm.
-
-    // BETTER APPROACH:
-    // Move the Button INTO LoginForm or a new component inside the provider.
-
-    return (
-        <div className="flex flex-col gap-3">
-            <LoginForm />
-            <div className="w-full flex flex-col gap-3 items-center">
-                {!needsSecondFactor ? (
-                    <Button
-                        type="submit"
-                        className="w-full"
-                        disabled={loading}
-                    >
-                        {loading ? 'Logging in...' : 'Login'}
-                    </Button>
-                ) : (
-                    <Button
-                        type="button" // Don't submit the main form
-                        className="w-full"
-                        disabled={loading}
-                        onClick={() => {
-                            // How to get OTP?
-                            // We can't easily get it from here if it's state in LoginForm.
-                            // Let's rely on LoginForm to render its own button for OTP.
-                            // So we hide this button if needsSecondFactor is true.
-                        }}
-                    >
-                        Verify (Click inside)
-                    </Button>
-                )}
-
-                <p>
-                    Don’t have an account?{' '}
-                    <Link
-                        href="/sign-up"
-                        className="font-bold"
-                    >
-                        Create one
-                    </Link>
-                </p>
-            </div>
-        </div>
-    )
-}
+import { useRouter } from 'next/navigation'
 
 const SignInPage = () => {
     return (
-        <div className="flex-1 py-36 md:px-16 w-full">
-            <div className="flex flex-col h-full gap-3">
+        <div className="flex-1 py-12 md:py-24 px-4 w-full">
+            <div className="flex flex-col h-full gap-3 max-w-md mx-auto">
                 <SignInFormProvider>
                     <SignInView />
                 </SignInFormProvider>
@@ -77,18 +20,19 @@ const SignInPage = () => {
 }
 
 const SignInView = () => {
-    const { loading, needsSecondFactor, onVerifyOTP } = useSignInContext()
-    // We need to lift the OTP state up to here or context if we want the button here.
-    // Let's modify SignInFormProvider to hold OTP state? No, that's getting messy.
-
-    // Let's just put the Button inside LoginForm for the OTP case.
-    // And for the normal case, we can keep it here?
-    // Or just put everything in LoginForm?
-
-    // Let's move the Button logic into a new component `SignInButtonHandler` similar to sign-up.
-
     return (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-6">
+            {/* Header */}
+            <div className="flex flex-col gap-2 text-center">
+                <h1 className="text-3xl font-bold tracking-tight">
+                    Tervetuloa takaisin
+                </h1>
+                <p className="text-muted-foreground">
+                    Kirjaudu sisään jatkaaksesi
+                </p>
+            </div>
+
+            {/* Form Content */}
             <LoginForm />
             <SignInButtonHandler />
         </div>
@@ -96,38 +40,70 @@ const SignInView = () => {
 }
 
 const SignInButtonHandler = () => {
-    const { loading, needsSecondFactor, onVerifyOTP } = useSignInContext()
+    const { loading, needsSecondFactor } = useSignInContext()
+    const router = useRouter()
 
     if (needsSecondFactor) {
-        // The button is rendered inside LoginForm for OTP to access state?
-        // Or we use a ref?
-        // Let's just render NOTHING here and let LoginForm handle the OTP UI + Button.
-        return null
+        return null // OTP UI handled in LoginForm
+    }
+
+    const handleForgotPassword = (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        // Use window.location for a hard navigation
+        window.location.href = '/reset-password'
     }
 
     return (
-        <div className="w-full flex flex-col gap-3 items-center px-4">
+        <div className="w-full flex flex-col gap-4">
+            {/* Forgot Password Link - Outside form context */}
+            <div className="text-right">
+                <a
+                    href="/reset-password"
+                    onClick={handleForgotPassword}
+                    className="text-sm text-primary hover:underline cursor-pointer"
+                >
+                    Unohditko salasanan?
+                </a>
+            </div>
+
+            {/* Submit Button */}
             <Button
                 type="submit"
-                className="w-full max-w-md"
+                className="w-full"
+                size="lg"
                 disabled={loading}
             >
                 {loading ? (
                     <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-
+                        Kirjaudutaan sisään...
                     </>
                 ) : (
                     'Kirjaudu sisään'
                 )}
             </Button>
-            <p>
+
+            {/* Divider */}
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                        Tai
+                    </span>
+                </div>
+            </div>
+
+            {/* Sign Up Link */}
+            <p className="text-center text-sm text-muted-foreground">
                 Eikö sinulla ole tiliä?{' '}
                 <Link
                     href="/sign-up"
-                    className="font-extrabold underline text-lg"
+                    className="font-semibold text-primary hover:underline"
                 >
-                    rekisteröidy
+                    Rekisteröidy
                 </Link>
             </p>
         </div>
