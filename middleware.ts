@@ -13,6 +13,7 @@ const clerkAuthMiddleware = authMiddleware({
         "/api/services(.*)",
         "/api/saloons(.*)",
         "/api/bookings(.*)",
+        "/api/reviews(.*)",              // ← For rating submissions
         "/api/checkout(.*)",             // ← For checkout (payment flow)
         "/api/:storeId/categories(.*)",  // ← Keep for backward compatibility
         "/api/:storeId/services(.*)",    // ← Keep for backward compatibility
