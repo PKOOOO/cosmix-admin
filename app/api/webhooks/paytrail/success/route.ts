@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { paytrail } from "@/lib/paytrail";
+import { getPaytrailClient } from "@/lib/paytrail";
 
 export async function POST(req: Request) {
     try {
@@ -13,6 +13,7 @@ export async function POST(req: Request) {
         }
 
         // Verify webhook signature
+        const paytrail = getPaytrailClient();
         const isValid = (paytrail as any).verifyWebhookSignature(body, signature);
         
         if (!isValid) {

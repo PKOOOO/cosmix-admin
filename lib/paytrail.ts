@@ -1,18 +1,20 @@
 import { PaytrailClient } from '@paytrail/paytrail-js-sdk';
 
-if (!process.env.PAYTRAIL_MERCHANT_ID) {
-  throw new Error("PAYTRAIL_MERCHANT_ID environment variable is not set");
-}
+// Lazy-loaded Paytrail client to avoid build-time errors
+let _paytrail: PaytrailClient | null = null;
 
-if (!process.env.PAYTRAIL_SECRET_KEY) {
-  throw new Error("PAYTRAIL_SECRET_KEY environment variable is not set");
-}
-
-// Initialize Paytrail client
-export const paytrail = new PaytrailClient({
-  merchantId: parseInt(process.env.PAYTRAIL_MERCHANT_ID || '0'),
-  secretKey: process.env.PAYTRAIL_SECRET_KEY,
-});
+export const getPaytrailClient = (): PaytrailClient => {
+  if (!_paytrail) {
+    if (!process.env.PAYTRAIL_MERCHANT_ID || !process.env.PAYTRAIL_SECRET_KEY) {
+      throw new Error("PAYTRAIL_MERCHANT_ID or PAYTRAIL_SECRET_KEY environment variable is not set");
+    }
+    _paytrail = new PaytrailClient({
+      merchantId: parseInt(process.env.PAYTRAIL_MERCHANT_ID),
+      secretKey: process.env.PAYTRAIL_SECRET_KEY,
+    });
+  }
+  return _paytrail;
+};
 
 // Paytrail payment methods for Finland
 export const PAYTRAIL_PAYMENT_METHODS = {

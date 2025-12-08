@@ -3,17 +3,17 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import prismadb from "@/lib/prismadb";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error("STRIPE_SECRET_KEY environment variable is not set");
-}
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2025-11-17.clover",
-  typescript: true,
-});
-
 export async function GET() {
   try {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return new NextResponse("STRIPE_SECRET_KEY is not configured", { status: 500 });
+    }
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2025-11-17.clover",
+      typescript: true,
+    });
+
     const { userId } = auth();
     if (!userId) return new NextResponse("Unauthorized", { status: 401 });
 

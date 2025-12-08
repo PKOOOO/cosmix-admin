@@ -37,8 +37,6 @@ const IntegrationTrigger = ({
 
                 </Card>
             }
-            isOpen={false}
-            onClose={() => { }}
         >
             <Separator orientation="horizontal" />
             <IntegrationModalbody
