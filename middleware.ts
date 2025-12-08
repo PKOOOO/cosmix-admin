@@ -7,6 +7,7 @@ const clerkAuthMiddleware = authMiddleware({
     publicRoutes: [
         "/sign-in(.*)",
         "/sign-up(.*)",
+        "/callback/stripe(.*)",              // ← Stripe callback routes
         "/api/stores(.*)",
         "/api/categories(.*)",
         "/api/services(.*)",
