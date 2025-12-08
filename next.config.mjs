@@ -1,17 +1,3 @@
-// /** @type {import('next').NextConfig} */
-// const nextConfig = {
-//     images: {
-//       domains: ["res.cloudinary.com"],
-//     },
-//     experimental: {
-//         serverActions: true, // If you're using Server Actions, keep this
-//       },
-//       output: "standalone", // Ensures a full Node.js environment
-//       runtime: "nodejs", // Enforces Node.js runtime
-//   };
-  
-//   export default nextConfig;
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     images: {
@@ -30,46 +16,15 @@ const nextConfig = {
             },
             {
                 protocol: 'https',
+                hostname: 'js.stripe.com',
+            },
+            {
+                protocol: 'https',
                 hostname: 'www.paytrail.com',
             },
         ],
     },
-    experimental: {
-        serverActions: true,
-    },
     output: "standalone",
-    
-    // Global CORS headers for all API routes
-    async headers() {
-        return [
-            {
-                // Apply CORS headers to all API routes
-                source: "/api/:path*",
-                headers: [
-                    {
-                        key: "Access-Control-Allow-Origin",
-                        value: process.env.FRONTEND_STORE_URL || "http://192.168.1.145:3000",
-                    },
-                    {
-                        key: "Access-Control-Allow-Methods",
-                        value: "GET, POST, PUT, DELETE, OPTIONS, PATCH",
-                    },
-                    {
-                        key: "Access-Control-Allow-Headers",
-                        value: "Content-Type, Authorization, Accept, X-Requested-With, Origin",
-                    },
-                    {
-                        key: "Access-Control-Max-Age",
-                        value: "86400", // 24 hours
-                    },
-                    {
-                        key: "Vary",
-                        value: "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
-                    },
-                ],
-            },
-        ];
-    },
 
     // Optional: Add redirects for better development experience
     async redirects() {
@@ -122,15 +77,7 @@ const nextConfig = {
         removeConsole: process.env.NODE_ENV === "production",
     },
 
-    // Experimental features
-    experimental: {
-        // Server Actions
-        serverActions: true,
-        // App Directory (if using)
-        appDir: true,
-    },
-
-    // Security headers
+    // Security and CORS headers
     async headers() {
         return [
             {

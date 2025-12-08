@@ -1,51 +1,99 @@
-"use client";
+import React from "react";
 
-import { useState } from "react";
-import { Modal } from "../ui/modal";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../ui/dialog";
+
 import Image from "next/image";
 
-interface PaytrailModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  type: string;
-  logo: string;
-  description: string;
+import { ArrowLeft, ArrowRight } from "lucide-react";
+
+type Props = {
   trigger: React.ReactNode;
   children: React.ReactNode;
-}
+  title: string;
+  description: string;
+  type?: "integration";
+  logo?: string;
+};
 
-export default function PaytrailModal({
-  isOpen: initialIsOpen,
-  onClose: initialOnClose,
-  title,
-  type,
-  logo,
-  description,
+const StripeModal = ({
   trigger,
   children,
-}: PaytrailModalProps) {
-  const [isOpen, setIsOpen] = useState(initialIsOpen);
+  title,
+  description,
+  type,
+  logo,
+}: Props) => {
+  switch (type) {
+    case "integration":
+      return (
+        <Dialog>
+          <DialogTrigger asChild>{trigger}</DialogTrigger>
 
-  const handleOpen = () => setIsOpen(true);
-  const handleClose = () => {
-    setIsOpen(false);
-    initialOnClose();
-  };
+          <DialogContent>
+            <div className="flex justify-center gap-3">
+              <div className="w-12 h-12 relative">
+                <Image
+                  src={`https://res.cloudinary.com/dzmrvngco/image/upload/v1758023591/Icon_wvp1b1.jpg`}
+                  fill
+                  alt="Cosmix"
+                />
+              </div>
 
-  return (
-    <>
-      <div onClick={handleOpen}>
-        {trigger}
-      </div>
-      <Modal
-        isOpen={isOpen}
-        onClose={handleClose}
-        title={title}
-        description={description}
-      >
-        {children}
-      </Modal>
-    </>
-  );
-}
+              <div className="text-gray-400">
+                <ArrowLeft size={20} />
+
+                <ArrowRight size={20} />
+              </div>
+
+              <div className="w-12 h-12 relative">
+                <Image
+                  src={
+                    logo ||
+                    `https://res.cloudinary.com/dzmrvngco/image/upload/v1758023591/Icon_wvp1b1.jpg`
+                  }
+                  fill
+                  alt="Integration"
+                />
+              </div>
+            </div>
+
+            <DialogHeader className="flex items-center">
+              <DialogTitle className="text-xl">{title}</DialogTitle>
+
+              <DialogDescription className="text-center">
+                {description}
+              </DialogDescription>
+            </DialogHeader>
+
+            {children}
+          </DialogContent>
+        </Dialog>
+      );
+
+    default:
+      return (
+        <Dialog>
+          <DialogTrigger asChild>{trigger}</DialogTrigger>
+
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-xl">{title}</DialogTitle>
+
+              <DialogDescription>{description}</DialogDescription>
+            </DialogHeader>
+
+            {children}
+          </DialogContent>
+        </Dialog>
+      );
+  }
+};
+
+export default StripeModal;

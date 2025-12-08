@@ -7,7 +7,7 @@ import IntegrationTrigger from './IntegrationTrigger';
 
 type Props = {
     connections: {
-        paytrail: boolean;
+        stripe: boolean;
     }
 }
 

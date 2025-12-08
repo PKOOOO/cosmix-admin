@@ -7,12 +7,12 @@ import PaytrailModal from '../modals/paytrail-modal'
 import { IntegrationModalbody } from './integration-modal-body'
 
 interface Props {
-    name: 'paytrail'
+    name: 'stripe'
     logo: string
     title: string
     description: string
     connections: {
-        [key in 'paytrail']: boolean
+        [key in 'stripe']: boolean
     }
 
 }

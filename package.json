@@ -55,6 +55,7 @@
     "react-map-gl": "^7.1.9",
     "react-paystack": "^6.0.0",
     "react-spinners": "^0.17.0",
+    "stripe": "^20.0.0",
     "svix": "^1.74.1",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",

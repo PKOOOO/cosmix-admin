@@ -1,13 +1,13 @@
 import { CheckCircle2Icon } from "lucide-react";
 import React from 'react';
 import { Button } from "../ui/button";
-import { PaytrailConnect } from "../settings/paytrail-connect";
+import { StripeConnect } from "../settings/stripe-connect";
 
 
 type IntegrationModalbodyProps = {
     type: string
     connections: {
-        [key in 'paytrail']: boolean
+        [key in 'stripe']: boolean
     }
 }
 
@@ -17,15 +17,15 @@ export const IntegrationModalbody = ({
     connections,
 }: IntegrationModalbodyProps) => {
     switch (type) {
-        case 'paytrail':
+        case 'stripe':
             return (
                 <div className="flex flex-col gap-2">
+                    <h2 className="font-bold">Stripe would like to access</h2>
                     {[
-                        'Process payments from Finnish banks',
-                        'Accept credit and debit cards',
-                        'Mobile payment support (MobilePay, Siirto)',
-                        'Secure payment processing',
-                        'Real-time payment notifications',
+                        'Payment and Bank Information',
+                        'Spa Services you Offer',
+                        'Business and tax Information',
+                        'Create and update services',
                     ].map((item, key) => (
                         <div
                             key={key}
@@ -36,11 +36,12 @@ export const IntegrationModalbody = ({
                         </div>
                     ))}
                     <div className="flex justify-between mt-10">
-                        <PaytrailConnect connected={connections.paytrail} />
+                        <Button variant="outline">Learn More</Button>
+                        <StripeConnect connected={connections.stripe} />
                     </div>
                 </div>
             )
-        default:
-            return <></>
+            default:
+                return <></>
     }
 }
