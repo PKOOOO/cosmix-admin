@@ -1,14 +1,24 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
 import prismadb from "@/lib/prismadb";
 import { auth } from "@clerk/nextjs/server";
 import { sendBookingConfirmationToUser, sendBookingNotificationToSalon } from "@/lib/email";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+// Initialize Stripe lazily to check for missing env vars
+const getStripe = () => {
+    if (!process.env.STRIPE_SECRET_KEY) {
+        throw new Error("STRIPE_SECRET_KEY is not configured");
+    }
+    return new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: "2025-11-17.clover",
+        typescript: true,
+    });
 };
 
 export async function OPTIONS() {
@@ -17,6 +27,15 @@ export async function OPTIONS() {
 
 export async function POST(req: Request) {
     try {
+        // Check for required environment variables
+        if (!process.env.STRIPE_SECRET_KEY) {
+            console.error('[CHECKOUT_POST] Missing STRIPE_SECRET_KEY');
+            return NextResponse.json(
+                { error: "Payment system not configured" },
+                { status: 500, headers: corsHeaders }
+            );
+        }
+
         const { saloonServiceIds, customerInfo } = await req.json();
         
         console.log('Checkout request received:', { saloonServiceIds, customerInfo });
@@ -150,6 +169,7 @@ export async function POST(req: Request) {
         }
 
         // Create Stripe PaymentIntent
+        const stripe = getStripe();
         const paymentIntent = await stripe.paymentIntents.create({
             amount: Math.round(totalAmount * 100), // Convert to cents
             currency: 'eur',
@@ -181,8 +201,13 @@ export async function POST(req: Request) {
         return NextResponse.json(response, { headers: corsHeaders });
         
     } catch (error) {
-        console.error('[CHECKOUT_POST]', error);
-        return new NextResponse("Internal error", { status: 500, headers: corsHeaders });
+        console.error('[CHECKOUT_POST] Error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error('[CHECKOUT_POST] Error message:', errorMessage);
+        return NextResponse.json(
+            { error: errorMessage },
+            { status: 500, headers: corsHeaders }
+        );
     }
 }
 
@@ -280,8 +305,12 @@ export async function PATCH(req: Request) {
         }, { headers: corsHeaders });
 
     } catch (error) {
-        console.error('[CHECKOUT_PATCH]', error);
-        return new NextResponse("Internal error", { status: 500, headers: corsHeaders });
+        console.error('[CHECKOUT_PATCH] Error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        return NextResponse.json(
+            { error: errorMessage },
+            { status: 500, headers: corsHeaders }
+        );
     }
 }
 
