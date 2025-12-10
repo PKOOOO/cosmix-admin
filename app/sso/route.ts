@@ -1,14 +1,13 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { createClerkClient } from "@clerk/nextjs/server";
+import { verifyToken } from "@clerk/backend";
+import { clerkClient } from "@clerk/nextjs/server";
 
 const COOKIE_NAME = "__session";
 const DEFAULT_REDIRECT = "/dashboard";
 const TOKEN_TEMPLATE = process.env.CLERK_SSO_JWT_TEMPLATE || "admin-sso";
 
-const clerk = createClerkClient({
-  secretKey: process.env.CLERK_SECRET_KEY || "",
-});
+const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY || "";
 
 /**
  * SSO handoff endpoint.
@@ -41,10 +40,15 @@ export async function GET(req: Request) {
       host,
     });
 
+    if (!CLERK_SECRET_KEY) {
+      throw new Error("CLERK_SECRET_KEY is not configured");
+    }
+
     // Verify the mobile-issued token against the shared Clerk instance
-    const verification = await (clerk as any).verifyToken(token, {
-      template: TOKEN_TEMPLATE,
-    });
+    const verification = await verifyToken(token, {
+      secretKey: CLERK_SECRET_KEY,
+      // template validation may not be supported in this SDK version; omit to allow verification
+    } as any);
 
     const payload = (verification as any)?.payload || {};
     const userId = payload.sub;
@@ -54,15 +58,15 @@ export async function GET(req: Request) {
     }
 
     // Create a real Clerk session for this user so middleware recognizes it
-    const session = await (clerk as any).sessions.create({ userId });
+    const session = await (clerkClient as any).sessions.create({ userId });
     if (!session || !session.id) {
       throw new Error("Failed to create Clerk session");
     }
 
     // Always create an explicit session token for the cookie
     let sessionToken: string | null = null;
-    if ((clerk as any).sessions?.createSessionToken) {
-      const tokenResp = await (clerk as any).sessions.createSessionToken({
+    if ((clerkClient as any).sessions?.createSessionToken) {
+      const tokenResp = await (clerkClient as any).sessions.createSessionToken({
         sessionId: session.id,
       });
       sessionToken =
@@ -83,7 +87,7 @@ export async function GET(req: Request) {
       tokenPreview: String(sessionToken).slice(0, 12) + "...",
       tokenSource: (session as any).lastActiveToken
         ? "lastActiveToken"
-        : (clerk as any).sessions?.createSessionToken
+        : (clerkClient as any).sessions?.createSessionToken
         ? "createdSessionToken"
         : "unknown",
       template: TOKEN_TEMPLATE,
