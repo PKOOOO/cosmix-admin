@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { verifyToken } from "@clerk/backend";
-import { clerkClient } from "@clerk/nextjs/server";
+import { clerkClient, auth } from "@clerk/nextjs/server";
 
 const COOKIE_NAME = "__session";
 const DEFAULT_REDIRECT = "/dashboard";
@@ -82,39 +82,40 @@ export async function GET(req: Request) {
       throw new Error(msg);
     }
 
-    // Create a real Clerk session for this user so middleware recognizes it
-    const session = await (clerkClient as any).sessions.create({ userId });
-    if (!session || !session.id) {
-      throw new Error("Failed to create Clerk session");
-    }
+    // Use Clerk session tokens API to mint a new session token for this user
+    const tokenResp = await (clerkClient as any).sessions.createSessionTokenFromTemplate({
+      userId,
+      template: TOKEN_TEMPLATE,
+    });
 
-    // Always create an explicit session token for the cookie
-    let sessionToken: string | null = null;
-    if ((clerkClient as any).sessions?.createSessionToken) {
-      const tokenResp = await (clerkClient as any).sessions.createSessionToken({
-        sessionId: session.id,
-      });
-      sessionToken =
-        (tokenResp as any)?.jwt ||
-        (tokenResp as any)?.token ||
-        (tokenResp as any)?.sessionToken ||
-        null;
-    }
+    const sessionToken =
+      (tokenResp as any)?.jwt ||
+      (tokenResp as any)?.token ||
+      (tokenResp as any)?.sessionToken ||
+      null;
 
     if (!sessionToken) {
-      throw new Error("Created session but no session token was returned");
+      throw new Error("No session token returned from createSessionTokenFromTemplate");
     }
+
+    // Decode token to log sessionId if present
+    let sessionId = undefined;
+    try {
+      const parts = String(sessionToken).split(".");
+      if (parts.length === 3) {
+        const decodedSession = JSON.parse(
+          Buffer.from(parts[1], "base64").toString("utf8")
+        );
+        sessionId = decodedSession?.sid || decodedSession?.session_id;
+      }
+    } catch {}
 
     console.log("SSO success", {
       userId,
-      sessionId: session.id,
+      sessionId,
       hasToken: !!sessionToken,
       tokenPreview: String(sessionToken).slice(0, 12) + "...",
-      tokenSource: (session as any).lastActiveToken
-        ? "lastActiveToken"
-        : (clerkClient as any).sessions?.createSessionToken
-        ? "createdSessionToken"
-        : "unknown",
+      tokenSource: "createSessionTokenFromTemplate",
       template: TOKEN_TEMPLATE,
     });
 
@@ -127,10 +128,6 @@ export async function GET(req: Request) {
       sameSite: "lax",
       path: "/",
       domain: host.includes("localhost") ? undefined : host,
-      // Optional: expire with session maxAge if present
-      ...(session.expireAt
-        ? { expires: new Date(session.expireAt * 1000) }
-        : {}),
     });
 
     if (debug) {
@@ -138,8 +135,8 @@ export async function GET(req: Request) {
         {
           ok: true,
           userId,
-          sessionId: session.id,
-          tokenSource: "createdSessionToken",
+          sessionId,
+          tokenSource: "createSessionTokenFromTemplate",
           template: TOKEN_TEMPLATE,
           redirect,
           host,
