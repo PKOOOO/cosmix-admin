@@ -51,17 +51,34 @@ export async function GET(req: Request) {
     } as any);
 
     const payload = (verification as any)?.payload || {};
+
+    let decoded: any = {};
+    try {
+      const parts = token.split(".");
+      if (parts.length === 3) {
+        decoded = JSON.parse(
+          Buffer.from(parts[1], "base64").toString("utf8")
+        );
+      }
+    } catch (err) {
+      console.error("SSO decode error:", err);
+    }
+
     const userId =
       (payload as any).sub ||
       (payload as any).userId ||
       (payload as any).user_id ||
       (payload as any).sid ||
+      decoded.sub ||
+      decoded.userId ||
+      decoded.user_id ||
+      decoded.sid ||
       null;
 
     if (!userId) {
       const msg = `Token verified but missing user id. Payload keys: ${Object.keys(
         payload || {}
-      ).join(",")}`;
+      ).join(",")} Decoded keys: ${Object.keys(decoded || {}).join(",")}`;
       throw new Error(msg);
     }
 
