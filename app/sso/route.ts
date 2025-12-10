@@ -45,15 +45,34 @@ export async function GET(req: Request) {
     }
 
     // Prefer the session token/JWT from the created session
-    const sessionToken =
+    let sessionToken =
       (session as any).lastActiveToken?.jwt ||
       (session as any).lastActiveToken ||
       (session as any).sessionToken ||
       null;
 
+    // Fallback: explicitly create a session token if not present
+    if (!sessionToken && (clerk as any).sessions?.createSessionToken) {
+      const tokenResp = await (clerk as any).sessions.createSessionToken({
+        sessionId: session.id,
+      });
+      sessionToken =
+        (tokenResp as any)?.jwt ||
+        (tokenResp as any)?.token ||
+        (tokenResp as any)?.sessionToken ||
+        null;
+    }
+
     if (!sessionToken) {
       throw new Error("Created session but no session token was returned");
     }
+
+    console.log("SSO success", {
+      userId,
+      sessionId: session.id,
+      hasToken: !!sessionToken,
+      template: TOKEN_TEMPLATE,
+    });
 
     // Set Clerk session cookie (__session) with the Clerk session token
     cookies().set({
