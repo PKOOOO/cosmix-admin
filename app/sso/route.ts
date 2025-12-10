@@ -51,10 +51,18 @@ export async function GET(req: Request) {
     } as any);
 
     const payload = (verification as any)?.payload || {};
-    const userId = payload.sub;
+    const userId =
+      (payload as any).sub ||
+      (payload as any).userId ||
+      (payload as any).user_id ||
+      (payload as any).sid ||
+      null;
 
     if (!userId) {
-      throw new Error("Token verified but missing user id");
+      const msg = `Token verified but missing user id. Payload keys: ${Object.keys(
+        payload || {}
+      ).join(",")}`;
+      throw new Error(msg);
     }
 
     // Create a real Clerk session for this user so middleware recognizes it
