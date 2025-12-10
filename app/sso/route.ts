@@ -44,10 +44,21 @@ export async function GET(req: Request) {
       throw new Error("Failed to create Clerk session");
     }
 
+    // Prefer the session token/JWT from the created session
+    const sessionToken =
+      (session as any).lastActiveToken?.jwt ||
+      (session as any).lastActiveToken ||
+      (session as any).sessionToken ||
+      null;
+
+    if (!sessionToken) {
+      throw new Error("Created session but no session token was returned");
+    }
+
     // Set Clerk session cookie (__session) with the Clerk session token
     cookies().set({
       name: COOKIE_NAME,
-      value: session.id,
+      value: sessionToken,
       httpOnly: true,
       secure: true,
       sameSite: "lax",
