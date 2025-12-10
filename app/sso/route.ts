@@ -47,7 +47,7 @@ export async function GET(req: Request) {
     // Verify the mobile-issued token against the shared Clerk instance
     const verification = await verifyToken(token, {
       secretKey: CLERK_SECRET_KEY,
-      // template validation may not be supported in this SDK version; omit to allow verification
+      authorizedParties: [],
     } as any);
 
     const payload = (verification as any)?.payload || {};
