@@ -1,13 +1,14 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { verifyToken } from "@clerk/backend";
-import { clerkClient, auth } from "@clerk/nextjs/server";
+import { verifyToken, Clerk } from "@clerk/backend";
+import { clerkClient } from "@clerk/nextjs/server";
 
 const COOKIE_NAME = "__session";
 const DEFAULT_REDIRECT = "/dashboard";
 const TOKEN_TEMPLATE = process.env.CLERK_SSO_JWT_TEMPLATE || "admin-sso";
 
 const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY || "";
+const backendClerk = CLERK_SECRET_KEY ? Clerk({ secretKey: CLERK_SECRET_KEY }) : null;
 
 /**
  * SSO handoff endpoint.
@@ -83,7 +84,11 @@ export async function GET(req: Request) {
     }
 
     // Fallback approach: create a sign-in token and redirect through Clerk's verify endpoint
-    const signInToken = await (clerkClient as any).signInTokens.create({ userId });
+    if (!backendClerk || !(backendClerk as any).signInTokens) {
+      throw new Error("signInTokens API not available; please upgrade @clerk/backend / @clerk/nextjs");
+    }
+
+    const signInToken = await (backendClerk as any).signInTokens.create({ userId });
     const signInTokenValue = (signInToken as any)?.token;
     if (!signInTokenValue) {
       throw new Error("Failed to create sign-in token");
