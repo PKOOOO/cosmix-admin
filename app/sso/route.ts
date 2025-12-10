@@ -20,12 +20,20 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const token = url.searchParams.get("token");
   const redirect = url.searchParams.get("redirect") || DEFAULT_REDIRECT;
+  const host = url.hostname;
 
   if (!token) {
     return NextResponse.redirect(new URL("/sign-in", url));
   }
 
   try {
+    console.log("SSO start", {
+      template: TOKEN_TEMPLATE,
+      tokenPreview: String(token).slice(0, 10) + "...",
+      redirect,
+      host,
+    });
+
     // Verify the mobile-issued token against the shared Clerk instance
     const verification = await (clerk as any).verifyToken(token, {
       template: TOKEN_TEMPLATE,
@@ -44,15 +52,9 @@ export async function GET(req: Request) {
       throw new Error("Failed to create Clerk session");
     }
 
-    // Prefer the session token/JWT from the created session
-    let sessionToken =
-      (session as any).lastActiveToken?.jwt ||
-      (session as any).lastActiveToken ||
-      (session as any).sessionToken ||
-      null;
-
-    // Fallback: explicitly create a session token if not present
-    if (!sessionToken && (clerk as any).sessions?.createSessionToken) {
+    // Always create an explicit session token for the cookie
+    let sessionToken: string | null = null;
+    if ((clerk as any).sessions?.createSessionToken) {
       const tokenResp = await (clerk as any).sessions.createSessionToken({
         sessionId: session.id,
       });
@@ -71,6 +73,12 @@ export async function GET(req: Request) {
       userId,
       sessionId: session.id,
       hasToken: !!sessionToken,
+      tokenPreview: String(sessionToken).slice(0, 12) + "...",
+      tokenSource: (session as any).lastActiveToken
+        ? "lastActiveToken"
+        : (clerk as any).sessions?.createSessionToken
+        ? "createdSessionToken"
+        : "unknown",
       template: TOKEN_TEMPLATE,
     });
 
@@ -82,6 +90,7 @@ export async function GET(req: Request) {
       secure: true,
       sameSite: "lax",
       path: "/",
+      domain: host.includes("localhost") ? undefined : host,
       // Optional: expire with session maxAge if present
       ...(session.expireAt
         ? { expires: new Date(session.expireAt * 1000) }
@@ -90,7 +99,11 @@ export async function GET(req: Request) {
 
     return NextResponse.redirect(new URL(redirect, url));
   } catch (error) {
-    console.error("SSO verification failed:", error);
+    console.error("SSO verification failed:", {
+      message: (error as any)?.message,
+      stack: (error as any)?.stack,
+      template: TOKEN_TEMPLATE,
+    });
     return NextResponse.redirect(new URL("/sign-in", url));
   }
 }
