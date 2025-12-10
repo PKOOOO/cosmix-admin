@@ -82,52 +82,21 @@ export async function GET(req: Request) {
       throw new Error(msg);
     }
 
-    // Use Clerk session tokens API to mint a new session token for this user
-    const tokenResp = await (clerkClient as any).sessions.createSessionTokenFromTemplate({
-      userId,
-      template: TOKEN_TEMPLATE,
-    });
-
-    const sessionToken =
-      (tokenResp as any)?.jwt ||
-      (tokenResp as any)?.token ||
-      (tokenResp as any)?.sessionToken ||
-      null;
-
-    if (!sessionToken) {
-      throw new Error("No session token returned from createSessionTokenFromTemplate");
+    // Fallback approach: create a sign-in token and redirect through Clerk's verify endpoint
+    const signInToken = await (clerkClient as any).signInTokens.create({ userId });
+    const signInTokenValue = (signInToken as any)?.token;
+    if (!signInTokenValue) {
+      throw new Error("Failed to create sign-in token");
     }
 
-    // Decode token to log sessionId if present
-    let sessionId = undefined;
-    try {
-      const parts = String(sessionToken).split(".");
-      if (parts.length === 3) {
-        const decodedSession = JSON.parse(
-          Buffer.from(parts[1], "base64").toString("utf8")
-        );
-        sessionId = decodedSession?.sid || decodedSession?.session_id;
-      }
-    } catch {}
+    const redirectUrl = new URL(`/sign-in/verify`, url);
+    redirectUrl.searchParams.set("token", signInTokenValue);
+    redirectUrl.searchParams.set("redirect_url", redirect);
 
-    console.log("SSO success", {
+    console.log("SSO success via sign-in token", {
       userId,
-      sessionId,
-      hasToken: !!sessionToken,
-      tokenPreview: String(sessionToken).slice(0, 12) + "...",
-      tokenSource: "createSessionTokenFromTemplate",
       template: TOKEN_TEMPLATE,
-    });
-
-    // Set Clerk session cookie (__session) with the Clerk session token
-    cookies().set({
-      name: COOKIE_NAME,
-      value: sessionToken,
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-      path: "/",
-      domain: host.includes("localhost") ? undefined : host,
+      redirect: redirectUrl.toString(),
     });
 
     if (debug) {
@@ -135,17 +104,16 @@ export async function GET(req: Request) {
         {
           ok: true,
           userId,
-          sessionId,
-          tokenSource: "createSessionTokenFromTemplate",
+          tokenSource: "sign-in-token",
           template: TOKEN_TEMPLATE,
-          redirect,
+          redirect: redirectUrl.toString(),
           host,
         },
         { status: 200 }
       );
     }
 
-    return NextResponse.redirect(new URL(redirect, url));
+    return NextResponse.redirect(redirectUrl);
   } catch (error) {
     console.error("SSO verification failed:", {
       message: (error as any)?.message,
