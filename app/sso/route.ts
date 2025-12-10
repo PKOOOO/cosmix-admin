@@ -21,9 +21,16 @@ export async function GET(req: Request) {
   const token = url.searchParams.get("token");
   const redirect = url.searchParams.get("redirect") || DEFAULT_REDIRECT;
   const host = url.hostname;
+  const debug = url.searchParams.get("debug") === "1";
 
   if (!token) {
-    return NextResponse.redirect(new URL("/sign-in", url));
+    const dest = new URL("/sign-in", url);
+    return debug
+      ? NextResponse.json(
+          { ok: false, reason: "missing token", redirect: dest.toString() },
+          { status: 400 }
+        )
+      : NextResponse.redirect(dest);
   }
 
   try {
@@ -97,6 +104,21 @@ export async function GET(req: Request) {
         : {}),
     });
 
+    if (debug) {
+      return NextResponse.json(
+        {
+          ok: true,
+          userId,
+          sessionId: session.id,
+          tokenSource: "createdSessionToken",
+          template: TOKEN_TEMPLATE,
+          redirect,
+          host,
+        },
+        { status: 200 }
+      );
+    }
+
     return NextResponse.redirect(new URL(redirect, url));
   } catch (error) {
     console.error("SSO verification failed:", {
@@ -104,6 +126,16 @@ export async function GET(req: Request) {
       stack: (error as any)?.stack,
       template: TOKEN_TEMPLATE,
     });
+    if (debug) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: (error as any)?.message,
+          template: TOKEN_TEMPLATE,
+        },
+        { status: 401 }
+      );
+    }
     return NextResponse.redirect(new URL("/sign-in", url));
   }
 }
