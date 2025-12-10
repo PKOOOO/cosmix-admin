@@ -13,14 +13,14 @@ const clerk = createClerkClient({
 /**
  * SSO handoff endpoint.
  * Accepts a Clerk JWT (from the mobile app) via ?token=...
- * Verifies it with Clerk, sets the session cookie, and redirects into the app.
+ * Verifies it with Clerk, creates a Clerk session for that user,
+ * sets the Clerk session cookie, and redirects into the app.
  */
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const token = url.searchParams.get("token");
   const redirect = url.searchParams.get("redirect") || DEFAULT_REDIRECT;
 
-  // Require a token
   if (!token) {
     return NextResponse.redirect(new URL("/sign-in", url));
   }
@@ -33,21 +33,29 @@ export async function GET(req: Request) {
 
     const payload = (verification as any)?.payload || {};
     const userId = payload.sub;
-    const exp = payload.exp ? new Date(payload.exp * 1000) : undefined;
 
     if (!userId) {
       throw new Error("Token verified but missing user id");
     }
 
-    // Set the session cookie for the web app
+    // Create a real Clerk session for this user so middleware recognizes it
+    const session = await (clerk as any).sessions.create({ userId });
+    if (!session || !session.id) {
+      throw new Error("Failed to create Clerk session");
+    }
+
+    // Set Clerk session cookie (__session) with the Clerk session token
     cookies().set({
       name: COOKIE_NAME,
-      value: token,
+      value: session.id,
       httpOnly: true,
       secure: true,
       sameSite: "lax",
       path: "/",
-      expires: exp,
+      // Optional: expire with session maxAge if present
+      ...(session.expireAt
+        ? { expires: new Date(session.expireAt * 1000) }
+        : {}),
     });
 
     return NextResponse.redirect(new URL(redirect, url));
