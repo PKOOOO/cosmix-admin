@@ -46,7 +46,10 @@ const withCors = (handler: (request: NextRequest) => Promise<NextResponse | void
 // Simple bearer-key middleware; no browser logins.
 const bearerAuthMiddleware = async (req: NextRequest) => {
     const isApi = req.nextUrl.pathname.startsWith("/api/");
-    const isPublic = req.nextUrl.pathname.startsWith("/public") || req.nextUrl.pathname.startsWith("/favicon");
+    const isPublic =
+        req.nextUrl.pathname.startsWith("/public") ||
+        req.nextUrl.pathname.startsWith("/favicon") ||
+        req.nextUrl.pathname.startsWith("/api/public");
 
     if (isPublic) return NextResponse.next();
 
