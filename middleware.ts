@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { isAuthorizedRequest, ensureServiceUser } from "./lib/service-auth";
+import { isAuthorizedRequest } from "./lib/service-auth";
 
 const allowedOrigins = [
     process.env.FRONTEND_STORE_URL || "http://192.168.1.148:3001",
@@ -56,9 +56,6 @@ const bearerAuthMiddleware = async (req: NextRequest) => {
     if (!isAuthorizedRequest(req)) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    // Ensure synthetic admin user exists for downstream database lookups
-    await ensureServiceUser();
 
     // Allow APIs and pages once authorized
     if (isApi) return NextResponse.next();
