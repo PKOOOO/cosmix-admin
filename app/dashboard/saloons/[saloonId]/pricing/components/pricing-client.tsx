@@ -1,5 +1,6 @@
 // app/dashboard/saloons/[saloonId]/pricing/components/pricing-client.tsx
 "use client";
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
@@ -146,6 +147,7 @@ export const PricingClient: React.FC<PricingClientProps> = ({
     };
 
     // Load time slots on component mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     React.useEffect(() => {
         loadTimeSlots();
     }, []);

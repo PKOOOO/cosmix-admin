@@ -108,9 +108,11 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
         fetchData();
     }, []);
 
+    const categoryId = form.watch("categoryId");
+    const parentServiceId = form.watch("parentServiceId");
+
     // Fetch parent services when category changes (only for admins)
     useEffect(() => {
-        const categoryId = form.watch("categoryId");
         if (categoryId && isAdmin) {
             const fetchParentServices = async () => {
                 try {
@@ -123,11 +125,10 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
             };
             fetchParentServices();
         }
-    }, [form.watch("categoryId"), isAdmin]);
+    }, [categoryId, isAdmin]);
 
     // Handle parent service selection - populate form fields
     useEffect(() => {
-        const parentServiceId = form.watch("parentServiceId");
         if (parentServiceId && parentServices.length > 0) {
             const selectedParentService = parentServices.find(service => service.id === parentServiceId);
             if (selectedParentService) {
@@ -136,7 +137,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
                 form.setValue("description", `Sub-service of ${selectedParentService.name}`);
             }
         }
-    }, [form.watch("parentServiceId"), parentServices]);
+    }, [parentServiceId, parentServices, form]);
 
     const onSubmit = async (data: ServiceFormValues) => {
         try {

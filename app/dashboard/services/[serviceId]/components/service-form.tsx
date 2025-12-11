@@ -92,9 +92,10 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
         fetchData();
     }, []);
 
+    const categoryId = form.watch("categoryId");
+
     // Fetch parent services when category changes
     useEffect(() => {
-        const categoryId = form.watch("categoryId");
         if (categoryId) {
             const fetchParentServices = async () => {
                 try {
@@ -107,7 +108,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({ initialData }) => {
             };
             fetchParentServices();
         }
-    }, [form.watch("categoryId")]);
+    }, [categoryId]);
 
     const onSubmit = async (data: ServiceFormValues) => {
         try {
