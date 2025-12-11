@@ -10,8 +10,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@clerk/backend": "^2.27.0",
-    "@clerk/nextjs": "^6.36.2",
+    "@clerk/nextjs": "^4.30.0",
     "@hookform/error-message": "^2.0.1",
     "@hookform/resolvers": "^3.3.4",
     "@paystack/paystack-sdk": "^1.0.1",

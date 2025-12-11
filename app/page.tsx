@@ -11,7 +11,7 @@ async function page() {
     redirect('/dashboard');
   }
 
-  // If not authenticated, show landing page
+  // If not authenticated, show landing pagee
   return (
     <Header />
   )

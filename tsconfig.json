@@ -18,7 +18,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@clerk/nextjs": ["./lib/fake-clerk"],
+      "@clerk/nextjs/server": ["./lib/fake-clerk"]
     }
   },
   "include": [
