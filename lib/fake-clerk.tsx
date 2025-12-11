@@ -1,14 +1,20 @@
 import React from "react";
 
 // Minimal, client-safe Clerk stubs. Middleware already enforces bearer auth.
+const ADMIN_EXTERNAL_ID = process.env.ADMIN_EXTERNAL_ID || "service-admin";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@cosmix.local";
 
 export const auth = () => ({
-  userId: null,
-  sessionId: null,
+  userId: ADMIN_EXTERNAL_ID,
+  sessionId: "service-session",
   getToken: async () => null,
 });
 
-export const currentUser = async (): Promise<any> => null;
+export const currentUser = async (): Promise<any> => ({
+  id: ADMIN_EXTERNAL_ID,
+  primaryEmailAddress: { emailAddress: ADMIN_EMAIL },
+  emailAddresses: [{ emailAddress: ADMIN_EMAIL }],
+});
 
 export const ClerkProvider = ({ children }: { children: React.ReactNode }) => <>{children}</>;
 
