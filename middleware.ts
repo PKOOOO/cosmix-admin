@@ -49,7 +49,8 @@ const bearerAuthMiddleware = async (req: NextRequest) => {
     const isPublic =
         req.nextUrl.pathname.startsWith("/public") ||
         req.nextUrl.pathname.startsWith("/favicon") ||
-        req.nextUrl.pathname.startsWith("/api/public");
+        req.nextUrl.pathname.startsWith("/api/public") ||
+        req.nextUrl.pathname.startsWith("/api/checkout");
 
     if (isPublic) return NextResponse.next();
 
