@@ -1,38 +1,20 @@
 // app/api/saloons/route.ts
-import { auth, currentUser } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
+import { requireServiceUser } from "@/lib/service-auth";
 
 export async function POST(req: Request) {
   try {
-    const { userId } = auth();
+    const serviceUser = await requireServiceUser(req as any);
     const body = await req.json();
 
     const { name, description, shortIntro, address, images, selectedServices, latitude, longitude } = body;
 
-    if (!userId) {
-      return new NextResponse("Unauthenticated", { status: 401 });
-    }
     if (!name) {
       return new NextResponse("Name is required", { status: 400 });
     }
     if (!images || !images.length) {
       return new NextResponse("Images are required", { status: 400 });
-    }
-
-    // Ensure the Clerk user exists in our DB (create on the fly if missing)
-    let user = await prismadb.user.findUnique({ where: { clerkId: userId } });
-    if (!user) {
-      const cu = await currentUser();
-      const email = cu?.emailAddresses?.[0]?.emailAddress;
-      if (!email) return new NextResponse("User email missing", { status: 401 });
-      user = await prismadb.user.create({
-        data: {
-          clerkId: userId,
-          email,
-          name: cu?.firstName || cu?.username || null,
-        },
-      });
     }
 
     // Create the saloon for this user (no store required)
@@ -44,7 +26,7 @@ export async function POST(req: Request) {
         address,
         latitude,
         longitude,
-        userId: user.id,
+        userId: serviceUser.id,
         images: {
           createMany: {
             data: images.map((image: { url: string }) => image),
@@ -81,29 +63,13 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const owned = url.searchParams.get("owned");
 
-    // Default filter by current user
+    // Default filter: all, but if owned=1, restrict to service admin
     const baseWhere: any = {};
 
     // If owned=1, restrict to current user's saloons
     if (owned) {
-      const { userId: clerkUserId } = auth();
-      if (!clerkUserId) {
-        return new NextResponse("Unauthenticated", { status: 401 });
-      }
-      let user = await prismadb.user.findUnique({ where: { clerkId: clerkUserId } });
-      if (!user) {
-        const cu = await currentUser();
-        const email = cu?.emailAddresses?.[0]?.emailAddress;
-        if (!email) return new NextResponse("User email missing", { status: 401 });
-        user = await prismadb.user.create({
-          data: {
-            clerkId: clerkUserId,
-            email,
-            name: cu?.firstName || cu?.username || null,
-          },
-        });
-      }
-      baseWhere.userId = user.id;
+      const serviceUser = await requireServiceUser(req as any);
+      baseWhere.userId = serviceUser.id;
     }
 
     const saloons = await prismadb.saloon.findMany({
