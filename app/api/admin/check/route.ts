@@ -53,6 +53,8 @@ export async function GET(req: Request) {
                     where: { clerkId: clerkUserId },
                 });
 
+                console.log('[ADMIN_CHECK] Looking up user with clerkId:', clerkUserId, 'Found:', !!user);
+
                 // Check admin count BEFORE creating user to avoid race conditions
                 // Exclude service-admin user from count (only count real Clerk users)
                 const adminCount = await prismadb.user.count({ 
@@ -63,8 +65,10 @@ export async function GET(req: Request) {
                 });
                 const shouldPromoteToAdmin = adminCount === 0;
 
+                console.log('[ADMIN_CHECK] Admin count (excluding service-admin):', adminCount, 'Should promote:', shouldPromoteToAdmin);
+
                 if (!user) {
-                    console.log('[ADMIN_CHECK] Creating new user for:', clerkUserId, 'Will promote to admin:', shouldPromoteToAdmin);
+                    console.log('[ADMIN_CHECK] User not found, creating new user for clerkId:', clerkUserId, 'email:', clerkUserEmail, 'Will promote to admin:', shouldPromoteToAdmin);
                     try {
                         user = await prismadb.user.create({
                             data: {
@@ -92,27 +96,38 @@ export async function GET(req: Request) {
                             } 
                             // Check if it's an email conflict
                             else if (createError.meta?.target?.includes('email')) {
-                                // User with this email already exists, try to find by email and update clerkId
+                                // User with this email already exists
                                 const existingUser = await prismadb.user.findUnique({
                                     where: { email: clerkUserEmail },
                                 });
                                 
                                 if (existingUser) {
-                                    // If existing user doesn't have a clerkId, update it
-                                    if (!existingUser.clerkId) {
-                                        user = await prismadb.user.update({
-                                            where: { email: clerkUserEmail },
-                                            data: {
-                                                clerkId: clerkUserId,
-                                                name: clerkUserName,
-                                                // Don't change isAdmin if user already exists
-                                            },
-                                        });
-                                        console.log('[ADMIN_CHECK] Linked existing user to Clerk ID:', clerkUserId);
-                                    } else {
-                                        // User already has a clerkId, just use it
+                                    // If existing user has the same clerkId, use it
+                                    if (existingUser.clerkId === clerkUserId) {
                                         user = existingUser;
-                                        console.log('[ADMIN_CHECK] Using existing user with different clerkId');
+                                        console.log('[ADMIN_CHECK] Found existing user with matching clerkId:', user.email);
+                                    } 
+                                    // If existing user has a different clerkId, this is a different user
+                                    // Create with a unique email (shouldn't happen in Clerk, but handle it)
+                                    else {
+                                        console.log('[ADMIN_CHECK] Email conflict: existing user has different clerkId. Creating with unique email.');
+                                        try {
+                                            user = await prismadb.user.create({
+                                                data: {
+                                                    clerkId: clerkUserId,
+                                                    email: `${clerkUserId}@clerk.local`, // Use unique email based on clerkId
+                                                    name: clerkUserName,
+                                                    isAdmin: shouldPromoteToAdmin,
+                                                },
+                                            });
+                                            console.log('[ADMIN_CHECK] User created with unique email:', user.email);
+                                        } catch (retryError: any) {
+                                            console.error('[ADMIN_CHECK] Failed to create user with unique email:', retryError);
+                                            // Final fallback: try finding by clerkId
+                                            user = await prismadb.user.findUnique({
+                                                where: { clerkId: clerkUserId },
+                                            });
+                                        }
                                     }
                                 } else {
                                     // Email conflict but user not found - try finding by clerkId as fallback
@@ -132,6 +147,20 @@ export async function GET(req: Request) {
                             
                             if (!user) {
                                 console.error('[ADMIN_CHECK] Failed to create or find user after conflict:', createError);
+                                // Try one more time with a unique email based on clerkId
+                                try {
+                                    user = await prismadb.user.create({
+                                        data: {
+                                            clerkId: clerkUserId,
+                                            email: `${clerkUserId}@clerk.local`,
+                                            name: clerkUserName,
+                                            isAdmin: shouldPromoteToAdmin,
+                                        },
+                                    });
+                                    console.log('[ADMIN_CHECK] User created with fallback email:', user.email);
+                                } catch (fallbackError: any) {
+                                    console.error('[ADMIN_CHECK] Fallback user creation also failed:', fallbackError);
+                                }
                             }
                         } else {
                             // Re-throw non-unique-constraint errors
@@ -140,6 +169,7 @@ export async function GET(req: Request) {
                         }
                     }
                 } else {
+                    console.log('[ADMIN_CHECK] User already exists in database:', user.email, 'clerkId:', user.clerkId);
                     // Update email and name if they're still using temp values
                     if (user.email.includes('@temp.local') || user.name === 'New User') {
                         try {
