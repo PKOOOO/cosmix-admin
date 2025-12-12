@@ -27,7 +27,7 @@ export const PostSignInClient = () => {
       }
     }
 
-    // Add a small delay to ensure user creation is complete
+    // Add a delay to ensure user creation is complete and database is ready
     const timer = setTimeout(() => {
       if (hasRedirected.current) return;
       
@@ -42,9 +42,23 @@ export const PostSignInClient = () => {
       hasRedirected.current = true;
       console.log('[PostSignInClient] Redirecting to /dashboard/saloons');
       
-      // Use window.location for more reliable navigation in WebView
-      window.location.href = '/dashboard/saloons';
-    }, 2000); // Longer delay to ensure user creation and page stability
+      // Use Next.js router for client-side navigation (preserves headers in WebView)
+      // This is better than window.location.href which causes a full page reload
+      try {
+        router.push('/dashboard/saloons');
+        // Fallback: if router.push doesn't work in WebView, use window.location after a delay
+        setTimeout(() => {
+          if (typeof window !== 'undefined' && window.location.pathname === '/post-sign-in') {
+            console.log('[PostSignInClient] Router push may have failed, using window.location as fallback');
+            window.location.href = '/dashboard/saloons';
+          }
+        }, 2000);
+      } catch (error) {
+        console.error('[PostSignInClient] Router push failed:', error);
+        // Fallback to window.location
+        window.location.href = '/dashboard/saloons';
+      }
+    }, 3000); // 3 second delay to ensure user creation and database commit
 
     return () => clearTimeout(timer);
   }, [router]);

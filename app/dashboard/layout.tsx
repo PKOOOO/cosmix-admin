@@ -70,19 +70,27 @@ export default async function DashboardLayout({
 
   let finalUser = user;
   if (!user) {
-    // Add a small delay and retry once before redirecting
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const retryUser = await prismadb.user.findUnique({
-      where: {
-        clerkId: clerkUserId
-      }
-    });
+    // User might have just been created, retry with multiple attempts
+    console.log('[DASHBOARD_LAYOUT] User not found, retrying with delays...');
+    for (let i = 0; i < 3; i++) {
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+      const retryUser = await prismadb.user.findUnique({
+        where: {
+          clerkId: clerkUserId
+        }
+      });
 
-    if (!retryUser) {
-      console.log('[DASHBOARD_LAYOUT] User not found after retry, redirecting to post-sign-in');
+      if (retryUser) {
+        console.log('[DASHBOARD_LAYOUT] User found after retry', i + 1);
+        finalUser = retryUser;
+        break;
+      }
+    }
+
+    if (!finalUser) {
+      console.log('[DASHBOARD_LAYOUT] User not found after all retries, redirecting to post-sign-in');
       redirect('/post-sign-in');
     }
-    finalUser = retryUser;
   }
 
   // Check if user has any saloons
