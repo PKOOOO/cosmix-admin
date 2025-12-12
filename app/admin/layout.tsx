@@ -1,6 +1,6 @@
-import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import { checkAdminAccess } from "@/lib/admin-access";
+import { isAuthorizedRequest } from "@/lib/service-auth";
 import NextTopLoader from 'nextjs-toploader';
 
 export default async function AdminLayout({
@@ -8,15 +8,20 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { userId } = auth();
+  // Check for bearer token or Clerk auth
+  const isAuthorized = isAuthorizedRequest();
   
-  if (!userId) {
+  // If no bearer token, checkAdminAccess will check Clerk auth
+  // But we still need to ensure some form of auth exists
+  const { isAdmin, user } = await checkAdminAccess();
+  
+  if (!user) {
+    // No user found at all, redirect to home
     redirect('/');
   }
-
-  const { isAdmin } = await checkAdminAccess();
   
   if (!isAdmin) {
+    // User exists but is not admin, redirect to dashboard
     redirect('/dashboard');
   }
 
