@@ -20,40 +20,50 @@ export async function checkAdminAccess() {
   const isAuthorized = isAuthorizedRequest();
   let clerkUserId: string | null = null;
   
+  console.log('[ADMIN_ACCESS] Starting checkAdminAccess, isAuthorized:', isAuthorized);
+  
   if (isAuthorized) {
     // Extract Clerk user ID from X-User-Token header
     const headerPayload = headers();
     const clerkToken = headerPayload.get("x-user-token");
     
+    console.log('[ADMIN_ACCESS] Bearer token present, X-User-Token header:', !!clerkToken);
+    
     if (clerkToken) {
       const decoded = decodeJWT(clerkToken);
       clerkUserId = decoded?.sub || null;
-      console.log('[ADMIN_ACCESS] Clerk userId from bearer token:', clerkUserId);
+      console.log('[ADMIN_ACCESS] Clerk userId from X-User-Token header:', clerkUserId);
     }
-    
-    // If bearer token is present but no Clerk token, check if it's service admin
-    if (!clerkUserId) {
-      const user = await ensureServiceUser();
-      return { isAdmin: true, user };
-    }
+    // Note: If bearer token is present but no Clerk token, we fall through to Clerk auth
+    // Service admin is only used when there's NO Clerk authentication at all
   }
   
-  // Fall back to Clerk auth if no bearer token
+  // Fall back to Clerk auth if no clerkUserId found yet
   if (!clerkUserId) {
     try {
       const clerkAuth = auth();
       clerkUserId = clerkAuth?.userId || null;
-      console.log('[ADMIN_ACCESS] Clerk userId from Clerk auth:', clerkUserId);
+      console.log('[ADMIN_ACCESS] Clerk userId from Clerk auth():', clerkUserId);
     } catch (error) {
-      console.log('[ADMIN_ACCESS] Clerk auth failed:', error);
+      console.log('[ADMIN_ACCESS] Clerk auth() failed:', error);
     }
   }
 
-  // If no user ID found, deny access
+  // If no user ID found, check if it's a service-admin request (bearer token only, no Clerk)
+  if (!clerkUserId && isAuthorized) {
+    // This is a bearer token request without Clerk authentication - use service-admin
+    console.log('[ADMIN_ACCESS] No Clerk user found, using service-admin for bearer token request');
+    const user = await ensureServiceUser();
+    return { isAdmin: true, user };
+  }
+
+  // If no user ID found and not a bearer token request, deny access
   if (!clerkUserId) {
     console.log('[ADMIN_ACCESS] No user ID found, denying access');
     return { isAdmin: false, user: null };
   }
+  
+  console.log('[ADMIN_ACCESS] Found Clerk userId:', clerkUserId);
 
   // Check admin status for the Clerk user
   try {
@@ -209,3 +219,4 @@ export async function requireAdmin() {
   
   return user;
 }
+
