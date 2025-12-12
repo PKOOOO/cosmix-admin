@@ -112,32 +112,52 @@ export default async function PostSignIn() {
       console.error("PostSignIn - error creating user:", error)
       // Handle unique constraint errors
       if (error.code === 'P2002') {
+        console.log("PostSignIn - Unique constraint error, target:", error.meta?.target);
+        
+        // Check if it's a clerkId conflict (most common case)
+        if (error.meta?.target?.includes('clerkId')) {
+          // User with this clerkId already exists - fetch it
+          user = await prismadb.user.findUnique({
+            where: { clerkId: clerkUserId }
+          });
+          if (user) {
+            console.log("PostSignIn - Found existing user by clerkId:", user.email);
+          }
+        } 
         // Check if it's an email conflict
-        if (error.meta?.target?.includes('email')) {
+        else if (error.meta?.target?.includes('email')) {
           // User with this email already exists, try to find by email and update clerkId
           const existingUser = await prismadb.user.findUnique({
             where: { email: clerkUserEmail },
           });
           
           if (existingUser) {
-            // Update existing user to link to this Clerk ID
-            user = await prismadb.user.update({
-              where: { email: clerkUserEmail },
-              data: {
-                clerkId: clerkUserId,
-                name: clerkUserName,
-                // Don't change isAdmin if user already exists
-              },
-            });
-            console.log("PostSignIn - Linked existing user to Clerk ID:", clerkUserId);
+            // If existing user doesn't have a clerkId, update it
+            if (!existingUser.clerkId) {
+              user = await prismadb.user.update({
+                where: { email: clerkUserEmail },
+                data: {
+                  clerkId: clerkUserId,
+                  name: clerkUserName,
+                  // Don't change isAdmin if user already exists
+                },
+              });
+              console.log("PostSignIn - Linked existing user to Clerk ID:", clerkUserId);
+            } else {
+              // User already has a clerkId, just use it
+              user = existingUser;
+              console.log("PostSignIn - Using existing user with different clerkId");
+            }
           } else {
-            // Try finding by clerkId
+            // Email conflict but user not found - try finding by clerkId as fallback
             user = await prismadb.user.findUnique({
               where: { clerkId: clerkUserId }
             });
           }
-        } else {
-          // ClerkId conflict - user already exists
+        }
+        
+        // Final fallback: try to find by clerkId one more time
+        if (!user) {
           user = await prismadb.user.findUnique({
             where: { clerkId: clerkUserId }
           });
@@ -150,6 +170,7 @@ export default async function PostSignIn() {
       
       if (!user) {
         // If we still don't have a user, show error page
+        console.error("PostSignIn - Could not create or find user after error handling");
         return <PostSignInError />
       }
     }

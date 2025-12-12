@@ -103,42 +103,64 @@ export async function checkAdminAccess() {
       } catch (createError: any) {
         // Handle unique constraint errors
         if (createError.code === 'P2002') {
+          console.log('[ADMIN_ACCESS] Unique constraint error, target:', createError.meta?.target);
+          
+          // Check if it's a clerkId conflict (most common case)
+          if (createError.meta?.target?.includes('clerkId')) {
+            // User with this clerkId already exists - fetch it
+            user = await prismadb.user.findUnique({
+              where: { clerkId: clerkUserId },
+            });
+            if (user) {
+              console.log('[ADMIN_ACCESS] Found existing user by clerkId:', user.email);
+            }
+          } 
           // Check if it's an email conflict
-          if (createError.meta?.target?.includes('email')) {
+          else if (createError.meta?.target?.includes('email')) {
             // User with this email already exists, try to find by email and update clerkId
             const existingUser = await prismadb.user.findUnique({
               where: { email: clerkUserEmail },
             });
             
             if (existingUser) {
-              // Update existing user to link to this Clerk ID
-              user = await prismadb.user.update({
-                where: { email: clerkUserEmail },
-                data: {
-                  clerkId: clerkUserId,
-                  name: clerkUserName,
-                  // Don't change isAdmin if user already exists
-                },
-              });
-              console.log('[ADMIN_ACCESS] Linked existing user to Clerk ID:', clerkUserId);
+              // If existing user doesn't have a clerkId, update it
+              if (!existingUser.clerkId) {
+                user = await prismadb.user.update({
+                  where: { email: clerkUserEmail },
+                  data: {
+                    clerkId: clerkUserId,
+                    name: clerkUserName,
+                    // Don't change isAdmin if user already exists
+                  },
+                });
+                console.log('[ADMIN_ACCESS] Linked existing user to Clerk ID:', clerkUserId);
+              } else {
+                // User already has a clerkId, just use it
+                user = existingUser;
+                console.log('[ADMIN_ACCESS] Using existing user with different clerkId');
+              }
             } else {
-              // Email conflict but user not found - try finding by clerkId
+              // Email conflict but user not found - try finding by clerkId as fallback
               user = await prismadb.user.findUnique({
                 where: { clerkId: clerkUserId },
               });
             }
-          } else {
-            // ClerkId conflict - user already exists
+          }
+          
+          // Final fallback: try to find by clerkId one more time
+          if (!user) {
             user = await prismadb.user.findUnique({
               where: { clerkId: clerkUserId },
             });
           }
           
           if (!user) {
-            console.error("Failed to create or find user after conflict:", createError);
+            console.error('[ADMIN_ACCESS] Failed to create or find user after conflict:', createError);
             return { isAdmin: false, user: null };
           }
         } else {
+          // Re-throw non-unique-constraint errors
+          console.error('[ADMIN_ACCESS] Unexpected error creating user:', createError);
           throw createError;
         }
       }
