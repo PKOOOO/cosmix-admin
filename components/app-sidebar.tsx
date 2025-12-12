@@ -225,7 +225,7 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
         </SidebarGroup>
 
         {/* Admin Section - Only show for admins */}
-        {!loading && isAdmin && (
+        {!loading && isAdmin === true && (
           <SidebarGroup className="px-2 md:px-0">
             <SidebarGroupContent>
               <SidebarMenu className="space-y-1">

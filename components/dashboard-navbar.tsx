@@ -145,7 +145,7 @@ export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
           {availableRoutes.map((route) => (
             <NavLink key={route.href} route={route} />
           ))}
-          {!loading && isAdmin && adminRoutes.length > 0 && (
+          {!loading && isAdmin === true && adminRoutes.length > 0 && (
             <NavLink key={adminRoutes[0].href} route={adminRoutes[0]} />
           )}
         </div>
@@ -175,7 +175,7 @@ export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
               <span className="text-xs font-medium text-center leading-tight">{route.label}</span>
             </Link>
           ))}
-          {!loading && isAdmin && (() => {
+          {!loading && isAdmin === true && adminRoutes.length > 0 && (() => {
             const adminRoute = adminRoutes[0];
             const AdminIcon = adminRoute.icon;
             return (
