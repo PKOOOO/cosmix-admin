@@ -15,7 +15,13 @@ export async function checkAdminAccess() {
     if (!userId) return { isAdmin: false, user: null };
 
     // Check admin count BEFORE creating user to avoid race conditions
-    const adminCount = await prismadb.user.count({ where: { isAdmin: true } });
+    // Exclude service-admin user from count (only count real Clerk users)
+    const adminCount = await prismadb.user.count({ 
+        where: { 
+            isAdmin: true,
+            clerkId: { not: 'service-admin' } // Exclude synthetic service user
+        } 
+    });
     const shouldPromoteToAdmin = adminCount === 0;
 
     // Find or create the Clerk user in DB
@@ -49,10 +55,16 @@ export async function checkAdminAccess() {
       }
     }
 
-    // If user exists but wasn't promoted and no admins exist, promote them
-    if (user && !user.isAdmin && adminCount === 0) {
-      // Double-check admin count before promoting (race condition protection)
-      const currentAdminCount = await prismadb.user.count({ where: { isAdmin: true } });
+    // If user exists but wasn't promoted, check if they should be promoted
+    if (user && !user.isAdmin) {
+      // Recalculate admin count (excluding service-admin) to handle existing users
+      const currentAdminCount = await prismadb.user.count({ 
+        where: { 
+          isAdmin: true,
+          clerkId: { not: 'service-admin' } // Exclude synthetic service user
+        } 
+      });
+      
       if (currentAdminCount === 0) {
         try {
           user = await prismadb.user.update({

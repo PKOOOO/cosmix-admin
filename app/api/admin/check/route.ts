@@ -37,7 +37,13 @@ export async function GET(req: Request) {
                 });
 
                 // Check admin count BEFORE creating user to avoid race conditions
-                const adminCount = await prismadb.user.count({ where: { isAdmin: true } });
+                // Exclude service-admin user from count (only count real Clerk users)
+                const adminCount = await prismadb.user.count({ 
+                    where: { 
+                        isAdmin: true,
+                        clerkId: { not: 'service-admin' } // Exclude synthetic service user
+                    } 
+                });
                 const shouldPromoteToAdmin = adminCount === 0;
 
                 if (!user) {
@@ -65,32 +71,36 @@ export async function GET(req: Request) {
                     }
                 }
 
-                // If user exists but wasn't promoted and no admins exist, promote them
-                if (user && !user.isAdmin && adminCount === 0) {
-                    console.log('[ADMIN_CHECK] Promoting existing user to admin');
-                    try {
-                        // Double-check admin count before promoting (race condition protection)
-                        const currentAdminCount = await prismadb.user.count({ where: { isAdmin: true } });
-                        if (currentAdminCount === 0) {
+                // If user exists but wasn't promoted, check if they should be promoted
+                if (user && !user.isAdmin) {
+                    // Recalculate admin count (excluding service-admin) to handle existing users
+                    const currentAdminCount = await prismadb.user.count({ 
+                        where: { 
+                            isAdmin: true,
+                            clerkId: { not: 'service-admin' } // Exclude synthetic service user
+                        } 
+                    });
+                    
+                    if (currentAdminCount === 0) {
+                        console.log('[ADMIN_CHECK] Promoting existing user to admin (no Clerk admins exist)');
+                        try {
                             user = await prismadb.user.update({
                                 where: { id: user.id },
                                 data: { isAdmin: true },
                             });
                             console.log('[ADMIN_CHECK] Successfully promoted user to admin');
-                        } else {
-                            console.log('[ADMIN_CHECK] Admin already exists, not promoting');
+                        } catch (updateError: any) {
+                            console.error('[ADMIN_CHECK] Failed to promote user:', updateError);
+                            // Refetch user to get current state
+                            user = await prismadb.user.findUnique({
+                                where: { clerkId: clerkUserId },
+                            });
                         }
-                    } catch (updateError: any) {
-                        console.error('[ADMIN_CHECK] Failed to promote user:', updateError);
-                        // Refetch user to get current state
-                        user = await prismadb.user.findUnique({
-                            where: { clerkId: clerkUserId },
-                        });
+                    } else {
+                        console.log('[ADMIN_CHECK] Admin already exists, user is not admin');
                     }
                 } else if (user && user.isAdmin) {
                     console.log('[ADMIN_CHECK] User is already admin');
-                } else if (user && !user.isAdmin && adminCount > 0) {
-                    console.log('[ADMIN_CHECK] Admin already exists, user is not admin');
                 }
 
                 if (!user) {
