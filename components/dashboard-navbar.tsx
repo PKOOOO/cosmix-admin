@@ -6,7 +6,6 @@ import {
   List,
   CalendarCheck,
   CloudIcon,
-  Shield,
   type LucideIcon,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -124,15 +123,8 @@ export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
     },
   ];
 
-  const adminRoutes: Route[] = [
-    {
-      href: '/admin',
-      label: 'Admin Panel',
-      icon: Shield,
-      active: pathname === '/admin',
-      disabled: false,
-    },
-  ];
+  // Admin Panel removed - access via direct URL only
+  const adminRoutes: Route[] = [];
 
   const availableRoutes = routes.filter((route) => {
     return !route.disabled && (!route.adminOnly || isAdmin);
@@ -145,9 +137,6 @@ export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
           {availableRoutes.map((route) => (
             <NavLink key={route.href} route={route} />
           ))}
-          {!loading && isAdmin === true && adminRoutes.length > 0 && (
-            <NavLink key={adminRoutes[0].href} route={adminRoutes[0]} />
-          )}
         </div>
         <div className="flex items-center gap-4">
           <UserButton afterSignOutUrl="/" />
@@ -175,25 +164,6 @@ export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
               <span className="text-xs font-medium text-center leading-tight">{route.label}</span>
             </Link>
           ))}
-          {!loading && isAdmin === true && adminRoutes.length > 0 && (() => {
-            const adminRoute = adminRoutes[0];
-            const AdminIcon = adminRoute.icon;
-            return (
-              <Link
-                key={adminRoute.href}
-                href={adminRoute.href}
-                className={cn(
-                  "flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors min-w-[60px]",
-                  adminRoute.active
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                )}
-              >
-                <AdminIcon className="h-5 w-5" />
-                <span className="text-xs font-medium text-center leading-tight">{adminRoute.label}</span>
-              </Link>
-            );
-          })()}
         </div>
       </nav>
     </Fragment>

@@ -10,7 +10,6 @@ import {
   Activity,
   User,
   CloudIcon,
-  Shield,
 } from "lucide-react";
 import { useParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -127,16 +126,8 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
     },
   ];
 
-  // Admin routes
-  const adminRoutes = [
-    {
-      href: '/admin',
-      label: 'Admin Panel',
-      icon: Shield,
-      active: pathname === '/admin',
-      disabled: false,
-    },
-  ];
+  // Admin Panel removed - access via direct URL only
+  const adminRoutes: any[] = [];
 
   // Group routes for better organization
   const mainRoutes = routes.slice(0, 1);
@@ -224,31 +215,6 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Admin Section - Only show for admins */}
-        {!loading && isAdmin === true && (
-          <SidebarGroup className="px-2 md:px-0">
-            <SidebarGroupContent>
-              <SidebarMenu className="space-y-1">
-                {adminRoutes.map((route) => (
-                  <SidebarMenuItem key={route.href}>
-                    <SidebarMenuButton asChild size="lg" className="h-12 md:h-8 text-base md:text-sm">
-                      <a
-                        href={route.href}
-                        className={cn(
-                          "flex items-center gap-3 px-4 py-3 md:px-2 md:py-2 rounded-lg transition-colors",
-                          route.active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                        )}
-                      >
-                        <route.icon className="h-5 w-5 md:h-4 md:w-4" />
-                        <span className="font-medium">{route.label}</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
       </SidebarContent>
 
       {/* User Profile at Bottom */}
