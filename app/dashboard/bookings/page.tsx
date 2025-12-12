@@ -1,46 +1,14 @@
 // app/(dashboard)/dashboard/bookings/page.tsx
 import prismadb from "@/lib/prismadb";
-import { auth } from "@clerk/nextjs";
-import { redirect } from "next/navigation";
 import { BookingClient } from "./components/client";
 import { BookingColumn } from "./components/columns";
+import { requireServiceUser } from "@/lib/service-auth";
 
 const BookingsPage = async () => {
-    const { userId: clerkUserId } = auth();
-    
-    if (!clerkUserId) {
-        redirect('/');
-    }
+    // Service admin view: show all bookings (no owner filter)
+    await requireServiceUser();
 
-    // Find the user in your database using the Clerk ID
-    const user = await prismadb.user.findUnique({
-        where: { 
-            clerkId: clerkUserId 
-        }
-    });
-
-    if (!user) {
-        redirect('/');
-    }
-
-    // Check if user has any saloons
-    const userSaloons = await prismadb.saloon.findMany({
-        where: {
-            userId: user.id
-        }
-    });
-
-    if (userSaloons.length === 0) {
-        redirect('/dashboard/saloons');
-    }
-
-    // Get all bookings for the user's saloons
     const bookings = await prismadb.booking.findMany({
-        where: {
-            saloon: {
-                userId: user.id
-            }
-        },
         include: {
             service: {
                 select: {
