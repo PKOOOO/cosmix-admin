@@ -1,9 +1,23 @@
 // app/post-sign-in/page.tsx
 import { auth } from "@clerk/nextjs"
 import { redirect } from "next/navigation"
+import { headers } from "next/headers"
 import prismadb from "@/lib/prismadb"
+import { isAuthorizedRequest } from "@/lib/service-auth"
 import { PostSignInClient } from "./post-sign-in-client"
 import { PostSignInError } from "./error-component"
+
+// Simple JWT decode (no verification needed for public claims like userId)
+function decodeJWT(token: string): { sub?: string } | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+    return payload;
+  } catch {
+    return null;
+  }
+}
 
 // Helper function to wait for user creation (in case webhook is delayed)
 async function findUserWithRetry(clerkUserId: string, maxRetries = 3) {
@@ -23,11 +37,31 @@ async function findUserWithRetry(clerkUserId: string, maxRetries = 3) {
 }
 
 export default async function PostSignIn() {
-  const { userId: clerkUserId } = auth()
+  // Check for bearer token authentication first (from WebView)
+  const isAuthorized = isAuthorizedRequest();
+  let clerkUserId: string | null = null;
   
-  console.log("PostSignIn - clerkUserId:", clerkUserId)
+  if (isAuthorized) {
+    // Extract Clerk user ID from X-User-Token header
+    const headerPayload = headers();
+    const clerkToken = headerPayload.get("x-user-token");
+    
+    if (clerkToken) {
+      const decoded = decodeJWT(clerkToken);
+      clerkUserId = decoded?.sub || null;
+      console.log("PostSignIn - Clerk userId from bearer token:", clerkUserId);
+    }
+  }
+  
+  // Fallback to Clerk auth if no bearer token
+  if (!clerkUserId) {
+    const clerkAuth = auth();
+    clerkUserId = clerkAuth?.userId || null;
+    console.log("PostSignIn - Clerk userId from Clerk auth:", clerkUserId);
+  }
   
   if (!clerkUserId) {
+    console.log("PostSignIn - No user ID found, redirecting to home");
     redirect('/') // Shouldn't happen but good to handle
   }
 
