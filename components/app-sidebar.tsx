@@ -51,13 +51,27 @@ export function AppSidebar({ hasSaloons }: AppSidebarProps) {
           headers['X-User-Token'] = clerkToken;
         }
         
-        // Bearer token should be in cookie (set by WebView), but we can also check for it
-        // The API endpoint will check both header and cookie
+        // Get bearer token from cookie (set by WebView)
+        const adminToken = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('admin_token='))
+          ?.split('=')[1];
+        
+        // Send bearer token in Authorization header if available
+        if (adminToken) {
+          headers['Authorization'] = `Bearer ${adminToken}`;
+        }
+        
+        console.log('[SIDEBAR] Checking admin status, Clerk token:', !!clerkToken, 'Bearer token:', !!adminToken);
         
         const response = await axios.get('/api/admin/check', { headers });
-        setIsAdmin(response.data.isAdmin || false);
+        console.log('[SIDEBAR] Admin check response:', response.data);
+        // Explicitly check - only set to true if explicitly true
+        const adminStatus = response.data?.isAdmin === true;
+        console.log('[SIDEBAR] Setting isAdmin to:', adminStatus);
+        setIsAdmin(adminStatus);
       } catch (error) {
-        console.error('Error checking admin status:', error);
+        console.error('[SIDEBAR] Error checking admin status:', error);
         setIsAdmin(false);
       } finally {
         setLoading(false);

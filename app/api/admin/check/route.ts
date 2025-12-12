@@ -116,16 +116,21 @@ export async function GET(req: Request) {
             }
         }
 
-        // Fallback: check bearer token (service admin) only if no Clerk token
-        const { isAdmin: bearerAdmin, user: bearerUser } = await checkAdminAccess();
-        if (bearerAdmin && bearerUser) {
-            return NextResponse.json({ 
-                isAdmin: true, 
-                user: { id: bearerUser.id, name: bearerUser.name, email: bearerUser.email } 
-            });
+        // Fallback: check bearer token (service admin) only if no Clerk token was present at all
+        // If a Clerk token was present but invalid/missing user, we should return false, not fall back
+        if (!clerkToken) {
+            const { isAdmin: bearerAdmin, user: bearerUser } = await checkAdminAccess();
+            if (bearerAdmin && bearerUser) {
+                console.log('[ADMIN_CHECK] Returning bearer token admin');
+                return NextResponse.json({ 
+                    isAdmin: true, 
+                    user: { id: bearerUser.id, name: bearerUser.name, email: bearerUser.email } 
+                });
+            }
         }
 
-        // No valid auth found
+        // No valid auth found or Clerk token was present but user is not admin
+        console.log('[ADMIN_CHECK] No valid admin access found');
         return NextResponse.json({ isAdmin: false, user: null });
     } catch (error) {
         console.log('[ADMIN_CHECK]', error);
