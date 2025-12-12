@@ -42,14 +42,19 @@ export default async function PostSignIn() {
   let clerkUserId: string | null = null;
   
   if (isAuthorized) {
-    // Extract Clerk user ID from X-User-Token header
-    const headerPayload = headers();
-    const clerkToken = headerPayload.get("x-user-token");
-    
-    if (clerkToken) {
-      const decoded = decodeJWT(clerkToken);
-      clerkUserId = decoded?.sub || null;
-      console.log("PostSignIn - Clerk userId from bearer token:", clerkUserId);
+    try {
+      // Extract Clerk user ID from X-User-Token header
+      const headerPayload = headers();
+      const clerkToken = headerPayload.get("x-user-token");
+      
+      if (clerkToken) {
+        const decoded = decodeJWT(clerkToken);
+        clerkUserId = decoded?.sub || null;
+        console.log("PostSignIn - Clerk userId from bearer token:", clerkUserId);
+      }
+    } catch (error) {
+      console.log("PostSignIn - Error reading headers:", error);
+      // Continue to fallback auth
     }
   }
   
@@ -186,8 +191,8 @@ export default async function PostSignIn() {
   });
 
   if (userSaloons.length > 0) {
-    console.log("PostSignIn - user has saloons, redirecting to dashboard")
-    redirect('/dashboard') // Redirect to dashboard without storeId
+    console.log("PostSignIn - user has saloons, redirecting to dashboard/saloons")
+    redirect('/dashboard/saloons') // Redirect directly to saloons page
   }
   
   // If we reach here, user has no saloons. Show modal to create one.

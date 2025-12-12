@@ -29,14 +29,19 @@ export default async function DashboardLayout({
   let clerkUserId: string | null = null;
   
   if (isAuthorized) {
-    // Extract Clerk user ID from X-User-Token header
-    const headerPayload = headers();
-    const clerkToken = headerPayload.get("x-user-token");
-    
-    if (clerkToken) {
-      const decoded = decodeJWT(clerkToken);
-      clerkUserId = decoded?.sub || null;
-      console.log('[DASHBOARD_LAYOUT] Clerk userId from bearer token:', clerkUserId);
+    try {
+      // Extract Clerk user ID from X-User-Token header
+      const headerPayload = headers();
+      const clerkToken = headerPayload.get("x-user-token");
+      
+      if (clerkToken) {
+        const decoded = decodeJWT(clerkToken);
+        clerkUserId = decoded?.sub || null;
+        console.log('[DASHBOARD_LAYOUT] Clerk userId from bearer token:', clerkUserId);
+      }
+    } catch (error) {
+      console.log('[DASHBOARD_LAYOUT] Error reading headers:', error);
+      // Continue to fallback auth
     }
   }
   

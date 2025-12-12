@@ -18,37 +18,33 @@ export const PostSignInClient = () => {
     }
 
     // Check if we're already on the saloons page
-    if (typeof window !== 'undefined' && window.location.pathname === '/dashboard/saloons') {
-      console.log('[PostSignInClient] Already on saloons page, skipping redirect');
-      return;
+    if (typeof window !== 'undefined') {
+      const currentPath = window.location.pathname;
+      if (currentPath === '/dashboard/saloons' || currentPath.startsWith('/dashboard')) {
+        console.log('[PostSignInClient] Already on dashboard, skipping redirect');
+        hasRedirected.current = true;
+        return;
+      }
     }
 
     // Add a small delay to ensure user creation is complete
     const timer = setTimeout(() => {
       if (hasRedirected.current) return;
       
+      // Double-check we're still on post-sign-in before redirecting
+      if (typeof window !== 'undefined' && window.location.pathname !== '/post-sign-in') {
+        console.log('[PostSignInClient] No longer on post-sign-in, skipping redirect');
+        hasRedirected.current = true;
+        return;
+      }
+      
       setIsRedirecting(true);
       hasRedirected.current = true;
       console.log('[PostSignInClient] Redirecting to /dashboard/saloons');
       
-      // Try Next.js router first (works better in WebView)
-      try {
-        router.push('/dashboard/saloons');
-        // Fallback to window.location if router doesn't work
-        setTimeout(() => {
-          if (window.location.pathname === '/post-sign-in' && !hasRedirected.current) {
-            console.log('[PostSignInClient] Router push failed, using window.location');
-            window.location.href = '/dashboard/saloons';
-          }
-        }, 500);
-      } catch (error) {
-        console.error('[PostSignInClient] Error redirecting:', error);
-        // Fallback to hard navigation
-        if (!hasRedirected.current) {
-          window.location.href = '/dashboard/saloons';
-        }
-      }
-    }, 1500); // Slightly longer delay to ensure everything is ready
+      // Use window.location for more reliable navigation in WebView
+      window.location.href = '/dashboard/saloons';
+    }, 2000); // Longer delay to ensure user creation and page stability
 
     return () => clearTimeout(timer);
   }, [router]);
