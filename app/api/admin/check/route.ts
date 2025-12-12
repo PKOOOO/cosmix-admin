@@ -36,27 +36,61 @@ export async function GET(req: Request) {
                     where: { clerkId: clerkUserId },
                 });
 
+                // Check admin count BEFORE creating user to avoid race conditions
+                const adminCount = await prismadb.user.count({ where: { isAdmin: true } });
+                const shouldPromoteToAdmin = adminCount === 0;
+
                 if (!user) {
-                    console.log('[ADMIN_CHECK] Creating new user for:', clerkUserId);
-                    user = await prismadb.user.create({
-                        data: {
-                            clerkId: clerkUserId,
-                            email: `${clerkUserId}@temp.local`,
-                            name: "New User",
-                        },
-                    });
+                    console.log('[ADMIN_CHECK] Creating new user for:', clerkUserId, 'Will promote to admin:', shouldPromoteToAdmin);
+                    try {
+                        user = await prismadb.user.create({
+                            data: {
+                                clerkId: clerkUserId,
+                                email: `${clerkUserId}@temp.local`,
+                                name: "New User",
+                                isAdmin: shouldPromoteToAdmin, // Set admin flag during creation
+                            },
+                        });
+                        console.log('[ADMIN_CHECK] User created with isAdmin:', user.isAdmin);
+                    } catch (createError: any) {
+                        // If user was created by another request, fetch it
+                        if (createError.code === 'P2002') {
+                            console.log('[ADMIN_CHECK] User already exists, fetching...');
+                            user = await prismadb.user.findUnique({
+                                where: { clerkId: clerkUserId },
+                            });
+                        } else {
+                            throw createError;
+                        }
+                    }
                 }
 
-                // If no admins exist yet, promote this user
-                const adminCount = await prismadb.user.count({ where: { isAdmin: true } });
-                console.log('[ADMIN_CHECK] Current admin count:', adminCount, 'User isAdmin:', user.isAdmin);
-                
-                if (adminCount === 0 && !user.isAdmin) {
-                    console.log('[ADMIN_CHECK] Promoting first user to admin');
-                    user = await prismadb.user.update({
-                        where: { id: user.id },
-                        data: { isAdmin: true },
-                    });
+                // If user exists but wasn't promoted and no admins exist, promote them
+                if (user && !user.isAdmin && adminCount === 0) {
+                    console.log('[ADMIN_CHECK] Promoting existing user to admin');
+                    try {
+                        // Double-check admin count before promoting (race condition protection)
+                        const currentAdminCount = await prismadb.user.count({ where: { isAdmin: true } });
+                        if (currentAdminCount === 0) {
+                            user = await prismadb.user.update({
+                                where: { id: user.id },
+                                data: { isAdmin: true },
+                            });
+                            console.log('[ADMIN_CHECK] Successfully promoted user to admin');
+                        } else {
+                            console.log('[ADMIN_CHECK] Admin already exists, not promoting');
+                        }
+                    } catch (updateError: any) {
+                        console.error('[ADMIN_CHECK] Failed to promote user:', updateError);
+                        // Refetch user to get current state
+                        user = await prismadb.user.findUnique({
+                            where: { clerkId: clerkUserId },
+                        });
+                    }
+                } else if (user && user.isAdmin) {
+                    console.log('[ADMIN_CHECK] User is already admin');
+                } else if (user && !user.isAdmin && adminCount > 0) {
+                    console.log('[ADMIN_CHECK] Admin already exists, user is not admin');
                 }
 
                 console.log('[ADMIN_CHECK] Returning isAdmin:', user.isAdmin, 'for user:', user.email);

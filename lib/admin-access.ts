@@ -14,31 +14,61 @@ export async function checkAdminAccess() {
     const { userId } = auth();
     if (!userId) return { isAdmin: false, user: null };
 
+    // Check admin count BEFORE creating user to avoid race conditions
+    const adminCount = await prismadb.user.count({ where: { isAdmin: true } });
+    const shouldPromoteToAdmin = adminCount === 0;
+
     // Find or create the Clerk user in DB
     let user = await prismadb.user.findUnique({
       where: { clerkId: userId },
     });
 
     if (!user) {
-      user = await prismadb.user.create({
-        data: {
-          clerkId: userId,
-          email: `${userId}@temp.local`,
-          name: "New User",
-        },
-      });
+      try {
+        user = await prismadb.user.create({
+          data: {
+            clerkId: userId,
+            email: `${userId}@temp.local`,
+            name: "New User",
+            isAdmin: shouldPromoteToAdmin, // Set admin flag during creation
+          },
+        });
+      } catch (createError: any) {
+        // If user was created by another request, fetch it
+        if (createError.code === 'P2002') {
+          user = await prismadb.user.findUnique({
+            where: { clerkId: userId },
+          });
+          if (!user) {
+            console.error("Failed to create or find user:", createError);
+            return { isAdmin: false, user: null };
+          }
+        } else {
+          throw createError;
+        }
+      }
     }
 
-    // If no admins exist yet, promote this user
-    const adminCount = await prismadb.user.count({ where: { isAdmin: true } });
-    if (adminCount === 0 && !user.isAdmin) {
-      user = await prismadb.user.update({
-        where: { id: user.id },
-        data: { isAdmin: true },
-      });
+    // If user exists but wasn't promoted and no admins exist, promote them
+    if (user && !user.isAdmin && adminCount === 0) {
+      // Double-check admin count before promoting (race condition protection)
+      const currentAdminCount = await prismadb.user.count({ where: { isAdmin: true } });
+      if (currentAdminCount === 0) {
+        try {
+          user = await prismadb.user.update({
+            where: { id: user.id },
+            data: { isAdmin: true },
+          });
+        } catch (updateError) {
+          // If update fails, refetch user
+          user = await prismadb.user.findUnique({
+            where: { clerkId: userId },
+          });
+        }
+      }
     }
 
-    return { isAdmin: user.isAdmin, user };
+    return { isAdmin: user?.isAdmin || false, user: user || null };
   } catch (error) {
     console.error("Error checking admin access:", error);
     return { isAdmin: false, user: null };
