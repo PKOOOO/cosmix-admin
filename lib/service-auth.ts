@@ -6,7 +6,7 @@ import prismadb from "./prismadb";
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "dev-admin-key-change-me";
 
 // Synthetic user identifiers (reuse existing schema field to avoid migrations)
-const ADMIN_EXTERNAL_ID = process.env.ADMIN_EXTERNAL_ID || "service-admin";
+export const ADMIN_EXTERNAL_ID = process.env.ADMIN_EXTERNAL_ID || "service-admin";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@cosmix.local";
 
 const extractToken = (authHeader?: string | null) => {
