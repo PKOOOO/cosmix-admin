@@ -6,7 +6,6 @@ import prismadb from "@/lib/prismadb"
 import { isAuthorizedRequest, ADMIN_EXTERNAL_ID } from "@/lib/service-auth"
 import { PostSignInClient } from "./post-sign-in-client"
 import { PostSignInError } from "./error-component"
-import { setUserSession, getUserSession } from "@/lib/webview-session"
 
 // Simple JWT decode (no verification needed for public claims like userId)
 function decodeJWT(token: string): { sub?: string } | null {
@@ -52,12 +51,6 @@ export default async function PostSignIn() {
         const decoded = decodeJWT(clerkToken);
         clerkUserId = decoded?.sub || null;
         console.log("PostSignIn - Clerk userId from bearer token:", clerkUserId);
-
-        // Set session cookie so auth persists across redirects
-        if (clerkUserId) {
-          setUserSession(clerkUserId);
-          console.log("PostSignIn - Set session cookie for:", clerkUserId);
-        }
       }
     } catch (error) {
       console.log("PostSignIn - Error reading headers:", error);
@@ -65,16 +58,7 @@ export default async function PostSignIn() {
     }
   }
 
-  // Try session cookie if header didn't work
-  if (!clerkUserId) {
-    const sessionUserId = getUserSession();
-    if (sessionUserId) {
-      clerkUserId = sessionUserId;
-      console.log("PostSignIn - Clerk userId from session cookie:", clerkUserId);
-    }
-  }
-
-  // Fallback to Clerk auth if no service auth or session
+  // Fallback to Clerk auth if no bearer token
   if (!clerkUserId) {
     const clerkAuth = auth();
     clerkUserId = clerkAuth?.userId || null;

@@ -6,7 +6,6 @@ import { headers } from "next/headers";
 import NextTopLoader from 'nextjs-toploader';
 import { DashboardNavbar } from "@/components/dashboard-navbar";
 import { isAuthorizedRequest } from "@/lib/service-auth";
-import { getUserSession } from "@/lib/webview-session";
 
 // Simple JWT decode (no verification needed for public claims like userId)
 function decodeJWT(token: string): { sub?: string } | null {
@@ -47,16 +46,6 @@ export default async function DashboardLayout({
   }
 
   // Fallback to Clerk auth if no bearer token
-  if (!clerkUserId) {
-    // Try session cookie
-    const sessionUserId = getUserSession();
-    if (sessionUserId) {
-      clerkUserId = sessionUserId;
-      console.log('[DASHBOARD_LAYOUT] Clerk userId from session cookie:', clerkUserId);
-    }
-  }
-
-  // Final fallback to Clerk auth
   if (!clerkUserId) {
     try {
       const clerkAuth = auth();

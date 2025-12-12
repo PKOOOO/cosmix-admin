@@ -9,7 +9,6 @@ import { SaloonsError } from "./error-component";
 import { auth } from "@clerk/nextjs";
 import { headers } from "next/headers";
 import { isAuthorizedRequest } from "@/lib/service-auth";
-import { getUserSession } from "@/lib/webview-session";
 
 // Simple JWT decode (no verification needed for public claims like userId)
 function decodeJWT(token: string): { sub?: string } | null {
@@ -47,16 +46,6 @@ const SaloonsPage = async () => {
         }
 
         // Fallback to Clerk auth if no bearer token
-        if (!clerkUserId) {
-            // Try session cookie
-            const sessionUserId = getUserSession();
-            if (sessionUserId) {
-                clerkUserId = sessionUserId;
-                console.log('[SALOONS_PAGE] Clerk userId from session cookie:', clerkUserId);
-            }
-        }
-
-        // Final fallback to Clerk auth
         if (!clerkUserId) {
             try {
                 const clerkAuth = auth();
