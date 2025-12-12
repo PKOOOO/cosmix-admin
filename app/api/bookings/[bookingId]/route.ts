@@ -1,7 +1,7 @@
 // app/api/bookings/[bookingId]/route.ts
-import { auth } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
+import { requireServiceUser } from "@/lib/service-auth";
 
 export async function GET(
     req: Request,
@@ -53,47 +53,14 @@ export async function PATCH(
     { params }: { params: { bookingId: string } }
 ) {
     try {
-        const { userId } = auth();
+        // Require service admin (bearer) for now
+        const serviceUser = await requireServiceUser(req as any);
         const body = await req.json();
 
         const { status, bookingTime, notes } = body;
 
-        if (!userId) {
-            return new NextResponse("Unauthenticated", { status: 401 });
-        }
-
         if (!params.bookingId) {
             return new NextResponse("Booking ID is required", { status: 400 });
-        }
-
-        // Find the user record using Clerk ID
-        const user = await prismadb.user.findUnique({
-            where: {
-                clerkId: userId
-            }
-        });
-
-        if (!user) {
-            return new NextResponse("User not found", { status: 401 });
-        }
-
-        // Check if the user has access to this booking (either owns the booking or owns the saloon)
-        const bookingAccess = await prismadb.booking.findFirst({
-            where: {
-                id: params.bookingId,
-                OR: [
-                    { userId: user.id }, // User owns the booking
-                    { 
-                        saloon: {
-                            userId: user.id // User owns the saloon
-                        }
-                    }
-                ]
-            }
-        });
-
-        if (!bookingAccess) {
-            return new NextResponse("Unauthorized", { status: 403 });
         }
 
         // Update the booking
@@ -105,6 +72,7 @@ export async function PATCH(
                 ...(status && { status }),
                 ...(bookingTime && { bookingTime }),
                 ...(notes && { notes }),
+                updatedAt: new Date(),
             },
         });
 
@@ -120,44 +88,11 @@ export async function DELETE(
     { params }: { params: { bookingId: string } }
 ) {
     try {
-        const { userId } = auth();
-
-        if (!userId) {
-            return new NextResponse("Unauthenticated", { status: 401 });
-        }
+        // Require service admin (bearer) for now
+        const serviceUser = await requireServiceUser(req as any);
 
         if (!params.bookingId) {
             return new NextResponse("Booking ID is required", { status: 400 });
-        }
-
-        // Find the user record using Clerk ID
-        const user = await prismadb.user.findUnique({
-            where: {
-                clerkId: userId
-            }
-        });
-
-        if (!user) {
-            return new NextResponse("User not found", { status: 401 });
-        }
-
-        // Check if the user has access to this booking (either owns the booking or owns the saloon)
-        const bookingAccess = await prismadb.booking.findFirst({
-            where: {
-                id: params.bookingId,
-                OR: [
-                    { userId: user.id }, // User owns the booking
-                    { 
-                        saloon: {
-                            userId: user.id // User owns the saloon
-                        }
-                    }
-                ]
-            }
-        });
-
-        if (!bookingAccess) {
-            return new NextResponse("Unauthorized", { status: 403 });
         }
 
         // Delete the booking
