@@ -49,16 +49,20 @@ const bearerAuthMiddleware = async (req: NextRequest) => {
     const isPublic =
         req.nextUrl.pathname.startsWith("/public") ||
         req.nextUrl.pathname.startsWith("/favicon") ||
-        req.nextUrl.pathname.startsWith("/api/public");
+        req.nextUrl.pathname.startsWith("/api/public") ||
+        req.nextUrl.pathname.startsWith("/sign-in") ||
+        req.nextUrl.pathname.startsWith("/post-sign-in");
 
-    if (isPublic) return NextResponse.next();
+    // Allow public routes and pages (pages use Clerk auth, not bearer tokens)
+    if (isPublic || !isApi) {
+        return NextResponse.next();
+    }
 
+    // For API routes, require bearer token authentication
     if (!isAuthorizedRequest(req)) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Allow APIs and pages once authorized
-    if (isApi) return NextResponse.next();
     return NextResponse.next();
 };
 

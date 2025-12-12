@@ -5,6 +5,7 @@ import prismadb from "@/lib/prismadb";
 import { format } from "date-fns";
 import { SaloonClient } from "./components/client";
 import { SaloonColumn } from "./components/columns";
+import { SaloonsError } from "./error-component";
 import { auth } from "@clerk/nextjs";
 import { headers } from "next/headers";
 import { isAuthorizedRequest } from "@/lib/service-auth";
@@ -22,52 +23,53 @@ function decodeJWT(token: string): { sub?: string } | null {
 }
 
 const SaloonsPage = async () => {
-    // Check for bearer token authentication first (from WebView)
-    const isAuthorized = isAuthorizedRequest();
-    let clerkUserId: string | null = null;
-    
-    if (isAuthorized) {
-        // Extract Clerk user ID from X-User-Token header
-        const headerPayload = headers();
-        const clerkToken = headerPayload.get("x-user-token");
+    try {
+        // Check for bearer token authentication first (from WebView)
+        const isAuthorized = isAuthorizedRequest();
+        let clerkUserId: string | null = null;
         
-        if (clerkToken) {
-            const decoded = decodeJWT(clerkToken);
-            clerkUserId = decoded?.sub || null;
-            console.log('[SALOONS_PAGE] Clerk userId from bearer token:', clerkUserId);
+        if (isAuthorized) {
+            // Extract Clerk user ID from X-User-Token header
+            const headerPayload = headers();
+            const clerkToken = headerPayload.get("x-user-token");
+            
+            if (clerkToken) {
+                const decoded = decodeJWT(clerkToken);
+                clerkUserId = decoded?.sub || null;
+                console.log('[SALOONS_PAGE] Clerk userId from bearer token:', clerkUserId);
+            }
         }
-    }
-    
-    // Fallback to Clerk auth if no bearer token
-    if (!clerkUserId) {
-        try {
-            const clerkAuth = auth();
-            clerkUserId = clerkAuth?.userId || null;
-            console.log('[SALOONS_PAGE] Clerk userId from Clerk auth:', clerkUserId);
-        } catch (error) {
-            console.log('[SALOONS_PAGE] Clerk auth failed:', error);
+        
+        // Fallback to Clerk auth if no bearer token
+        if (!clerkUserId) {
+            try {
+                const clerkAuth = auth();
+                clerkUserId = clerkAuth?.userId || null;
+                console.log('[SALOONS_PAGE] Clerk userId from Clerk auth:', clerkUserId);
+            } catch (error) {
+                console.log('[SALOONS_PAGE] Clerk auth failed:', error);
+            }
         }
-    }
-    
-    let ownerId: string | undefined = undefined;
-    if (clerkUserId) {
-        const user = await prismadb.user.findUnique({ where: { clerkId: clerkUserId } });
-        ownerId = user?.id;
-        console.log('[SALOONS_PAGE] Found user:', user ? user.email : 'not found');
-    }
-    
-    if (!ownerId) {
-        console.log('[SALOONS_PAGE] No ownerId found, showing sign in message');
-        return (
-            <div className="flex-col">
-                <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
-                    <div className="text-center">
-                        <h1 className="text-2xl font-semibold mb-4">Please sign in to view your saloons</h1>
+        
+        let ownerId: string | undefined = undefined;
+        if (clerkUserId) {
+            const user = await prismadb.user.findUnique({ where: { clerkId: clerkUserId } });
+            ownerId = user?.id;
+            console.log('[SALOONS_PAGE] Found user:', user ? user.email : 'not found');
+        }
+        
+        if (!ownerId) {
+            console.log('[SALOONS_PAGE] No ownerId found, showing sign in message');
+            return (
+                <div className="flex-col">
+                    <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
+                        <div className="text-center">
+                            <h1 className="text-2xl font-semibold mb-4">Please sign in to view your saloons</h1>
+                        </div>
                     </div>
                 </div>
-            </div>
-        );
-    }
+            );
+        }
 
     const saloons = await prismadb.saloon.findMany({
         where: {
@@ -90,17 +92,32 @@ const SaloonsPage = async () => {
         },
     });
 
-    // Fetch rating aggregates per saloon
-    const saloonIds = saloons.map(s => s.id);
-    const ratings = await (prismadb as any).saloonReview.groupBy({
-        by: ['saloonId'],
-        where: { saloonId: { in: saloonIds } },
-        _avg: { rating: true },
-        _count: { rating: true },
-    });
-    const saloonIdToRating = new Map<string, { avg: number; count: number }>(
-        ratings.map((r: any) => [r.saloonId as string, { avg: r._avg.rating || 0, count: r._count.rating || 0 }])
-    );
+    console.log('[SALOONS_PAGE] Found saloons:', saloons.length);
+
+    // Fetch rating aggregates per saloon (only if there are saloons)
+    const saloonIdToRating = new Map<string, { avg: number; count: number }>();
+    
+    if (saloons.length > 0) {
+        try {
+            const saloonIds = saloons.map(s => s.id);
+            const ratings = await (prismadb as any).saloonReview.groupBy({
+                by: ['saloonId'],
+                where: { saloonId: { in: saloonIds } },
+                _avg: { rating: true },
+                _count: { rating: true },
+            });
+            ratings.forEach((r: any) => {
+                saloonIdToRating.set(r.saloonId as string, { 
+                    avg: r._avg.rating || 0, 
+                    count: r._count.rating || 0 
+                });
+            });
+            console.log('[SALOONS_PAGE] Fetched ratings for', ratings.length, 'saloons');
+        } catch (error) {
+            console.error('[SALOONS_PAGE] Error fetching ratings:', error);
+            // Continue without ratings if there's an error
+        }
+    }
 
     const formattedSaloons: SaloonColumn[] = saloons.map((item) => {
         // Filter only sub-services with pricing information
@@ -127,13 +144,18 @@ const SaloonsPage = async () => {
         };
     });
 
-    return ( 
-        <div className="flex-col">
-            <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
-                <SaloonClient data={formattedSaloons} />
+        return ( 
+            <div className="flex-col">
+                <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
+                    <SaloonClient data={formattedSaloons} />
+                </div>
             </div>
-        </div>
-    );
+        );
+    } catch (error) {
+        console.error('[SALOONS_PAGE] Error rendering page:', error);
+        // Return error UI instead of throwing to prevent redirect loop
+        return <SaloonsError />;
+    }
 }
 
 export default SaloonsPage;
