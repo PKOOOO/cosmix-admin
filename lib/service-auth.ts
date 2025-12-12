@@ -43,14 +43,47 @@ export const ensureServiceUser = async () => {
   });
 
   if (!user) {
-    user = await prismadb.user.create({
-      data: {
-        clerkId: ADMIN_EXTERNAL_ID,
-        email: ADMIN_EMAIL,
-        name: "Service User",
-        isAdmin: false, // Service user is NOT an admin
-      },
-    });
+    try {
+      // Try to create with the standard email
+      user = await prismadb.user.create({
+        data: {
+          clerkId: ADMIN_EXTERNAL_ID,
+          email: ADMIN_EMAIL,
+          name: "Service User",
+          isAdmin: false, // Service user is NOT an admin
+        },
+      });
+    } catch (error: any) {
+      // If email already exists, try to find user by email and update it
+      if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+        const existingUser = await prismadb.user.findUnique({
+          where: { email: ADMIN_EMAIL },
+        });
+        
+        if (existingUser) {
+          // Update existing user to have the service-admin clerkId
+          user = await prismadb.user.update({
+            where: { email: ADMIN_EMAIL },
+            data: {
+              clerkId: ADMIN_EXTERNAL_ID,
+              isAdmin: false, // Ensure it's not admin
+            },
+          });
+        } else {
+          // If email exists but we can't find it, use a unique email
+          user = await prismadb.user.create({
+            data: {
+              clerkId: ADMIN_EXTERNAL_ID,
+              email: `service-${ADMIN_EXTERNAL_ID}@cosmix.local`,
+              name: "Service User",
+              isAdmin: false,
+            },
+          });
+        }
+      } else {
+        throw error;
+      }
+    }
   } else if (user.isAdmin) {
     // If service-admin was previously set as admin, update it to non-admin
     user = await prismadb.user.update({

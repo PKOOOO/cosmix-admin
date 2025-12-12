@@ -108,14 +108,41 @@ export default async function PostSignIn() {
         }
       })
       console.log("PostSignIn - user created successfully:", user.id, isFirstUser ? "(Admin)" : "", "email:", user.email)
-    } catch (error) {
+    } catch (error: any) {
       console.error("PostSignIn - error creating user:", error)
-      // Check if it's a unique constraint error (user already exists)
-      if (error instanceof Error && error.message.includes('Unique constraint')) {
-        console.log("PostSignIn - user already exists, retrying lookup")
-        user = await prismadb.user.findUnique({
-          where: { clerkId: clerkUserId }
-        })
+      // Handle unique constraint errors
+      if (error.code === 'P2002') {
+        // Check if it's an email conflict
+        if (error.meta?.target?.includes('email')) {
+          // User with this email already exists, try to find by email and update clerkId
+          const existingUser = await prismadb.user.findUnique({
+            where: { email: clerkUserEmail },
+          });
+          
+          if (existingUser) {
+            // Update existing user to link to this Clerk ID
+            user = await prismadb.user.update({
+              where: { email: clerkUserEmail },
+              data: {
+                clerkId: clerkUserId,
+                name: clerkUserName,
+                // Don't change isAdmin if user already exists
+              },
+            });
+            console.log("PostSignIn - Linked existing user to Clerk ID:", clerkUserId);
+          } else {
+            // Try finding by clerkId
+            user = await prismadb.user.findUnique({
+              where: { clerkId: clerkUserId }
+            });
+          }
+        } else {
+          // ClerkId conflict - user already exists
+          user = await prismadb.user.findUnique({
+            where: { clerkId: clerkUserId }
+          });
+        }
+        
         if (user) {
           console.log("PostSignIn - found existing user after retry:", user.id)
         }

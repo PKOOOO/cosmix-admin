@@ -76,12 +76,45 @@ export async function GET(req: Request) {
                         });
                         console.log('[ADMIN_CHECK] User created with isAdmin:', user.isAdmin, 'email:', user.email);
                     } catch (createError: any) {
-                        // If user was created by another request, fetch it
+                        // Handle unique constraint errors
                         if (createError.code === 'P2002') {
-                            console.log('[ADMIN_CHECK] User already exists, fetching...');
-                            user = await prismadb.user.findUnique({
-                                where: { clerkId: clerkUserId },
-                            });
+                            // Check if it's an email conflict
+                            if (createError.meta?.target?.includes('email')) {
+                                // User with this email already exists, try to find by email and update clerkId
+                                const existingUser = await prismadb.user.findUnique({
+                                    where: { email: clerkUserEmail },
+                                });
+                                
+                                if (existingUser) {
+                                    // Update existing user to link to this Clerk ID
+                                    user = await prismadb.user.update({
+                                        where: { email: clerkUserEmail },
+                                        data: {
+                                            clerkId: clerkUserId,
+                                            name: clerkUserName,
+                                            // Don't change isAdmin if user already exists
+                                        },
+                                    });
+                                    console.log('[ADMIN_CHECK] Linked existing user to Clerk ID:', clerkUserId);
+                                } else {
+                                    // Email conflict but user not found - try finding by clerkId
+                                    user = await prismadb.user.findUnique({
+                                        where: { clerkId: clerkUserId },
+                                    });
+                                }
+                            } else {
+                                // ClerkId conflict - user already exists
+                                user = await prismadb.user.findUnique({
+                                    where: { clerkId: clerkUserId },
+                                });
+                            }
+                            
+                            if (!user) {
+                                console.log('[ADMIN_CHECK] User not found after conflict, fetching...');
+                                user = await prismadb.user.findUnique({
+                                    where: { clerkId: clerkUserId },
+                                });
+                            }
                         } else {
                             throw createError;
                         }
@@ -98,8 +131,13 @@ export async function GET(req: Request) {
                                 },
                             });
                             console.log('[ADMIN_CHECK] Updated user email/name:', user.email, user.name);
-                        } catch (updateError) {
-                            console.log('[ADMIN_CHECK] Could not update user email/name:', updateError);
+                        } catch (updateError: any) {
+                            // If email update fails due to conflict, that's okay - user already has an email
+                            if (updateError.code === 'P2002') {
+                                console.log('[ADMIN_CHECK] Email already exists, skipping update');
+                            } else {
+                                console.log('[ADMIN_CHECK] Could not update user email/name:', updateError);
+                            }
                         }
                     }
                 }

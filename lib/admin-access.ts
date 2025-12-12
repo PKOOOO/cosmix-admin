@@ -101,13 +101,41 @@ export async function checkAdminAccess() {
         });
         console.log('[ADMIN_ACCESS] User created with isAdmin:', user.isAdmin, 'email:', user.email);
       } catch (createError: any) {
-        // If user was created by another request, fetch it
+        // Handle unique constraint errors
         if (createError.code === 'P2002') {
-          user = await prismadb.user.findUnique({
-            where: { clerkId: clerkUserId },
-          });
+          // Check if it's an email conflict
+          if (createError.meta?.target?.includes('email')) {
+            // User with this email already exists, try to find by email and update clerkId
+            const existingUser = await prismadb.user.findUnique({
+              where: { email: clerkUserEmail },
+            });
+            
+            if (existingUser) {
+              // Update existing user to link to this Clerk ID
+              user = await prismadb.user.update({
+                where: { email: clerkUserEmail },
+                data: {
+                  clerkId: clerkUserId,
+                  name: clerkUserName,
+                  // Don't change isAdmin if user already exists
+                },
+              });
+              console.log('[ADMIN_ACCESS] Linked existing user to Clerk ID:', clerkUserId);
+            } else {
+              // Email conflict but user not found - try finding by clerkId
+              user = await prismadb.user.findUnique({
+                where: { clerkId: clerkUserId },
+              });
+            }
+          } else {
+            // ClerkId conflict - user already exists
+            user = await prismadb.user.findUnique({
+              where: { clerkId: clerkUserId },
+            });
+          }
+          
           if (!user) {
-            console.error("Failed to create or find user:", createError);
+            console.error("Failed to create or find user after conflict:", createError);
             return { isAdmin: false, user: null };
           }
         } else {
