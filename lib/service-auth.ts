@@ -35,7 +35,8 @@ export const isAuthorizedRequest = (req?: NextRequest) => {
   return !!token && token === ADMIN_API_KEY;
 };
 
-// Ensure there is at least one admin user record to attach data to
+// Ensure there is at least one service user record to attach data to
+// Note: This user is NOT an admin - it's just a system user for bearer token auth
 export const ensureServiceUser = async () => {
   let user = await prismadb.user.findUnique({
     where: { clerkId: ADMIN_EXTERNAL_ID },
@@ -46,9 +47,15 @@ export const ensureServiceUser = async () => {
       data: {
         clerkId: ADMIN_EXTERNAL_ID,
         email: ADMIN_EMAIL,
-        name: "Admin",
-        isAdmin: true,
+        name: "Service User",
+        isAdmin: false, // Service user is NOT an admin
       },
+    });
+  } else if (user.isAdmin) {
+    // If service-admin was previously set as admin, update it to non-admin
+    user = await prismadb.user.update({
+      where: { clerkId: ADMIN_EXTERNAL_ID },
+      data: { isAdmin: false },
     });
   }
 

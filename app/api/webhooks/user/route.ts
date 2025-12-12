@@ -8,6 +8,13 @@ import prismadb from "@/lib/prismadb";
 import { ADMIN_EXTERNAL_ID } from "@/lib/service-auth";
 
 export async function POST(req: Request) {
+  // Webhook disabled - users are created directly via post-sign-in and admin-access
+  // Return success to prevent webhook retries
+  console.log('[WEBHOOK] Webhook disabled - returning success');
+  return new NextResponse("Webhook disabled", { status: 200 });
+
+  // DISABLED CODE BELOW - Keeping for reference but not executed
+  /*
   // Get the headers
   const headerPayload = headers();
   const svix_id = headerPayload.get("svix-id");
@@ -123,6 +130,7 @@ export async function POST(req: Request) {
   }
 
   return new NextResponse("", { status: 201 });
+  */
 }
 
 // import { Webhook } from "svix";

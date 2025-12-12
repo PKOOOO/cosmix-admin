@@ -1,5 +1,5 @@
 import { ensureServiceUser, isAuthorizedRequest } from "./service-auth";
-import { auth } from "@clerk/nextjs";
+import { auth, currentUser } from "@clerk/nextjs";
 import { headers } from "next/headers";
 import prismadb from "@/lib/prismadb";
 
@@ -68,6 +68,22 @@ export async function checkAdminAccess() {
     });
     const shouldPromoteToAdmin = adminCount === 0;
 
+    // Get user details from Clerk to get real email
+    let clerkUserEmail = `${clerkUserId}@temp.local`;
+    let clerkUserName = "New User";
+    
+    try {
+      const clerkUser = await currentUser();
+      if (clerkUser) {
+        clerkUserEmail = clerkUser.emailAddresses[0]?.emailAddress || clerkUserEmail;
+        clerkUserName = clerkUser.firstName && clerkUser.lastName 
+          ? `${clerkUser.firstName} ${clerkUser.lastName}`.trim()
+          : clerkUser.firstName || clerkUser.lastName || clerkUserEmail.split('@')[0] || "New User";
+      }
+    } catch (error) {
+      console.log('[ADMIN_ACCESS] Could not fetch Clerk user details:', error);
+    }
+
     // Find or create the Clerk user in DB
     let user = await prismadb.user.findUnique({
       where: { clerkId: clerkUserId },
@@ -78,12 +94,12 @@ export async function checkAdminAccess() {
         user = await prismadb.user.create({
           data: {
             clerkId: clerkUserId,
-            email: `${clerkUserId}@temp.local`,
-            name: "New User",
+            email: clerkUserEmail,
+            name: clerkUserName,
             isAdmin: shouldPromoteToAdmin, // Set admin flag during creation
           },
         });
-        console.log('[ADMIN_ACCESS] User created with isAdmin:', user.isAdmin);
+        console.log('[ADMIN_ACCESS] User created with isAdmin:', user.isAdmin, 'email:', user.email);
       } catch (createError: any) {
         // If user was created by another request, fetch it
         if (createError.code === 'P2002') {

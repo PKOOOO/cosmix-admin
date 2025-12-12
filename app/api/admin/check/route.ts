@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { checkAdminAccess } from "@/lib/admin-access";
+import { currentUser } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
 
 // Simple JWT decode (no verification needed for public claims like userId)
@@ -31,6 +32,22 @@ export async function GET(req: Request) {
             console.log('[ADMIN_CHECK] Decoded Clerk userId:', clerkUserId);
 
             if (clerkUserId) {
+                // Get user details from Clerk to get real email
+                let clerkUserEmail = `${clerkUserId}@temp.local`;
+                let clerkUserName = "New User";
+                
+                try {
+                    const clerkUser = await currentUser();
+                    if (clerkUser) {
+                        clerkUserEmail = clerkUser.emailAddresses[0]?.emailAddress || clerkUserEmail;
+                        clerkUserName = clerkUser.firstName && clerkUser.lastName 
+                            ? `${clerkUser.firstName} ${clerkUser.lastName}`.trim()
+                            : clerkUser.firstName || clerkUser.lastName || clerkUserEmail.split('@')[0] || "New User";
+                    }
+                } catch (error) {
+                    console.log('[ADMIN_CHECK] Could not fetch Clerk user details:', error);
+                }
+
                 // Find or create the Clerk user in DB
                 let user = await prismadb.user.findUnique({
                     where: { clerkId: clerkUserId },
@@ -52,12 +69,12 @@ export async function GET(req: Request) {
                         user = await prismadb.user.create({
                             data: {
                                 clerkId: clerkUserId,
-                                email: `${clerkUserId}@temp.local`,
-                                name: "New User",
+                                email: clerkUserEmail,
+                                name: clerkUserName,
                                 isAdmin: shouldPromoteToAdmin, // Set admin flag during creation
                             },
                         });
-                        console.log('[ADMIN_CHECK] User created with isAdmin:', user.isAdmin);
+                        console.log('[ADMIN_CHECK] User created with isAdmin:', user.isAdmin, 'email:', user.email);
                     } catch (createError: any) {
                         // If user was created by another request, fetch it
                         if (createError.code === 'P2002') {
@@ -67,6 +84,22 @@ export async function GET(req: Request) {
                             });
                         } else {
                             throw createError;
+                        }
+                    }
+                } else {
+                    // Update email and name if they're still using temp values
+                    if (user.email.includes('@temp.local') || user.name === 'New User') {
+                        try {
+                            user = await prismadb.user.update({
+                                where: { clerkId: clerkUserId },
+                                data: {
+                                    email: clerkUserEmail,
+                                    name: clerkUserName,
+                                },
+                            });
+                            console.log('[ADMIN_CHECK] Updated user email/name:', user.email, user.name);
+                        } catch (updateError) {
+                            console.log('[ADMIN_CHECK] Could not update user email/name:', updateError);
                         }
                     }
                 }

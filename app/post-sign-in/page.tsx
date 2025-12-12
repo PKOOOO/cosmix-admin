@@ -1,9 +1,9 @@
 // app/post-sign-in/page.tsx
-import { auth } from "@clerk/nextjs"
+import { auth, currentUser } from "@clerk/nextjs"
 import { redirect } from "next/navigation"
 import { headers } from "next/headers"
 import prismadb from "@/lib/prismadb"
-import { isAuthorizedRequest } from "@/lib/service-auth"
+import { isAuthorizedRequest, ADMIN_EXTERNAL_ID } from "@/lib/service-auth"
 import { PostSignInClient } from "./post-sign-in-client"
 import { PostSignInError } from "./error-component"
 
@@ -73,21 +73,41 @@ export default async function PostSignIn() {
   if (!user) {
     console.log("PostSignIn - user not found in database, creating user")
     try {
-      // Check if this is the first user (admin)
-      const userCount = await prismadb.user.count();
-      const isFirstUser = userCount === 0;
+      // Get user details from Clerk to get real email
+      let clerkUserEmail = `${clerkUserId}@temp.local`;
+      let clerkUserName = "New User";
+      
+      try {
+        const clerkUser = await currentUser();
+        if (clerkUser) {
+          clerkUserEmail = clerkUser.emailAddresses[0]?.emailAddress || clerkUserEmail;
+          clerkUserName = clerkUser.firstName && clerkUser.lastName 
+            ? `${clerkUser.firstName} ${clerkUser.lastName}`.trim()
+            : clerkUser.firstName || clerkUser.lastName || clerkUserEmail.split('@')[0] || "New User";
+        }
+      } catch (error) {
+        console.log("PostSignIn - Could not fetch Clerk user details:", error);
+      }
 
-      // Create user with minimal info - we'll let the webhook handle full details
-      // or update them later when we can get the full user info
+      // Check if this is the first Clerk user (admin) - exclude service-admin
+      const adminCount = await prismadb.user.count({ 
+        where: { 
+          isAdmin: true,
+          clerkId: { not: ADMIN_EXTERNAL_ID } // Exclude synthetic service user
+        } 
+      });
+      const isFirstUser = adminCount === 0;
+
+      // Create user with real email and name from Clerk
       user = await prismadb.user.create({
         data: {
           clerkId: clerkUserId,
-          email: `${clerkUserId}@temp.local`, // Temporary email with unique ID
-          name: "New User", // Will be updated by webhook or later
-          isAdmin: isFirstUser, // Set admin status for first user
+          email: clerkUserEmail,
+          name: clerkUserName,
+          isAdmin: isFirstUser, // Set admin status for first Clerk user
         }
       })
-      console.log("PostSignIn - user created successfully:", user.id, isFirstUser ? "(Admin)" : "")
+      console.log("PostSignIn - user created successfully:", user.id, isFirstUser ? "(Admin)" : "", "email:", user.email)
     } catch (error) {
       console.error("PostSignIn - error creating user:", error)
       // Check if it's a unique constraint error (user already exists)
