@@ -13,7 +13,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, Fragment } from "react";
 import axios from "@/lib/axios";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 
 interface DashboardNavbarProps {
@@ -51,12 +51,24 @@ export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
   const pathname = usePathname();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { getToken } = useAuth();
 
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
-        const response = await axios.get('/api/admin/check');
-        setIsAdmin(response.data.isAdmin);
+        const clerkToken = await getToken();
+        const headers: Record<string, string> = {};
+        
+        // Send Clerk token if available
+        if (clerkToken) {
+          headers['X-User-Token'] = clerkToken;
+        }
+        
+        // Bearer token should be in cookie (set by WebView), but we can also check for it
+        // The API endpoint will check both header and cookie
+        
+        const response = await axios.get('/api/admin/check', { headers });
+        setIsAdmin(response.data.isAdmin || false);
       } catch (error) {
         console.error('Error checking admin status:', error);
         setIsAdmin(false);
@@ -65,7 +77,7 @@ export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
       }
     };
     checkAdminStatus();
-  }, []);
+  }, [getToken]);
 
   const routes: Route[] = [
     {
