@@ -93,6 +93,11 @@ export async function GET(req: Request) {
                     console.log('[ADMIN_CHECK] Admin already exists, user is not admin');
                 }
 
+                if (!user) {
+                    console.log('[ADMIN_CHECK] User not found after processing');
+                    return NextResponse.json({ isAdmin: false, user: null });
+                }
+
                 console.log('[ADMIN_CHECK] Returning isAdmin:', user.isAdmin, 'for user:', user.email);
                 return NextResponse.json({ 
                     isAdmin: user.isAdmin, 
