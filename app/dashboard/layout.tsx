@@ -2,7 +2,7 @@
 import prismadb from "@/lib/prismadb";
 import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import NextTopLoader from 'nextjs-toploader';
 import { DashboardNavbar } from "@/components/dashboard-navbar";
 import { isAuthorizedRequest } from "@/lib/service-auth";
@@ -42,6 +42,21 @@ export default async function DashboardLayout({
     } catch (error) {
       console.log('[DASHBOARD_LAYOUT] Error reading headers:', error);
       // Continue to fallback auth
+    }
+  }
+
+  // **FIX**: Try cookie if header was lost during redirect
+  if (!clerkUserId) {
+    try {
+      const cookieStore = cookies();
+      const cookieToken = cookieStore.get("x-user-token-session")?.value;
+      if (cookieToken) {
+        const decoded = decodeJWT(cookieToken);
+        clerkUserId = decoded?.sub || null;
+        console.log('[DASHBOARD_LAYOUT] Clerk userId from cookie:', clerkUserId);
+      }
+    } catch (error) {
+      console.log('[DASHBOARD_LAYOUT] Error reading cookie:', error);
     }
   }
 

@@ -7,7 +7,7 @@ import { SaloonClient } from "./components/client";
 import { SaloonColumn } from "./components/columns";
 import { SaloonsError } from "./error-component";
 import { auth } from "@clerk/nextjs";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { isAuthorizedRequest } from "@/lib/service-auth";
 
 // Simple JWT decode (no verification needed for public claims like userId)
@@ -42,6 +42,21 @@ const SaloonsPage = async () => {
             } catch (error) {
                 console.log('[SALOONS_PAGE] Error reading headers:', error);
                 // Continue to fallback auth
+            }
+        }
+
+        // **FIX**: Try cookie if header was lost during redirect
+        if (!clerkUserId) {
+            try {
+                const cookieStore = cookies();
+                const cookieToken = cookieStore.get("x-user-token-session")?.value;
+                if (cookieToken) {
+                    const decoded = decodeJWT(cookieToken);
+                    clerkUserId = decoded?.sub || null;
+                    console.log('[SALOONS_PAGE] Clerk userId from cookie:', clerkUserId);
+                }
+            } catch (error) {
+                console.log('[SALOONS_PAGE] Error reading cookie:', error);
             }
         }
 

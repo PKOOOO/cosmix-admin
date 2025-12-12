@@ -45,6 +45,21 @@ const withCors = (handler: (request: NextRequest) => Promise<NextResponse | void
 
 // Simple bearer-key middleware; no browser logins.
 const bearerAuthMiddleware = async (req: NextRequest) => {
+    const response = NextResponse.next();
+
+    // **CRITICAL FIX**: Capture X-User-Token header and set as cookie
+    // This persists auth across server-side redirects (where headers are lost)
+    const userToken = req.headers.get("x-user-token");
+    if (userToken) {
+        response.cookies.set("x-user-token-session", userToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 60 * 60 * 24, // 24 hours
+            path: "/",
+        });
+    }
+
     const isApi = req.nextUrl.pathname.startsWith("/api/");
     const isPublic =
         req.nextUrl.pathname.startsWith("/public") ||
@@ -55,7 +70,7 @@ const bearerAuthMiddleware = async (req: NextRequest) => {
 
     // Allow public routes and pages (pages use Clerk auth, not bearer tokens)
     if (isPublic || !isApi) {
-        return NextResponse.next();
+        return response;
     }
 
     // For API routes, require bearer token authentication
@@ -63,7 +78,7 @@ const bearerAuthMiddleware = async (req: NextRequest) => {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    return NextResponse.next();
+    return response;
 };
 
 export default withCors(bearerAuthMiddleware);

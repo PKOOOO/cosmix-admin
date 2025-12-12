@@ -1,7 +1,7 @@
 // app/post-sign-in/page.tsx
 import { auth, currentUser } from "@clerk/nextjs"
 import { redirect } from "next/navigation"
-import { headers } from "next/headers"
+import { headers, cookies } from "next/headers"
 import prismadb from "@/lib/prismadb"
 import { isAuthorizedRequest, ADMIN_EXTERNAL_ID } from "@/lib/service-auth"
 import { PostSignInClient } from "./post-sign-in-client"
@@ -55,6 +55,21 @@ export default async function PostSignIn() {
     } catch (error) {
       console.log("PostSignIn - Error reading headers:", error);
       // Continue to fallback auth
+    }
+  }
+
+  // **FIX**: Try cookie if header was lost during redirect
+  if (!clerkUserId) {
+    try {
+      const cookieStore = cookies();
+      const cookieToken = cookieStore.get("x-user-token-session")?.value;
+      if (cookieToken) {
+        const decoded = decodeJWT(cookieToken);
+        clerkUserId = decoded?.sub || null;
+        console.log("PostSignIn - Clerk userId from cookie:", clerkUserId);
+      }
+    } catch (error) {
+      console.log("PostSignIn - Error reading cookie:", error);
     }
   }
 
