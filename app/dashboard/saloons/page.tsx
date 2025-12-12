@@ -9,6 +9,7 @@ import { SaloonsError } from "./error-component";
 import { auth } from "@clerk/nextjs";
 import { headers } from "next/headers";
 import { isAuthorizedRequest } from "@/lib/service-auth";
+import { getUserSession } from "@/lib/webview-session";
 
 // Simple JWT decode (no verification needed for public claims like userId)
 function decodeJWT(token: string): { sub?: string } | null {
@@ -27,13 +28,13 @@ const SaloonsPage = async () => {
         // Check for bearer token authentication first (from WebView)
         const isAuthorized = isAuthorizedRequest();
         let clerkUserId: string | null = null;
-        
+
         if (isAuthorized) {
             try {
                 // Extract Clerk user ID from X-User-Token header
                 const headerPayload = headers();
                 const clerkToken = headerPayload.get("x-user-token");
-                
+
                 if (clerkToken) {
                     const decoded = decodeJWT(clerkToken);
                     clerkUserId = decoded?.sub || null;
@@ -44,8 +45,18 @@ const SaloonsPage = async () => {
                 // Continue to fallback auth
             }
         }
-        
+
         // Fallback to Clerk auth if no bearer token
+        if (!clerkUserId) {
+            // Try session cookie
+            const sessionUserId = getUserSession();
+            if (sessionUserId) {
+                clerkUserId = sessionUserId;
+                console.log('[SALOONS_PAGE] Clerk userId from session cookie:', clerkUserId);
+            }
+        }
+
+        // Final fallback to Clerk auth
         if (!clerkUserId) {
             try {
                 const clerkAuth = auth();
@@ -55,14 +66,14 @@ const SaloonsPage = async () => {
                 console.log('[SALOONS_PAGE] Clerk auth failed:', error);
             }
         }
-        
+
         let ownerId: string | undefined = undefined;
         if (clerkUserId) {
             const user = await prismadb.user.findUnique({ where: { clerkId: clerkUserId } });
             ownerId = user?.id;
             console.log('[SALOONS_PAGE] Found user:', user ? user.email : 'not found');
         }
-        
+
         if (!ownerId) {
             console.log('[SALOONS_PAGE] No ownerId found, showing sign in message');
             return (
@@ -76,80 +87,80 @@ const SaloonsPage = async () => {
             );
         }
 
-    const saloons = await prismadb.saloon.findMany({
-        where: {
-            userId: ownerId,
-        },
-        include: {
-            images: true,
-            saloonServices: {
-                include: {
-                    service: {
-                        include: {
-                            category: true,
+        const saloons = await prismadb.saloon.findMany({
+            where: {
+                userId: ownerId,
+            },
+            include: {
+                images: true,
+                saloonServices: {
+                    include: {
+                        service: {
+                            include: {
+                                category: true,
+                            }
                         }
                     }
                 }
-            }
-        },
-        orderBy: {
-            createdAt: 'desc',
-        },
-    });
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+        });
 
-    console.log('[SALOONS_PAGE] Found saloons:', saloons.length);
+        console.log('[SALOONS_PAGE] Found saloons:', saloons.length);
 
-    // Fetch rating aggregates per saloon (only if there are saloons)
-    const saloonIdToRating = new Map<string, { avg: number; count: number }>();
-    
-    if (saloons.length > 0) {
-        try {
-            const saloonIds = saloons.map(s => s.id);
-            const ratings = await (prismadb as any).saloonReview.groupBy({
-                by: ['saloonId'],
-                where: { saloonId: { in: saloonIds } },
-                _avg: { rating: true },
-                _count: { rating: true },
-            });
-            ratings.forEach((r: any) => {
-                saloonIdToRating.set(r.saloonId as string, { 
-                    avg: r._avg.rating || 0, 
-                    count: r._count.rating || 0 
+        // Fetch rating aggregates per saloon (only if there are saloons)
+        const saloonIdToRating = new Map<string, { avg: number; count: number }>();
+
+        if (saloons.length > 0) {
+            try {
+                const saloonIds = saloons.map(s => s.id);
+                const ratings = await (prismadb as any).saloonReview.groupBy({
+                    by: ['saloonId'],
+                    where: { saloonId: { in: saloonIds } },
+                    _avg: { rating: true },
+                    _count: { rating: true },
                 });
-            });
-            console.log('[SALOONS_PAGE] Fetched ratings for', ratings.length, 'saloons');
-        } catch (error) {
-            console.error('[SALOONS_PAGE] Error fetching ratings:', error);
-            // Continue without ratings if there's an error
+                ratings.forEach((r: any) => {
+                    saloonIdToRating.set(r.saloonId as string, {
+                        avg: r._avg.rating || 0,
+                        count: r._count.rating || 0
+                    });
+                });
+                console.log('[SALOONS_PAGE] Fetched ratings for', ratings.length, 'saloons');
+            } catch (error) {
+                console.error('[SALOONS_PAGE] Error fetching ratings:', error);
+                // Continue without ratings if there's an error
+            }
         }
-    }
 
-    const formattedSaloons: SaloonColumn[] = saloons.map((item) => {
-        // Filter only sub-services with pricing information
-        const subServices = item.saloonServices
-            .filter(saloonService => saloonService.service.parentServiceId !== null)
-            .map(saloonService => ({
-                name: saloonService.service.name,
-                price: saloonService.price,
-                duration: saloonService.durationMinutes,
-                isAvailable: saloonService.isAvailable,
-            }));
+        const formattedSaloons: SaloonColumn[] = saloons.map((item) => {
+            // Filter only sub-services with pricing information
+            const subServices = item.saloonServices
+                .filter(saloonService => saloonService.service.parentServiceId !== null)
+                .map(saloonService => ({
+                    name: saloonService.service.name,
+                    price: saloonService.price,
+                    duration: saloonService.durationMinutes,
+                    isAvailable: saloonService.isAvailable,
+                }));
 
-        const agg: { avg: number; count: number } = saloonIdToRating.get(item.id) || { avg: 0, count: 0 } as { avg: number; count: number };
-        return {
-            id: item.id,
-            name: item.name,
-            shortIntro: item.shortIntro || "",
-            address: item.address || "",
-            imageUrl: item.images[0]?.url || "",
-            subServices: subServices,
-            averageRating: agg.avg,
-            ratingsCount: agg.count,
-            createdAt: format(item.createdAt, "MMMM do, yyyy")
-        };
-    });
+            const agg: { avg: number; count: number } = saloonIdToRating.get(item.id) || { avg: 0, count: 0 } as { avg: number; count: number };
+            return {
+                id: item.id,
+                name: item.name,
+                shortIntro: item.shortIntro || "",
+                address: item.address || "",
+                imageUrl: item.images[0]?.url || "",
+                subServices: subServices,
+                averageRating: agg.avg,
+                ratingsCount: agg.count,
+                createdAt: format(item.createdAt, "MMMM do, yyyy")
+            };
+        });
 
-        return ( 
+        return (
             <div className="flex-col">
                 <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
                     <SaloonClient data={formattedSaloons} />
