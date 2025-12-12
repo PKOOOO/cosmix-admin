@@ -13,9 +13,24 @@ export const PostSignInClient = () => {
     // Add a small delay to ensure user creation is complete
     const timer = setTimeout(() => {
       setIsRedirecting(true);
-      // Use hard navigation instead of client-side routing
-      window.location.href = '/dashboard/saloons';
-    }, 1000); // 1 second delay
+      console.log('[PostSignInClient] Redirecting to /dashboard/saloons');
+      
+      // Try Next.js router first (works better in WebView)
+      try {
+        router.push('/dashboard/saloons');
+        // Fallback to window.location if router doesn't work
+        setTimeout(() => {
+          if (window.location.pathname === '/post-sign-in') {
+            console.log('[PostSignInClient] Router push failed, using window.location');
+            window.location.href = '/dashboard/saloons';
+          }
+        }, 500);
+      } catch (error) {
+        console.error('[PostSignInClient] Error redirecting:', error);
+        // Fallback to hard navigation
+        window.location.href = '/dashboard/saloons';
+      }
+    }, 1500); // Slightly longer delay to ensure everything is ready
 
     return () => clearTimeout(timer);
   }, [router]);

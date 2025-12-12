@@ -6,16 +6,58 @@ import { format } from "date-fns";
 import { SaloonClient } from "./components/client";
 import { SaloonColumn } from "./components/columns";
 import { auth } from "@clerk/nextjs";
+import { headers } from "next/headers";
+import { isAuthorizedRequest } from "@/lib/service-auth";
+
+// Simple JWT decode (no verification needed for public claims like userId)
+function decodeJWT(token: string): { sub?: string } | null {
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return null;
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+        return payload;
+    } catch {
+        return null;
+    }
+}
 
 const SaloonsPage = async () => {
-    const { userId: clerkUserId } = auth();
+    // Check for bearer token authentication first (from WebView)
+    const isAuthorized = isAuthorizedRequest();
+    let clerkUserId: string | null = null;
+    
+    if (isAuthorized) {
+        // Extract Clerk user ID from X-User-Token header
+        const headerPayload = headers();
+        const clerkToken = headerPayload.get("x-user-token");
+        
+        if (clerkToken) {
+            const decoded = decodeJWT(clerkToken);
+            clerkUserId = decoded?.sub || null;
+            console.log('[SALOONS_PAGE] Clerk userId from bearer token:', clerkUserId);
+        }
+    }
+    
+    // Fallback to Clerk auth if no bearer token
+    if (!clerkUserId) {
+        try {
+            const clerkAuth = auth();
+            clerkUserId = clerkAuth?.userId || null;
+            console.log('[SALOONS_PAGE] Clerk userId from Clerk auth:', clerkUserId);
+        } catch (error) {
+            console.log('[SALOONS_PAGE] Clerk auth failed:', error);
+        }
+    }
+    
     let ownerId: string | undefined = undefined;
     if (clerkUserId) {
         const user = await prismadb.user.findUnique({ where: { clerkId: clerkUserId } });
         ownerId = user?.id;
+        console.log('[SALOONS_PAGE] Found user:', user ? user.email : 'not found');
     }
     
     if (!ownerId) {
+        console.log('[SALOONS_PAGE] No ownerId found, showing sign in message');
         return (
             <div className="flex-col">
                 <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
