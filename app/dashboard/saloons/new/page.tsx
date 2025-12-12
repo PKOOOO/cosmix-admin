@@ -1,4 +1,6 @@
 // app/(dashboard)/dashboard/saloons/new/page.tsx
+export const dynamic = 'force-dynamic';
+
 import { SaloonForm } from "./components/saloon-form";
 
 const NewSaloonPage = async () => {

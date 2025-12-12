@@ -1,4 +1,6 @@
 // app/dashboard/page.tsx
+export const dynamic = 'force-dynamic';
+
 import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import prismadb from "@/lib/prismadb";

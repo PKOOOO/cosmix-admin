@@ -72,23 +72,23 @@ export default async function PostSignIn() {
   // If user doesn't exist in database, create them
   if (!user) {
     console.log("PostSignIn - user not found in database, creating user")
+    // Get user details from Clerk to get real email
+    let clerkUserEmail = `${clerkUserId}@temp.local`;
+    let clerkUserName = "New User";
+    
     try {
-      // Get user details from Clerk to get real email
-      let clerkUserEmail = `${clerkUserId}@temp.local`;
-      let clerkUserName = "New User";
-      
-      try {
-        const clerkUser = await currentUser();
-        if (clerkUser) {
-          clerkUserEmail = clerkUser.emailAddresses[0]?.emailAddress || clerkUserEmail;
-          clerkUserName = clerkUser.firstName && clerkUser.lastName 
-            ? `${clerkUser.firstName} ${clerkUser.lastName}`.trim()
-            : clerkUser.firstName || clerkUser.lastName || clerkUserEmail.split('@')[0] || "New User";
-        }
-      } catch (error) {
-        console.log("PostSignIn - Could not fetch Clerk user details:", error);
+      const clerkUser = await currentUser();
+      if (clerkUser) {
+        clerkUserEmail = clerkUser.emailAddresses[0]?.emailAddress || clerkUserEmail;
+        clerkUserName = clerkUser.firstName && clerkUser.lastName 
+          ? `${clerkUser.firstName} ${clerkUser.lastName}`.trim()
+          : clerkUser.firstName || clerkUser.lastName || clerkUserEmail.split('@')[0] || "New User";
       }
+    } catch (error) {
+      console.log("PostSignIn - Could not fetch Clerk user details:", error);
+    }
 
+    try {
       // Check if this is the first Clerk user (admin) - exclude service-admin
       const adminCount = await prismadb.user.count({ 
         where: { 

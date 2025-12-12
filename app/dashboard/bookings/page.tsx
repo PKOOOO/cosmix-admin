@@ -1,4 +1,6 @@
 // app/(dashboard)/dashboard/bookings/page.tsx
+export const dynamic = 'force-dynamic';
+
 import prismadb from "@/lib/prismadb";
 import { BookingClient } from "./components/client";
 import { BookingColumn } from "./components/columns";

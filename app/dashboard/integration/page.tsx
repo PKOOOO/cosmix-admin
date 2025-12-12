@@ -1,4 +1,6 @@
 // app/dashboard/integration/page.tsx
+export const dynamic = 'force-dynamic';
+
 import { IntegrationClient } from "./components/integration-client";
 import prismadb from "@/lib/prismadb";
 import { auth } from "@clerk/nextjs";

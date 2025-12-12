@@ -1,4 +1,6 @@
 // app/(dashboard)/dashboard/categories/new/page.tsx
+export const dynamic = 'force-dynamic';
+
 import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import { checkAdminAccess } from "@/lib/admin-access";

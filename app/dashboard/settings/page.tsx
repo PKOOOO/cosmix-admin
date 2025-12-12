@@ -1,4 +1,6 @@
 // app/(dashboard)/dashboard/settings/page.tsx
+export const dynamic = 'force-dynamic';
+
 import { SettingsClient } from "./components/settings-client";
 
 const SettingsPage = async () => {

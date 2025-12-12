@@ -1,4 +1,6 @@
 // app/(dashboard)/dashboard/services/new/page.tsx
+export const dynamic = 'force-dynamic';
+
 import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import { ServiceForm } from "./components/service-form";

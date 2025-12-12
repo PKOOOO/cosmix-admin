@@ -1,4 +1,6 @@
 // app/dashboard/saloons/page.tsx
+export const dynamic = 'force-dynamic';
+
 import prismadb from "@/lib/prismadb";
 import { format } from "date-fns";
 import { SaloonClient } from "./components/client";
