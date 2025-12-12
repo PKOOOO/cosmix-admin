@@ -190,12 +190,8 @@ export default async function PostSignIn() {
     }
   });
 
-  if (userSaloons.length > 0) {
-    console.log("PostSignIn - user has saloons, redirecting to dashboard/saloons")
-    redirect('/dashboard/saloons') // Redirect directly to saloons page
-  }
-  
-  // If we reach here, user has no saloons. Show modal to create one.
-  console.log("PostSignIn - no saloons found, showing modal to create one")
-  return <PostSignInClient />
+  // Always redirect to dashboard/saloons - server-side redirect maintains headers
+  // The saloons page will show the appropriate UI (list or empty state)
+  console.log("PostSignIn - user setup complete, redirecting to dashboard/saloons (has", userSaloons.length, "saloons)")
+  redirect('/dashboard/saloons')
 }
