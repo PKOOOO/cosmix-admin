@@ -63,6 +63,8 @@ export async function GET(req: Request) {
                         clerkId: { not: 'service-admin' } // Exclude synthetic service user
                     } 
                 });
+                
+                // If no admins exist (excluding service-admin), this user should be admin
                 const shouldPromoteToAdmin = adminCount === 0;
 
                 console.log('[ADMIN_CHECK] Admin count (excluding service-admin):', adminCount, 'Should promote:', shouldPromoteToAdmin);
@@ -111,16 +113,26 @@ export async function GET(req: Request) {
                                     // Create with a unique email (shouldn't happen in Clerk, but handle it)
                                     else {
                                         console.log('[ADMIN_CHECK] Email conflict: existing user has different clerkId. Creating with unique email.');
+                                        // Recalculate admin count before creating (in case another user was created)
+                                        const retryAdminCount = await prismadb.user.count({ 
+                                            where: { 
+                                                isAdmin: true,
+                                                clerkId: { not: 'service-admin' } // Exclude synthetic service user
+                                            } 
+                                        });
+                                        const retryShouldPromote = retryAdminCount === 0;
+                                        console.log('[ADMIN_CHECK] Recalculated admin count for retry:', retryAdminCount, 'Should promote:', retryShouldPromote);
+                                        
                                         try {
                                             user = await prismadb.user.create({
                                                 data: {
                                                     clerkId: clerkUserId,
                                                     email: `${clerkUserId}@clerk.local`, // Use unique email based on clerkId
                                                     name: clerkUserName,
-                                                    isAdmin: shouldPromoteToAdmin,
+                                                    isAdmin: retryShouldPromote,
                                                 },
                                             });
-                                            console.log('[ADMIN_CHECK] User created with unique email:', user.email);
+                                            console.log('[ADMIN_CHECK] User created with unique email:', user.email, 'isAdmin:', user.isAdmin);
                                         } catch (retryError: any) {
                                             console.error('[ADMIN_CHECK] Failed to create user with unique email:', retryError);
                                             // Final fallback: try finding by clerkId
@@ -147,6 +159,16 @@ export async function GET(req: Request) {
                             
                             if (!user) {
                                 console.error('[ADMIN_CHECK] Failed to create or find user after conflict:', createError);
+                                // Recalculate admin count before fallback creation (in case another user was created)
+                                const fallbackAdminCount = await prismadb.user.count({ 
+                                    where: { 
+                                        isAdmin: true,
+                                        clerkId: { not: 'service-admin' } // Exclude synthetic service user
+                                    } 
+                                });
+                                const fallbackShouldPromote = fallbackAdminCount === 0;
+                                console.log('[ADMIN_CHECK] Recalculated admin count for fallback:', fallbackAdminCount, 'Should promote:', fallbackShouldPromote);
+                                
                                 // Try one more time with a unique email based on clerkId
                                 try {
                                     user = await prismadb.user.create({
@@ -154,10 +176,10 @@ export async function GET(req: Request) {
                                             clerkId: clerkUserId,
                                             email: `${clerkUserId}@clerk.local`,
                                             name: clerkUserName,
-                                            isAdmin: shouldPromoteToAdmin,
+                                            isAdmin: fallbackShouldPromote,
                                         },
                                     });
-                                    console.log('[ADMIN_CHECK] User created with fallback email:', user.email);
+                                    console.log('[ADMIN_CHECK] User created with fallback email:', user.email, 'isAdmin:', user.isAdmin);
                                 } catch (fallbackError: any) {
                                     console.error('[ADMIN_CHECK] Fallback user creation also failed:', fallbackError);
                                 }
