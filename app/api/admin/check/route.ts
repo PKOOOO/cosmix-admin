@@ -21,9 +21,9 @@ export async function GET(req: Request) {
         // First check Clerk token from X-User-Token header (user-specific check)
         const headerPayload = headers();
         const clerkToken = headerPayload.get("x-user-token");
-        
+
         console.log('[ADMIN_CHECK] Clerk token present:', !!clerkToken);
-        
+
         if (clerkToken) {
             // Decode JWT to get userId
             const decoded = decodeJWT(clerkToken);
@@ -35,12 +35,12 @@ export async function GET(req: Request) {
                 // Get user details from Clerk to get real email
                 let clerkUserEmail = `${clerkUserId}@temp.local`;
                 let clerkUserName = "New User";
-                
+
                 try {
                     const clerkUser = await currentUser();
                     if (clerkUser) {
                         clerkUserEmail = clerkUser.emailAddresses[0]?.emailAddress || clerkUserEmail;
-                        clerkUserName = clerkUser.firstName && clerkUser.lastName 
+                        clerkUserName = clerkUser.firstName && clerkUser.lastName
                             ? `${clerkUser.firstName} ${clerkUser.lastName}`.trim()
                             : clerkUser.firstName || clerkUser.lastName || clerkUserEmail.split('@')[0] || "New User";
                     }
@@ -55,29 +55,27 @@ export async function GET(req: Request) {
 
                 console.log('[ADMIN_CHECK] Looking up user with clerkId:', clerkUserId, 'Found:', !!user);
 
-                // Check admin count BEFORE creating user to avoid race conditions
-                // Exclude service-admin user from count (only count real Clerk users)
-                const adminCount = await prismadb.user.count({ 
-                    where: { 
+                // Check if any Clerk user is already admin (exclude service-admin)
+                // First Clerk user to sign in becomes admin, all others are regular users
+                const clerkAdminCount = await prismadb.user.count({
+                    where: {
                         isAdmin: true,
-                        clerkId: { not: 'service-admin' } // Exclude synthetic service user
-                    } 
+                        clerkId: { not: 'service-admin' } // Only count real Clerk users
+                    }
                 });
-                
-                // If no admins exist (excluding service-admin), this user should be admin
-                const shouldPromoteToAdmin = adminCount === 0;
+                const shouldBeAdmin = clerkAdminCount === 0; // First user becomes admin
 
-                console.log('[ADMIN_CHECK] Admin count (excluding service-admin):', adminCount, 'Should promote:', shouldPromoteToAdmin);
+                console.log('[ADMIN_CHECK] Clerk admin count:', clerkAdminCount, 'Should be admin:', shouldBeAdmin);
 
                 if (!user) {
-                    console.log('[ADMIN_CHECK] User not found, creating new user for clerkId:', clerkUserId, 'email:', clerkUserEmail, 'Will promote to admin:', shouldPromoteToAdmin);
+                    console.log('[ADMIN_CHECK] User not found, creating new user for clerkId:', clerkUserId, 'email:', clerkUserEmail, 'Will be admin:', shouldBeAdmin);
                     try {
                         user = await prismadb.user.create({
                             data: {
                                 clerkId: clerkUserId,
                                 email: clerkUserEmail,
                                 name: clerkUserName,
-                                isAdmin: shouldPromoteToAdmin, // Set admin flag during creation
+                                isAdmin: shouldBeAdmin, // First user = admin, rest = false
                             },
                         });
                         console.log('[ADMIN_CHECK] User created with isAdmin:', user.isAdmin, 'email:', user.email);
@@ -85,7 +83,7 @@ export async function GET(req: Request) {
                         // Handle unique constraint errors
                         if (createError.code === 'P2002') {
                             console.log('[ADMIN_CHECK] Unique constraint error, target:', createError.meta?.target);
-                            
+
                             // Check if it's a clerkId conflict (most common case)
                             if (createError.meta?.target?.includes('clerkId')) {
                                 // User with this clerkId already exists - fetch it
@@ -95,41 +93,31 @@ export async function GET(req: Request) {
                                 if (user) {
                                     console.log('[ADMIN_CHECK] Found existing user by clerkId:', user.email);
                                 }
-                            } 
+                            }
                             // Check if it's an email conflict
                             else if (createError.meta?.target?.includes('email')) {
                                 // User with this email already exists
                                 const existingUser = await prismadb.user.findUnique({
                                     where: { email: clerkUserEmail },
                                 });
-                                
+
                                 if (existingUser) {
                                     // If existing user has the same clerkId, use it
                                     if (existingUser.clerkId === clerkUserId) {
                                         user = existingUser;
                                         console.log('[ADMIN_CHECK] Found existing user with matching clerkId:', user.email);
-                                    } 
+                                    }
                                     // If existing user has a different clerkId, this is a different user
                                     // Create with a unique email (shouldn't happen in Clerk, but handle it)
                                     else {
                                         console.log('[ADMIN_CHECK] Email conflict: existing user has different clerkId. Creating with unique email.');
-                                        // Recalculate admin count before creating (in case another user was created)
-                                        const retryAdminCount = await prismadb.user.count({ 
-                                            where: { 
-                                                isAdmin: true,
-                                                clerkId: { not: 'service-admin' } // Exclude synthetic service user
-                                            } 
-                                        });
-                                        const retryShouldPromote = retryAdminCount === 0;
-                                        console.log('[ADMIN_CHECK] Recalculated admin count for retry:', retryAdminCount, 'Should promote:', retryShouldPromote);
-                                        
                                         try {
                                             user = await prismadb.user.create({
                                                 data: {
                                                     clerkId: clerkUserId,
                                                     email: `${clerkUserId}@clerk.local`, // Use unique email based on clerkId
                                                     name: clerkUserName,
-                                                    isAdmin: retryShouldPromote,
+                                                    isAdmin: shouldBeAdmin, // First user = admin, rest = false
                                                 },
                                             });
                                             console.log('[ADMIN_CHECK] User created with unique email:', user.email, 'isAdmin:', user.isAdmin);
@@ -148,7 +136,7 @@ export async function GET(req: Request) {
                                     });
                                 }
                             }
-                            
+
                             // Final fallback: try to find by clerkId one more time
                             if (!user) {
                                 console.log('[ADMIN_CHECK] User not found after conflict, fetching by clerkId...');
@@ -156,19 +144,9 @@ export async function GET(req: Request) {
                                     where: { clerkId: clerkUserId },
                                 });
                             }
-                            
+
                             if (!user) {
                                 console.error('[ADMIN_CHECK] Failed to create or find user after conflict:', createError);
-                                // Recalculate admin count before fallback creation (in case another user was created)
-                                const fallbackAdminCount = await prismadb.user.count({ 
-                                    where: { 
-                                        isAdmin: true,
-                                        clerkId: { not: 'service-admin' } // Exclude synthetic service user
-                                    } 
-                                });
-                                const fallbackShouldPromote = fallbackAdminCount === 0;
-                                console.log('[ADMIN_CHECK] Recalculated admin count for fallback:', fallbackAdminCount, 'Should promote:', fallbackShouldPromote);
-                                
                                 // Try one more time with a unique email based on clerkId
                                 try {
                                     user = await prismadb.user.create({
@@ -176,7 +154,7 @@ export async function GET(req: Request) {
                                             clerkId: clerkUserId,
                                             email: `${clerkUserId}@clerk.local`,
                                             name: clerkUserName,
-                                            isAdmin: fallbackShouldPromote,
+                                            isAdmin: shouldBeAdmin, // First user = admin, rest = false
                                         },
                                     });
                                     console.log('[ADMIN_CHECK] User created with fallback email:', user.email, 'isAdmin:', user.isAdmin);
@@ -214,36 +192,22 @@ export async function GET(req: Request) {
                     }
                 }
 
-                // If user exists but wasn't promoted, check if they should be promoted
-                if (user && !user.isAdmin) {
-                    // Recalculate admin count (excluding service-admin) to handle existing users
-                    const currentAdminCount = await prismadb.user.count({ 
-                        where: { 
-                            isAdmin: true,
-                            clerkId: { not: 'service-admin' } // Exclude synthetic service user
-                        } 
-                    });
-                    
-                    if (currentAdminCount === 0) {
-                        console.log('[ADMIN_CHECK] Promoting existing user to admin (no Clerk admins exist)');
-                        try {
-                            user = await prismadb.user.update({
-                                where: { id: user.id },
-                                data: { isAdmin: true },
-                            });
-                            console.log('[ADMIN_CHECK] Successfully promoted user to admin');
-                        } catch (updateError: any) {
-                            console.error('[ADMIN_CHECK] Failed to promote user:', updateError);
-                            // Refetch user to get current state
-                            user = await prismadb.user.findUnique({
-                                where: { clerkId: clerkUserId },
-                            });
-                        }
-                    } else {
-                        console.log('[ADMIN_CHECK] Admin already exists, user is not admin');
+                // If user wasn't set as admin during creation but should be (first user), promote them
+                if (user && !user.isAdmin && shouldBeAdmin) {
+                    console.log('[ADMIN_CHECK] Promoting existing user to admin (first Clerk user)');
+                    try {
+                        user = await prismadb.user.update({
+                            where: { id: user.id },
+                            data: { isAdmin: true },
+                        });
+                        console.log('[ADMIN_CHECK] Successfully promoted user to admin');
+                    } catch (updateError: any) {
+                        console.error('[ADMIN_CHECK] Failed to promote user:', updateError);
                     }
                 } else if (user && user.isAdmin) {
                     console.log('[ADMIN_CHECK] User is already admin');
+                } else if (user) {
+                    console.log('[ADMIN_CHECK] User is not admin (not first user)');
                 }
 
                 if (!user) {
@@ -252,9 +216,9 @@ export async function GET(req: Request) {
                 }
 
                 console.log('[ADMIN_CHECK] Returning isAdmin:', user.isAdmin, 'for user:', user.email);
-                return NextResponse.json({ 
-                    isAdmin: user.isAdmin, 
-                    user: { id: user.id, name: user.name, email: user.email } 
+                return NextResponse.json({
+                    isAdmin: user.isAdmin,
+                    user: { id: user.id, name: user.name, email: user.email }
                 });
             }
         }
@@ -265,9 +229,9 @@ export async function GET(req: Request) {
             const { isAdmin: bearerAdmin, user: bearerUser } = await checkAdminAccess();
             if (bearerAdmin && bearerUser) {
                 console.log('[ADMIN_CHECK] Returning bearer token admin');
-                return NextResponse.json({ 
-                    isAdmin: true, 
-                    user: { id: bearerUser.id, name: bearerUser.name, email: bearerUser.email } 
+                return NextResponse.json({
+                    isAdmin: true,
+                    user: { id: bearerUser.id, name: bearerUser.name, email: bearerUser.email }
                 });
             }
         }
