@@ -81,7 +81,7 @@ async function updateSaloonRating(saloonId: string) {
 
   if (reviews.length > 0) {
     const averageRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
-    
+
     await prismadb.saloon.update({
       where: { id: saloonId },
       data: { rating: averageRating },
@@ -106,6 +106,7 @@ export async function GET(req: Request) {
           select: {
             name: true,
             email: true,
+            clerkId: true,
           },
         },
       },
