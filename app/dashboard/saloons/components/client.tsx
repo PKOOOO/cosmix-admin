@@ -90,7 +90,7 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
 
                                     <CardContent className="space-y-4 flex-1 flex flex-col">
                                         {/* Rating - Always show 5 stars */}
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 mt-4">
                                             <div className="flex items-center gap-0.5">
                                                 {[1, 2, 3, 4, 5].map((star) => {
                                                     const rating = saloon.averageRating || 0;
@@ -123,7 +123,7 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
                                         </div>
 
                                         {/* Actions */}
-                                        <div className="flex flex-col md:flex-row gap-2 pt-4 border-t">
+                                        <div className="flex flex-col md:flex-row gap-2 pt-4">
                                             <Button
                                                 variant="outline"
                                                 size="sm"
