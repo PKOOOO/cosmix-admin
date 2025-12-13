@@ -164,13 +164,7 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
                                                 <Trash className="mr-2 h-4 w-4" />
                                                 Poista salonki
                                             </Button>
-                                            <Button
-                                                size="sm"
-                                                onClick={() => signOut()}
-                                                className="w-full md:w-auto py-8 md:py-2 bg-[#3E2723] hover:bg-[#2D1B18] text-white"
-                                            >
-                                                Logout
-                                            </Button>
+
                                         </div>
                                     </CardContent>
                                 </Card>
