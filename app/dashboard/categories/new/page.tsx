@@ -7,14 +7,12 @@ import { checkAdminAccess } from "@/lib/admin-access";
 import { CategoryForm } from "./components/category-form";
 
 const NewCategoryPage = async () => {
-    const { userId } = auth();
-    
-    if (!userId) {
+    const { user, isAdmin } = await checkAdminAccess();
+
+    if (!user) {
         redirect('/');
     }
 
-    const { isAdmin } = await checkAdminAccess();
-    
     if (!isAdmin) {
         redirect('/dashboard/categories');
     }

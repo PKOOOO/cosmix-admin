@@ -5,20 +5,10 @@ import { IntegrationClient } from "./components/integration-client";
 import prismadb from "@/lib/prismadb";
 import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
+import { checkAdminAccess } from "@/lib/admin-access";
 
 const IntegrationPage = async () => {
-    const { userId: clerkUserId } = auth();
-    
-    if (!clerkUserId) {
-        redirect('/');
-    }
-
-    // Find the user in your database using the Clerk ID
-    const user = await prismadb.user.findUnique({
-        where: { 
-            clerkId: clerkUserId 
-        }
-    });
+    const { user } = await checkAdminAccess();
 
     if (!user) {
         redirect('/');

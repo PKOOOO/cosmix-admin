@@ -1,29 +1,20 @@
-// app/api/saloons/[saloonId]/time-slots/route.ts
 import { auth } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
+import { checkAdminAccess } from "@/lib/admin-access";
 
 export async function GET(
     req: Request,
     { params }: { params: { saloonId: string } }
 ) {
     try {
-        const { userId } = auth();
-        
-        if (!userId) {
+        const { user } = await checkAdminAccess();
+
+        if (!user) {
             return new NextResponse("Unauthenticated", { status: 401 });
         }
 
         const { saloonId } = params;
-
-        // Find the user in your database using the Clerk ID
-        const user = await prismadb.user.findUnique({
-            where: { clerkId: userId }
-        });
-
-        if (!user) {
-            return new NextResponse("User not found", { status: 401 });
-        }
 
         // Find the saloon and verify ownership
         const saloon = await prismadb.saloon.findFirst({
@@ -60,24 +51,15 @@ export async function POST(
     { params }: { params: { saloonId: string } }
 ) {
     try {
-        const { userId } = auth();
-        
-        if (!userId) {
+        const { user } = await checkAdminAccess();
+
+        if (!user) {
             return new NextResponse("Unauthenticated", { status: 401 });
         }
 
         const { saloonId } = params;
         const body = await req.json();
         const { timeSlots } = body;
-
-        // Find the user in your database using the Clerk ID
-        const user = await prismadb.user.findUnique({
-            where: { clerkId: userId }
-        });
-
-        if (!user) {
-            return new NextResponse("User not found", { status: 401 });
-        }
 
         // Find the saloon and verify ownership
         const saloon = await prismadb.saloon.findFirst({

@@ -1,16 +1,16 @@
-// app/api/saloons/[saloonId]/services/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs";
 import prismadb from "@/lib/prismadb";
+import { checkAdminAccess } from "@/lib/admin-access";
 
 export async function POST(
     req: NextRequest,
     { params }: { params: { saloonId: string } }
 ) {
     try {
-        const { userId } = auth();
+        const { user } = await checkAdminAccess();
 
-        if (!userId) {
+        if (!user) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
 
@@ -19,21 +19,6 @@ export async function POST(
 
         if (!serviceId || price === undefined || !durationMinutes) {
             return new NextResponse("Missing required fields", { status: 400 });
-        }
-
-        // Ensure the Clerk user exists in our DB
-        let user = await prismadb.user.findUnique({ where: { clerkId: userId } });
-        if (!user) {
-            const cu = await currentUser();
-            const email = cu?.emailAddresses?.[0]?.emailAddress;
-            if (!email) return new NextResponse("User email missing", { status: 401 });
-            user = await prismadb.user.create({
-                data: {
-                    clerkId: userId,
-                    email,
-                    name: cu?.firstName || cu?.username || null,
-                },
-            });
         }
 
         // Verify saloon ownership
@@ -87,25 +72,10 @@ export async function GET(
     { params }: { params: { saloonId: string } }
 ) {
     try {
-        const { userId } = auth();
+        const { user } = await checkAdminAccess();
 
-        if (!userId) {
-            return new NextResponse("Unauthorized", { status: 401 });
-        }
-
-        // Ensure the Clerk user exists in our DB
-        let user = await prismadb.user.findUnique({ where: { clerkId: userId } });
         if (!user) {
-            const cu = await currentUser();
-            const email = cu?.emailAddresses?.[0]?.emailAddress;
-            if (!email) return new NextResponse("User email missing", { status: 401 });
-            user = await prismadb.user.create({
-                data: {
-                    clerkId: userId,
-                    email,
-                    name: cu?.firstName || cu?.username || null,
-                },
-            });
+            return new NextResponse("Unauthorized", { status: 401 });
         }
 
         // Verify saloon ownership

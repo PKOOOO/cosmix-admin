@@ -1,7 +1,6 @@
-// app/api/bookings/[bookingId]/route.ts
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { requireServiceUser } from "@/lib/service-auth";
+import { checkAdminAccess } from "@/lib/admin-access";
 
 export async function GET(
     req: Request,
@@ -53,8 +52,12 @@ export async function PATCH(
     { params }: { params: { bookingId: string } }
 ) {
     try {
-        // Require service admin (bearer) for now
-        const serviceUser = await requireServiceUser(req as any);
+        const { user } = await checkAdminAccess();
+
+        if (!user) {
+            return new NextResponse("Unauthorized", { status: 401 });
+        }
+
         const body = await req.json();
 
         const { status, bookingTime, notes } = body;
@@ -88,8 +91,11 @@ export async function DELETE(
     { params }: { params: { bookingId: string } }
 ) {
     try {
-        // Require service admin (bearer) for now
-        const serviceUser = await requireServiceUser(req as any);
+        const { user } = await checkAdminAccess();
+
+        if (!user) {
+            return new NextResponse("Unauthorized", { status: 401 });
+        }
 
         if (!params.bookingId) {
             return new NextResponse("Booking ID is required", { status: 400 });

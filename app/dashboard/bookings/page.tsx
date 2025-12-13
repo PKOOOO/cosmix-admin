@@ -4,13 +4,22 @@ export const dynamic = 'force-dynamic';
 import prismadb from "@/lib/prismadb";
 import { BookingClient } from "./components/client";
 import { BookingColumn } from "./components/columns";
-import { requireServiceUser } from "@/lib/service-auth";
+import { checkAdminAccess } from "@/lib/admin-access";
+import { redirect } from "next/navigation";
 
 const BookingsPage = async () => {
-    // Service admin view: show all bookings (no owner filter)
-    await requireServiceUser();
+    const { user, isAdmin } = await checkAdminAccess();
+
+    if (!user) {
+        redirect('/');
+    }
 
     const bookings = await prismadb.booking.findMany({
+        where: isAdmin ? {} : {
+            saloon: {
+                userId: user.id
+            }
+        },
         include: {
             service: {
                 select: {
@@ -46,7 +55,7 @@ const BookingsPage = async () => {
         createdAt: new Date(item.createdAt).toLocaleDateString()
     }));
 
-    return ( 
+    return (
         <div className="flex-col">
             <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
                 <BookingClient data={formattedBookings} />

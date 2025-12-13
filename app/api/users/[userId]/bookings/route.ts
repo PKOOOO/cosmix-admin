@@ -1,26 +1,39 @@
 // app/api/users/[userId]/bookings/route.ts
 
-import { auth } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
+import { checkAdminAccess } from "@/lib/admin-access";
 
 export async function GET(
     req: Request,
     { params }: { params: { userId: string } }
 ) {
     try {
-        const { userId } = auth();
+        const { user } = await checkAdminAccess();
 
-        if (!userId || userId !== params.userId) {
-            return new NextResponse("Unauthorized", { status: 403 });
+        if (!user) {
+            return new NextResponse("Unauthorized", { status: 401 });
         }
+
         if (!params.userId) {
             return new NextResponse("User ID is required", { status: 400 });
         }
 
+        // Determine if params.userId is DB ID or Clerk ID
+        let targetUserId = params.userId;
+
+        // If the param matches the authenticated user's Clerk ID, use their DB ID
+        if (params.userId === user.clerkId) {
+            targetUserId = user.id;
+        }
+        // If it doesn't match Clerk ID, it must match DB ID
+        else if (params.userId !== user.id) {
+            return new NextResponse("Unauthorized", { status: 403 });
+        }
+
         const bookings = await prismadb.booking.findMany({
             where: {
-                userId: params.userId,
+                userId: targetUserId,
             },
             include: {
                 service: {

@@ -6,76 +6,15 @@ import { format } from "date-fns";
 import { SaloonClient } from "./components/client";
 import { SaloonColumn } from "./components/columns";
 import { SaloonsError } from "./error-component";
-import { auth } from "@clerk/nextjs";
-import { headers, cookies } from "next/headers";
-import { isAuthorizedRequest } from "@/lib/service-auth";
-
-// Simple JWT decode (no verification needed for public claims like userId)
-function decodeJWT(token: string): { sub?: string } | null {
-    try {
-        const parts = token.split('.');
-        if (parts.length !== 3) return null;
-        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-        return payload;
-    } catch {
-        return null;
-    }
-}
+import { checkAdminAccess } from "@/lib/admin-access";
 
 const SaloonsPage = async () => {
     try {
-        // Check for bearer token authentication first (from WebView)
-        const isAuthorized = isAuthorizedRequest();
-        let clerkUserId: string | null = null;
+        const { user } = await checkAdminAccess();
+        const ownerId = user?.id;
 
-        if (isAuthorized) {
-            try {
-                // Extract Clerk user ID from X-User-Token header
-                const headerPayload = headers();
-                const clerkToken = headerPayload.get("x-user-token");
-
-                if (clerkToken) {
-                    const decoded = decodeJWT(clerkToken);
-                    clerkUserId = decoded?.sub || null;
-                    console.log('[SALOONS_PAGE] Clerk userId from bearer token:', clerkUserId);
-                }
-            } catch (error) {
-                console.log('[SALOONS_PAGE] Error reading headers:', error);
-                // Continue to fallback auth
-            }
-        }
-
-        // **FIX**: Try cookie if header was lost during redirect
-        if (!clerkUserId) {
-            try {
-                const cookieStore = cookies();
-                const cookieToken = cookieStore.get("x-user-token-session")?.value;
-                if (cookieToken) {
-                    const decoded = decodeJWT(cookieToken);
-                    clerkUserId = decoded?.sub || null;
-                    console.log('[SALOONS_PAGE] Clerk userId from cookie:', clerkUserId);
-                }
-            } catch (error) {
-                console.log('[SALOONS_PAGE] Error reading cookie:', error);
-            }
-        }
-
-        // Fallback to Clerk auth if no bearer token
-        if (!clerkUserId) {
-            try {
-                const clerkAuth = auth();
-                clerkUserId = clerkAuth?.userId || null;
-                console.log('[SALOONS_PAGE] Clerk userId from Clerk auth:', clerkUserId);
-            } catch (error) {
-                console.log('[SALOONS_PAGE] Clerk auth failed:', error);
-            }
-        }
-
-        let ownerId: string | undefined = undefined;
-        if (clerkUserId) {
-            const user = await prismadb.user.findUnique({ where: { clerkId: clerkUserId } });
-            ownerId = user?.id;
-            console.log('[SALOONS_PAGE] Found user:', user ? user.email : 'not found');
+        if (ownerId) {
+            console.log('[SALOONS_PAGE] Found user:', user.email);
         }
 
         if (!ownerId) {
