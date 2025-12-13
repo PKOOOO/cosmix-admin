@@ -4,13 +4,13 @@ import prismadb from "@/lib/prismadb";
 import { requireServiceUser } from "@/lib/service-auth";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
 export async function OPTIONS() {
-  return NextResponse.json({}, { headers: corsHeaders });
+    return NextResponse.json({}, { headers: corsHeaders });
 }
 
 export async function POST(req: Request) {
@@ -66,7 +66,26 @@ export async function GET(req: Request) {
             orderBy: { bookingTime: "asc" },
         });
 
-        return NextResponse.json(bookings, { headers: corsHeaders });
+        // Get all reviews to check which bookings have been reviewed
+        const reviews = await prismadb.saloonReview.findMany({
+            select: {
+                userId: true,
+                saloonId: true,
+            },
+        });
+
+        // Create a Set of reviewed user+saloon combinations for quick lookup
+        const reviewedSet = new Set(
+            reviews.map((r) => `${r.userId}-${r.saloonId}`)
+        );
+
+        // Add hasReview flag to each booking
+        const bookingsWithReviewStatus = bookings.map((booking) => ({
+            ...booking,
+            hasReview: reviewedSet.has(`${booking.userId}-${booking.saloonId}`),
+        }));
+
+        return NextResponse.json(bookingsWithReviewStatus, { headers: corsHeaders });
 
     } catch (error) {
         console.log("[BOOKINGS_GET]", error);
