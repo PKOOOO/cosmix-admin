@@ -67,22 +67,20 @@ export async function GET(req: Request) {
         });
 
         // Get all reviews to check which bookings have been reviewed
+        // Create a set of reviewed booking IDs for efficient lookup
+        const bookingIds = bookings.map(b => b.id);
         const reviews = await prismadb.saloonReview.findMany({
-            select: {
-                userId: true,
-                saloonId: true,
+            where: {
+                bookingId: { in: bookingIds }
             },
+            select: { bookingId: true }
         });
 
-        // Create a Set of reviewed user+saloon combinations for quick lookup
-        const reviewedSet = new Set(
-            reviews.map((r) => `${r.userId}-${r.saloonId}`)
-        );
+        const reviewedBookingIds = new Set(reviews.map(r => r.bookingId).filter(Boolean));
 
-        // Add hasReview flag to each booking
         const bookingsWithReviewStatus = bookings.map((booking) => ({
             ...booking,
-            hasReview: reviewedSet.has(`${booking.userId}-${booking.saloonId}`),
+            hasReview: reviewedBookingIds.has(booking.id),
         }));
 
         return NextResponse.json(bookingsWithReviewStatus, { headers: corsHeaders });

@@ -178,12 +178,15 @@ model SaloonReview {
   user      User     @relation(fields: [userId], references: [id])
   rating    Int      // 1..5
   comment   String?
-
+  
+  bookingId String?  // Optional for backward compatibility
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([saloonId])
   @@index([userId])
+  @@index([bookingId])
   @@map("saloon_reviews")
 }
 

@@ -31,8 +31,7 @@ export async function POST(req: Request) {
     // Check if a review already exists for this booking
     const existingReview = await prismadb.saloonReview.findFirst({
       where: {
-        userId: booking.userId,
-        saloonId: booking.saloonId,
+        bookingId: bookingId,
       },
     });
 
@@ -57,6 +56,7 @@ export async function POST(req: Request) {
       data: {
         userId: booking.userId,
         saloonId: booking.saloonId,
+        bookingId: booking.id,
         rating: rating,
         comment: comment || null,
       },
