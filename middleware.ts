@@ -70,13 +70,53 @@ const bearerAuthMiddleware = async (req: NextRequest) => {
         req.nextUrl.pathname.startsWith("/post-sign-in");
 
     // Allow public routes and pages (pages use Clerk auth, not bearer tokens)
-    if (isPublic || !isApi) {
+    // BUT restrict dashboard pages to mobile app only
+    const isDashboard = req.nextUrl.pathname.startsWith("/dashboard");
+
+    if (isPublic) {
         return response;
     }
 
+    // Restrict dashboard access to mobile app (WebView) only
+    // The mobile app sends 'x-user-token' header on first load, and we set 'x-user-token-session' cookie
+    if (isDashboard) {
+        const userToken = req.headers.get("x-user-token");
+        const sessionCookie = req.cookies.get("x-user-token-session");
+
+        if (!userToken && !sessionCookie) {
+            return new NextResponse(
+                `<!DOCTYPE html>
+                 <html>
+                 <head>
+                     <title>Access Restricted</title>
+                     <meta name="viewport" content="width=device-width, initial-scale=1">
+                     <style>
+                         body { font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f4f4f5; color: #18181b; }
+                         .container { text-align: center; padding: 2rem; background: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); max-width: 400px; margin: 1rem; }
+                         h1 { font-size: 1.5rem; margin-bottom: 1rem; }
+                         p { color: #52525b; line-height: 1.5; }
+                     </style>
+                 </head>
+                 <body>
+                     <div class="container">
+                         <h1>Access Restricted</h1>
+                         <p>This dashboard is only accessible via the Cosmix mobile app.</p>
+                     </div>
+                 </body>
+                 </html>`,
+                {
+                    status: 403,
+                    headers: { "Content-Type": "text/html" }
+                }
+            );
+        }
+    }
+
     // For API routes, require bearer token authentication
-    if (!isAuthorizedRequest(req)) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (isApi) {
+        if (!isAuthorizedRequest(req)) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
     }
 
     return response;
