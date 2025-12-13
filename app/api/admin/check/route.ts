@@ -192,22 +192,11 @@ export async function GET(req: Request) {
                     }
                 }
 
-                // If user wasn't set as admin during creation but should be (first user), promote them
-                if (user && !user.isAdmin && shouldBeAdmin) {
-                    console.log('[ADMIN_CHECK] Promoting existing user to admin (first Clerk user)');
-                    try {
-                        user = await prismadb.user.update({
-                            where: { id: user.id },
-                            data: { isAdmin: true },
-                        });
-                        console.log('[ADMIN_CHECK] Successfully promoted user to admin');
-                    } catch (updateError: any) {
-                        console.error('[ADMIN_CHECK] Failed to promote user:', updateError);
-                    }
-                } else if (user && user.isAdmin) {
-                    console.log('[ADMIN_CHECK] User is already admin');
+                // Log admin status (no promotion - admin is only set during creation)
+                if (user && user.isAdmin) {
+                    console.log('[ADMIN_CHECK] User is admin');
                 } else if (user) {
-                    console.log('[ADMIN_CHECK] User is not admin (not first user)');
+                    console.log('[ADMIN_CHECK] User is not admin');
                 }
 
                 if (!user) {
