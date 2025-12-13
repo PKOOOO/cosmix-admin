@@ -70,16 +70,18 @@ const bearerAuthMiddleware = async (req: NextRequest) => {
         req.nextUrl.pathname.startsWith("/post-sign-in");
 
     // Allow public routes and pages (pages use Clerk auth, not bearer tokens)
-    // BUT restrict dashboard pages to mobile app only
+    // BUT restrict dashboard and admin pages to mobile app only
     const isDashboard = req.nextUrl.pathname.startsWith("/dashboard");
+    const isAdmin = req.nextUrl.pathname.startsWith("/admin");
+    const isRestrictedPage = isDashboard || isAdmin;
 
     if (isPublic) {
         return response;
     }
 
-    // Restrict dashboard access to mobile app (WebView) only
+    // Restrict dashboard/admin access to mobile app (WebView) only
     // The mobile app sends 'x-user-token' header on first load, and we set 'x-user-token-session' cookie
-    if (isDashboard) {
+    if (isRestrictedPage) {
         const userToken = req.headers.get("x-user-token");
         const sessionCookie = req.cookies.get("x-user-token-session");
 
