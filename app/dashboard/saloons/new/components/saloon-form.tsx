@@ -60,27 +60,36 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
         address: string;
     } | null>(null);
     const [keyboardHeight, setKeyboardHeight] = useState(0);
-    const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
-    // Detect keyboard by tracking input focus
+    // Detect keyboard using visualViewport API for accurate height
     useEffect(() => {
-        const handleFocusIn = (e: FocusEvent) => {
-            const target = e.target as HTMLElement;
-            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
-                setIsKeyboardOpen(true);
+        if (typeof window === 'undefined' || !window.visualViewport) return;
+
+        const viewport = window.visualViewport;
+
+        const handleResize = () => {
+            // Calculate keyboard height from viewport difference
+            const windowHeight = window.innerHeight;
+            const viewportHeight = viewport.height;
+            const calculatedKeyboardHeight = windowHeight - viewportHeight;
+
+            // Only set if keyboard is actually open (height > 100px threshold)
+            if (calculatedKeyboardHeight > 100) {
+                setKeyboardHeight(calculatedKeyboardHeight);
+            } else {
+                setKeyboardHeight(0);
             }
         };
 
-        const handleFocusOut = () => {
-            setIsKeyboardOpen(false);
-        };
+        viewport.addEventListener('resize', handleResize);
+        viewport.addEventListener('scroll', handleResize);
 
-        document.addEventListener('focusin', handleFocusIn);
-        document.addEventListener('focusout', handleFocusOut);
+        // Initial check
+        handleResize();
 
         return () => {
-            document.removeEventListener('focusin', handleFocusIn);
-            document.removeEventListener('focusout', handleFocusOut);
+            viewport.removeEventListener('resize', handleResize);
+            viewport.removeEventListener('scroll', handleResize);
         };
     }, []);
 
@@ -266,8 +275,8 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
 
             {/* Main content container with proper bottom padding for mobile */}
             <div
-                className={`pb-20 md:pb-0 transition-transform duration-300 ${isKeyboardOpen ? 'pb-96' : ''}`}
-                style={{ transform: isKeyboardOpen ? 'translateY(-150px)' : 'translateY(0)' }}
+                className="pb-24 md:pb-0 transition-all duration-200"
+                style={{ paddingBottom: keyboardHeight > 0 ? `${keyboardHeight + 80}px` : undefined }}
             >
                 <Form {...form}>
                     <form
@@ -688,8 +697,8 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
 
             {/* Mobile Sticky Bottom Button - Fixed positioning */}
             <div
-                className="md:hidden fixed left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-4 shadow-lg flex gap-3 transition-all duration-300"
-                style={{ bottom: isKeyboardOpen ? '280px' : '0px' }}
+                className="md:hidden fixed left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-4 shadow-lg flex gap-3 transition-all duration-200"
+                style={{ bottom: keyboardHeight > 0 ? `${keyboardHeight}px` : '0px' }}
             >
                 {currentStep > 1 && (
                     <Button

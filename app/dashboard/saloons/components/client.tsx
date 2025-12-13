@@ -67,15 +67,20 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
 
 
             {data.length === 0 ? (
-                <Card>
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-
-                        <Button onClick={() => router.push('/dashboard/saloons/new')}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Luo Saloon
-                        </Button>
-                    </CardContent>
-                </Card>
+                <div className="fixed inset-0 flex items-center justify-center">
+                    <Card className="mx-4">
+                        <CardContent className="flex flex-col items-center justify-center py-12 px-8">
+                            <Button
+                                onClick={() => router.push('/dashboard/saloons/new')}
+                                size="lg"
+                                className="text-lg px-8 py-6"
+                            >
+                                <Plus className="mr-2 h-5 w-5" />
+                                Luo Saloon
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
             ) : (
                 <>
                     <div className="flex justify-center">
