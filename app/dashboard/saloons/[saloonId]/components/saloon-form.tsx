@@ -59,7 +59,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
 
     const title = initialData ? "Edit saloon" : "Create saloon";
     const description = initialData ? "Edit saloon details" : "Add a new saloon";
-    const toastMessage = initialData ? "Saloon updated successfully." : "Saloon created successfully.";
+    const toastMessage = initialData ? "Saloon updated successfully." : "Salonin luominen onnistui.";
     const action = initialData ? "Save changes" : "Create";
 
     const form = useForm<SaloonFormValues>({

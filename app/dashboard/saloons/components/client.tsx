@@ -87,51 +87,40 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 w-full max-w-6xl">
                             {data.map((saloon) => (
                                 <Card key={saloon.id} className="overflow-hidden flex flex-col">
-                                    <CardHeader className="pb-3">
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div className="flex items-start gap-4 flex-1 min-w-0">
-                                                {saloon.imageUrl && (
-                                                    <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden border">
-                                                        <Image
-                                                            src={saloon.imageUrl}
-                                                            alt={saloon.name}
-                                                            fill
-                                                            className="object-cover"
-                                                        />
-                                                    </div>
-                                                )}
-                                                <div className="flex-1 min-w-0">
-                                                    <CardTitle className="text-lg sm:text-xl mb-1 truncate">
-                                                        {saloon.name}
-                                                    </CardTitle>
-                                                    {saloon.shortIntro && (
-                                                        <CardDescription className="line-clamp-2 text-sm">
-                                                            {saloon.shortIntro}
-                                                        </CardDescription>
-                                                    )}
-                                                    {saloon.address && (
-                                                        <div className="flex items-center gap-1 mt-2 text-xs sm:text-sm text-muted-foreground">
-                                                            <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                                                            <span className="truncate">{saloon.address}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </CardHeader>
+
                                     <CardContent className="space-y-4 flex-1 flex flex-col">
-                                        {/* Rating */}
-                                        {(saloon.averageRating && saloon.averageRating > 0) && (
-                                            <div className="flex items-center gap-2">
-                                                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                                <span className="text-sm font-medium">
-                                                    {saloon.averageRating.toFixed(1)}
-                                                </span>
-                                                <span className="text-xs text-muted-foreground">
-                                                    ({saloon.ratingsCount} {saloon.ratingsCount === 1 ? 'review' : 'reviews'})
-                                                </span>
+                                        {/* Rating - Always show 5 stars */}
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-0.5">
+                                                {[1, 2, 3, 4, 5].map((star) => {
+                                                    const rating = saloon.averageRating || 0;
+                                                    const isFilled = star <= Math.round(rating);
+                                                    return (
+                                                        <Star
+                                                            key={star}
+                                                            className={`h-4 w-4 ${rating > 0 && isFilled
+                                                                ? 'fill-amber-800 text-amber-800'
+                                                                : 'fill-gray-300 text-gray-300'
+                                                                }`}
+                                                        />
+                                                    );
+                                                })}
                                             </div>
-                                        )}
+                                            {saloon.averageRating && saloon.averageRating > 0 ? (
+                                                <>
+                                                    <span className="text-sm font-medium">
+                                                        {saloon.averageRating.toFixed(1)}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        ({saloon.ratingsCount} {saloon.ratingsCount === 1 ? 'review' : 'reviews'})
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground">
+                                                    Ei vielä arvosteluja
+                                                </span>
+                                            )}
+                                        </div>
 
                                         {/* Actions */}
                                         <div className="flex flex-col md:flex-row gap-2 pt-4 border-t">

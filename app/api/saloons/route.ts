@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       const saloonServiceData = selectedServices.map((serviceId: string) => ({
         saloonId: saloon.id,
         serviceId: serviceId,
-        price: 0, // Default price - can be updated later
+        price: 1, // Default price - can be updated later
         durationMinutes: 30, // Default duration - can be updated later
         isAvailable: true,
       }));
