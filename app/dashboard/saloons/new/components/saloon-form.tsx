@@ -354,8 +354,14 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                                 <ImageUpload
                                                     value={field.value.map((image) => image.url)}
                                                     disabled={loading}
-                                                    onChange={(url) => field.onChange([...field.value, { url }])}
-                                                    onRemove={(url) => field.onChange([...field.value.filter((current) => current.url !== url)])}
+                                                    onChange={(url) => {
+                                                        const current = form.getValues('images') || [];
+                                                        field.onChange([...current, { url }]);
+                                                    }}
+                                                    onRemove={(url) => {
+                                                        const current = form.getValues('images') || [];
+                                                        field.onChange(current.filter((current) => current.url !== url));
+                                                    }}
                                                 />
                                             </FormControl>
                                             <FormMessage />
