@@ -6,20 +6,10 @@ import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import { CategoryClient } from "./components/client";
 import { CategoryColumn } from "./components/columns";
+import { checkAdminAccess } from "@/lib/admin-access";
 
 const CategoriesPage = async () => {
-    const { userId: clerkUserId } = auth();
-    
-    if (!clerkUserId) {
-        redirect('/');
-    }
-
-    // Find the user in your database using the Clerk ID
-    const user = await prismadb.user.findUnique({
-        where: { 
-            clerkId: clerkUserId 
-        }
-    });
+    const { user } = await checkAdminAccess();
 
     if (!user) {
         redirect('/');
@@ -41,7 +31,7 @@ const CategoriesPage = async () => {
         where: {
             OR: [
                 { isGlobal: true }, // Global categories available to all users
-                { 
+                {
                     saloon: {
                         userId: user.id
                     }
@@ -75,7 +65,7 @@ const CategoriesPage = async () => {
         createdAt: new Date(item.createdAt).toLocaleDateString()
     }));
 
-    return ( 
+    return (
         <div className="flex-col">
             <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
                 <CategoryClient data={formattedCategories} />

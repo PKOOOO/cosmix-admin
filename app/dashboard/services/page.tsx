@@ -6,20 +6,10 @@ import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import { ServiceClient } from "./components/client";
 import { ServiceColumn } from "./components/columns";
+import { checkAdminAccess } from "@/lib/admin-access";
 
 const ServicesPage = async () => {
-    const { userId: clerkUserId } = auth();
-    
-    if (!clerkUserId) {
-        redirect('/');
-    }
-
-    // Find the user in your database using the Clerk ID
-    const user = await prismadb.user.findUnique({
-        where: { 
-            clerkId: clerkUserId 
-        }
-    });
+    const { user } = await checkAdminAccess();
 
     if (!user) {
         redirect('/');
@@ -42,7 +32,7 @@ const ServicesPage = async () => {
             category: {
                 OR: [
                     { isGlobal: true }, // Global categories available to all users
-                    { 
+                    {
                         saloon: {
                             userId: user.id
                         }
@@ -86,7 +76,7 @@ const ServicesPage = async () => {
     }));
 
 
-    return ( 
+    return (
         <div className="flex-col">
             <div className="flex-1 space-y-4 p-4 sm:p-8 pt-6">
                 <ServiceClient data={formattedServices} />

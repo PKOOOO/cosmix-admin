@@ -1,4 +1,3 @@
-// app/dashboard/page.tsx
 export const dynamic = 'force-dynamic';
 
 import { auth } from "@clerk/nextjs";
@@ -13,6 +12,7 @@ import { getServicesCount } from "@/actions/get-services-count";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
+import { checkAdminAccess } from "@/lib/admin-access";
 import {
   CreditCard,
   DollarSign,
@@ -23,21 +23,10 @@ import {
 } from "lucide-react";
 
 const DashboardPage: React.FC = async () => {
-  const { userId } = auth();
-
-  if (!userId) {
-    redirect('/sign-in');
-  }
-
-  // Find the user in your database using the Clerk ID
-  const user = await prismadb.user.findUnique({
-    where: {
-      clerkId: userId
-    }
-  });
+  const { user } = await checkAdminAccess();
 
   if (!user) {
-    redirect('/post-sign-in');
+    redirect('/sign-in');
   }
 
   // Check if user has any saloons

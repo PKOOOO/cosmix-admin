@@ -1,26 +1,15 @@
-// app/(dashboard)/dashboard/saloons/[saloonId]/page.tsx
 import prismadb from "@/lib/prismadb";
 import { SaloonForm } from "./components/saloon-form";
 import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
+import { checkAdminAccess } from "@/lib/admin-access";
 
 const SaloonPage = async ({
     params,
 }: {
     params: { saloonId: string };
 }) => {
-    const { userId } = auth();
-    
-    if (!userId) {
-        redirect('/');
-    }
-
-    // Find the user in your database using the Clerk ID
-    const user = await prismadb.user.findUnique({
-        where: { 
-            clerkId: userId 
-        }
-    });
+    const { user } = await checkAdminAccess();
 
     if (!user) {
         redirect('/');

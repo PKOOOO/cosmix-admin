@@ -4,11 +4,12 @@ export const dynamic = 'force-dynamic';
 import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import { ServiceForm } from "./components/service-form";
+import { checkAdminAccess } from "@/lib/admin-access";
 
 const NewServicePage = async () => {
-    const { userId } = auth();
-    
-    if (!userId) {
+    const { user } = await checkAdminAccess();
+
+    if (!user) {
         redirect('/');
     }
 

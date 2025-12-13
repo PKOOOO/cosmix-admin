@@ -1,8 +1,8 @@
-// app/dashboard/saloons/[saloonId]/pricing/page.tsx
 import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import prismadb from "@/lib/prismadb";
 import { PricingClient } from "./components/pricing-client";
+import { checkAdminAccess } from "@/lib/admin-access";
 
 interface PricingPageProps {
     params: {
@@ -11,18 +11,7 @@ interface PricingPageProps {
 }
 
 const PricingPage = async ({ params }: PricingPageProps) => {
-    const { userId } = auth();
-
-    if (!userId) {
-        redirect('/');
-    }
-
-    // Find the user in your database using the Clerk ID
-    const user = await prismadb.user.findUnique({
-        where: { 
-            clerkId: userId 
-        }
-    });
+    const { user } = await checkAdminAccess();
 
     if (!user) {
         redirect('/');
@@ -56,7 +45,7 @@ const PricingPage = async ({ params }: PricingPageProps) => {
         where: {
             category: {
                 saloon: {
-                    userId: userId
+                    userId: user.id
                 }
             }
         },
@@ -68,7 +57,7 @@ const PricingPage = async ({ params }: PricingPageProps) => {
     return (
         <div className="flex-col">
             <div className="flex-1 space-y-4 p-8 pt-6">
-                <PricingClient 
+                <PricingClient
                     saloon={saloon as any}
                     availableServices={availableServices as any}
                 />

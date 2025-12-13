@@ -1,6 +1,6 @@
 import { ensureServiceUser, isAuthorizedRequest } from "./service-auth";
 import { auth, currentUser } from "@clerk/nextjs";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import prismadb from "@/lib/prismadb";
 
 // Simple JWT decode (no verification needed for public claims like userId)
@@ -34,8 +34,21 @@ export async function checkAdminAccess() {
       clerkUserId = decoded?.sub || null;
       console.log('[ADMIN_ACCESS] Clerk userId from X-User-Token header:', clerkUserId);
     }
-    // Note: If bearer token is present but no Clerk token, we fall through to Clerk auth
-    // Service admin is only used when there's NO Clerk authentication at all
+  }
+
+  // Check cookie if header was lost (common during navigation)
+  if (!clerkUserId) {
+    try {
+      const cookieStore = cookies();
+      const cookieToken = cookieStore.get("x-user-token-session")?.value;
+      if (cookieToken) {
+        const decoded = decodeJWT(cookieToken);
+        clerkUserId = decoded?.sub || null;
+        console.log('[ADMIN_ACCESS] Clerk userId from cookie:', clerkUserId);
+      }
+    } catch (error) {
+      console.log('[ADMIN_ACCESS] Error reading cookie:', error);
+    }
   }
 
   // Fall back to Clerk auth if no clerkUserId found yet
@@ -200,4 +213,3 @@ export async function requireAdmin() {
 
   return user;
 }
-

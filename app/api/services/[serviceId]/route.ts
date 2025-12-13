@@ -1,7 +1,7 @@
-// app/api/services/[serviceId]/route.ts
 import { auth } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
+import { checkAdminAccess } from "@/lib/admin-access";
 
 export async function GET(
     req: Request,
@@ -50,12 +50,12 @@ export async function PATCH(
     { params }: { params: { serviceId: string } }
 ) {
     try {
-        const { userId } = auth();
+        const { user } = await checkAdminAccess();
         const body = await req.json();
 
         const { name, description, categoryId, parentServiceId } = body;
 
-        if (!userId) {
+        if (!user) {
             return new NextResponse("Unauthenticated", { status: 401 });
         }
 
@@ -65,17 +65,6 @@ export async function PATCH(
 
         if (!params.serviceId) {
             return new NextResponse("Service ID is required", { status: 400 });
-        }
-
-        // Find the user record using Clerk ID
-        const user = await prismadb.user.findUnique({
-            where: {
-                clerkId: userId
-            }
-        });
-
-        if (!user) {
-            return new NextResponse("User not found", { status: 401 });
         }
 
         // Check if the user has access to this service through their saloons
@@ -117,25 +106,14 @@ export async function DELETE(
     { params }: { params: { serviceId: string } }
 ) {
     try {
-        const { userId } = auth();
+        const { user } = await checkAdminAccess();
 
-        if (!userId) {
+        if (!user) {
             return new NextResponse("Unauthenticated", { status: 401 });
         }
 
         if (!params.serviceId) {
             return new NextResponse("Service ID is required", { status: 400 });
-        }
-
-        // Find the user record using Clerk ID
-        const user = await prismadb.user.findUnique({
-            where: {
-                clerkId: userId
-            }
-        });
-
-        if (!user) {
-            return new NextResponse("User not found", { status: 401 });
         }
 
         // Check if the user has access to this service through their saloons

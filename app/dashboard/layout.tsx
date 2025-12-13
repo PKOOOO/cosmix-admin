@@ -1,4 +1,3 @@
-// app/dashboard/layout.tsx
 import prismadb from "@/lib/prismadb";
 import { auth } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
@@ -6,112 +5,24 @@ import { headers, cookies } from "next/headers";
 import NextTopLoader from 'nextjs-toploader';
 import { DashboardNavbar } from "@/components/dashboard-navbar";
 import { isAuthorizedRequest } from "@/lib/service-auth";
-
-// Simple JWT decode (no verification needed for public claims like userId)
-function decodeJWT(token: string): { sub?: string } | null {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-    return payload;
-  } catch {
-    return null;
-  }
-}
+import { checkAdminAccess } from "@/lib/admin-access";
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Check for bearer token authentication first (from WebView)
-  const isAuthorized = isAuthorizedRequest();
-  let clerkUserId: string | null = null;
+  const { user } = await checkAdminAccess();
 
-  if (isAuthorized) {
-    try {
-      // Extract Clerk user ID from X-User-Token header
-      const headerPayload = headers();
-      const clerkToken = headerPayload.get("x-user-token");
-
-      if (clerkToken) {
-        const decoded = decodeJWT(clerkToken);
-        clerkUserId = decoded?.sub || null;
-        console.log('[DASHBOARD_LAYOUT] Clerk userId from bearer token:', clerkUserId);
-      }
-    } catch (error) {
-      console.log('[DASHBOARD_LAYOUT] Error reading headers:', error);
-      // Continue to fallback auth
-    }
-  }
-
-  // **FIX**: Try cookie if header was lost during redirect
-  if (!clerkUserId) {
-    try {
-      const cookieStore = cookies();
-      const cookieToken = cookieStore.get("x-user-token-session")?.value;
-      if (cookieToken) {
-        const decoded = decodeJWT(cookieToken);
-        clerkUserId = decoded?.sub || null;
-        console.log('[DASHBOARD_LAYOUT] Clerk userId from cookie:', clerkUserId);
-      }
-    } catch (error) {
-      console.log('[DASHBOARD_LAYOUT] Error reading cookie:', error);
-    }
-  }
-
-  // Fallback to Clerk auth if no bearer token
-  if (!clerkUserId) {
-    try {
-      const clerkAuth = auth();
-      clerkUserId = clerkAuth?.userId || null;
-      console.log('[DASHBOARD_LAYOUT] Clerk userId from Clerk auth:', clerkUserId);
-    } catch (error) {
-      console.log('[DASHBOARD_LAYOUT] Clerk auth failed:', error);
-    }
-  }
-
-  if (!clerkUserId) {
-    console.log('[DASHBOARD_LAYOUT] No user ID found, redirecting to home');
-    redirect('/');
-  }
-
-  // Find the user in your database using the Clerk ID
-  const user = await prismadb.user.findUnique({
-    where: {
-      clerkId: clerkUserId
-    }
-  });
-
-  let finalUser = user;
   if (!user) {
-    // User might have just been created, retry with multiple attempts
-    console.log('[DASHBOARD_LAYOUT] User not found, retrying with delays...');
-    for (let i = 0; i < 3; i++) {
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
-      const retryUser = await prismadb.user.findUnique({
-        where: {
-          clerkId: clerkUserId
-        }
-      });
-
-      if (retryUser) {
-        console.log('[DASHBOARD_LAYOUT] User found after retry', i + 1);
-        finalUser = retryUser;
-        break;
-      }
-    }
-
-    if (!finalUser) {
-      console.log('[DASHBOARD_LAYOUT] User not found after all retries, redirecting to post-sign-in');
-      redirect('/post-sign-in');
-    }
+    console.log('[DASHBOARD_LAYOUT] No user found, redirecting to home');
+    redirect('/');
   }
 
   // Check if user has any saloons
   const userSaloons = await prismadb.saloon.findMany({
     where: {
-      userId: finalUser!.id
+      userId: user.id
     }
   });
 

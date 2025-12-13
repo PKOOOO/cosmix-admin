@@ -1,4 +1,3 @@
-// app/api/categories/route.ts
 import { auth } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
@@ -6,30 +5,16 @@ import { checkAdminAccess } from "@/lib/admin-access";
 
 export async function POST(req: Request) {
     try {
-        const { userId } = auth();
+        const { user, isAdmin } = await checkAdminAccess();
         const body = await req.json();
         const { name, saloonId } = body;
 
-        if (!userId) {
+        if (!user) {
             return new NextResponse("Unauthenticated", { status: 401 });
         }
         if (!name) {
             return new NextResponse("Name is required", { status: 400 });
         }
-
-        // First, find the user record using Clerk ID
-        const user = await prismadb.user.findUnique({
-            where: {
-                clerkId: userId
-            }
-        });
-
-        if (!user) {
-            return new NextResponse("User not found", { status: 401 });
-        }
-
-        // Check if user is admin
-        const { isAdmin } = await checkAdminAccess();
 
         if (isAdmin) {
             // Admin can create global categories without saloon attachment
@@ -104,21 +89,10 @@ export async function POST(req: Request) {
 // Getting all categories (global + user's saloon categories)
 export async function GET(req: Request) {
     try {
-        const { userId } = auth();
-        
-        if (!userId) {
-            return new NextResponse("Unauthenticated", { status: 401 });
-        }
-
-        // Find the user record using Clerk ID
-        const user = await prismadb.user.findUnique({
-            where: {
-                clerkId: userId
-            }
-        });
+        const { user } = await checkAdminAccess();
 
         if (!user) {
-            return new NextResponse("User not found", { status: 401 });
+            return new NextResponse("Unauthenticated", { status: 401 });
         }
 
         // Get both global categories and user's saloon categories
@@ -126,7 +100,7 @@ export async function GET(req: Request) {
             where: {
                 OR: [
                     { isGlobal: true }, // Global categories available to all users
-                    { 
+                    {
                         saloon: {
                             userId: user.id
                         }
