@@ -1,11 +1,15 @@
-// app/api/saloons/route.ts
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { requireServiceUser } from "@/lib/service-auth";
+import { checkAdminAccess } from "@/lib/admin-access";
 
 export async function POST(req: Request) {
   try {
-    const serviceUser = await requireServiceUser(req as any);
+    const { user } = await checkAdminAccess();
+
+    if (!user) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
     const body = await req.json();
 
     const { name, description, shortIntro, address, images, selectedServices, latitude, longitude } = body;
@@ -26,7 +30,7 @@ export async function POST(req: Request) {
         address,
         latitude,
         longitude,
-        userId: serviceUser.id,
+        userId: user.id,
         images: {
           createMany: {
             data: images.map((image: { url: string }) => image),
@@ -68,8 +72,11 @@ export async function GET(req: Request) {
 
     // If owned=1, restrict to current user's saloons
     if (owned) {
-      const serviceUser = await requireServiceUser(req as any);
-      baseWhere.userId = serviceUser.id;
+      const { user } = await checkAdminAccess();
+      if (!user) {
+        return new NextResponse("Unauthorized", { status: 401 });
+      }
+      baseWhere.userId = user.id;
     }
 
     const saloons = await prismadb.saloon.findMany({

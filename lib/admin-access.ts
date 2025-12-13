@@ -19,16 +19,16 @@ export async function checkAdminAccess() {
   // Check for bearer token authentication first (from WebView)
   const isAuthorized = isAuthorizedRequest();
   let clerkUserId: string | null = null;
-  
+
   console.log('[ADMIN_ACCESS] Starting checkAdminAccess, isAuthorized:', isAuthorized);
-  
+
   if (isAuthorized) {
     // Extract Clerk user ID from X-User-Token header
     const headerPayload = headers();
     const clerkToken = headerPayload.get("x-user-token");
-    
+
     console.log('[ADMIN_ACCESS] Bearer token present, X-User-Token header:', !!clerkToken);
-    
+
     if (clerkToken) {
       const decoded = decodeJWT(clerkToken);
       clerkUserId = decoded?.sub || null;
@@ -37,7 +37,7 @@ export async function checkAdminAccess() {
     // Note: If bearer token is present but no Clerk token, we fall through to Clerk auth
     // Service admin is only used when there's NO Clerk authentication at all
   }
-  
+
   // Fall back to Clerk auth if no clerkUserId found yet
   if (!clerkUserId) {
     try {
@@ -62,7 +62,7 @@ export async function checkAdminAccess() {
     console.log('[ADMIN_ACCESS] No user ID found, denying access');
     return { isAdmin: false, user: null };
   }
-  
+
   console.log('[ADMIN_ACCESS] Found Clerk userId:', clerkUserId);
 
   // Check admin status for the Clerk user
@@ -70,23 +70,23 @@ export async function checkAdminAccess() {
 
     // Check admin count BEFORE creating user to avoid race conditions
     // Exclude service-admin user from count (only count real Clerk users)
-    const adminCount = await prismadb.user.count({ 
-        where: { 
-            isAdmin: true,
-            clerkId: { not: 'service-admin' } // Exclude synthetic service user
-        } 
+    const adminCount = await prismadb.user.count({
+      where: {
+        isAdmin: true,
+        clerkId: { not: 'service-admin' } // Exclude synthetic service user
+      }
     });
     const shouldPromoteToAdmin = adminCount === 0;
 
     // Get user details from Clerk to get real email
     let clerkUserEmail = `${clerkUserId}@temp.local`;
     let clerkUserName = "New User";
-    
+
     try {
       const clerkUser = await currentUser();
       if (clerkUser) {
         clerkUserEmail = clerkUser.emailAddresses[0]?.emailAddress || clerkUserEmail;
-        clerkUserName = clerkUser.firstName && clerkUser.lastName 
+        clerkUserName = clerkUser.firstName && clerkUser.lastName
           ? `${clerkUser.firstName} ${clerkUser.lastName}`.trim()
           : clerkUser.firstName || clerkUser.lastName || clerkUserEmail.split('@')[0] || "New User";
       }
@@ -114,7 +114,7 @@ export async function checkAdminAccess() {
         // Handle unique constraint errors
         if (createError.code === 'P2002') {
           console.log('[ADMIN_ACCESS] Unique constraint error, target:', createError.meta?.target);
-          
+
           // Check if it's a clerkId conflict (most common case)
           if (createError.meta?.target?.includes('clerkId')) {
             // User with this clerkId already exists - fetch it
@@ -124,14 +124,14 @@ export async function checkAdminAccess() {
             if (user) {
               console.log('[ADMIN_ACCESS] Found existing user by clerkId:', user.email);
             }
-          } 
+          }
           // Check if it's an email conflict
           else if (createError.meta?.target?.includes('email')) {
             // User with this email already exists, try to find by email and update clerkId
             const existingUser = await prismadb.user.findUnique({
               where: { email: clerkUserEmail },
             });
-            
+
             if (existingUser) {
               // If existing user doesn't have a clerkId, update it
               if (!existingUser.clerkId) {
@@ -156,14 +156,14 @@ export async function checkAdminAccess() {
               });
             }
           }
-          
+
           // Final fallback: try to find by clerkId one more time
           if (!user) {
             user = await prismadb.user.findUnique({
               where: { clerkId: clerkUserId },
             });
           }
-          
+
           if (!user) {
             console.error('[ADMIN_ACCESS] Failed to create or find user after conflict:', createError);
             return { isAdmin: false, user: null };
@@ -176,30 +176,11 @@ export async function checkAdminAccess() {
       }
     }
 
-    // If user exists but wasn't promoted, check if they should be promoted
-    if (user && !user.isAdmin) {
-      // Recalculate admin count (excluding service-admin) to handle existing users
-      const currentAdminCount = await prismadb.user.count({ 
-        where: { 
-          isAdmin: true,
-          clerkId: { not: 'service-admin' } // Exclude synthetic service user
-        } 
-      });
-      
-      if (currentAdminCount === 0) {
-        try {
-          user = await prismadb.user.update({
-            where: { id: user.id },
-            data: { isAdmin: true },
-          });
-          console.log('[ADMIN_ACCESS] User promoted to admin');
-        } catch (updateError) {
-          // If update fails, refetch user
-          user = await prismadb.user.findUnique({
-            where: { clerkId: clerkUserId },
-          });
-        }
-      }
+    // Log admin status (no promotion - admin is only set during creation)
+    if (user && user.isAdmin) {
+      console.log('[ADMIN_ACCESS] User is admin');
+    } else if (user) {
+      console.log('[ADMIN_ACCESS] User is not admin');
     }
 
     console.log('[ADMIN_ACCESS] Returning isAdmin:', user?.isAdmin, 'for user:', user?.email);
@@ -212,11 +193,11 @@ export async function checkAdminAccess() {
 
 export async function requireAdmin() {
   const { isAdmin, user } = await checkAdminAccess();
-  
+
   if (!isAdmin) {
     throw new Error("Admin access required");
   }
-  
+
   return user;
 }
 

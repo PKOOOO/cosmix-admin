@@ -14,17 +14,10 @@ export async function GET(request: NextRequest) {
 
         if (categoryParam) {
             // Fetch services by category for the user's saloons
-            const { userId: clerkUserId } = auth();
-            if (!clerkUserId) {
-                return new NextResponse("Unauthenticated", { status: 401 });
-            }
-
-            const user = await prismadb.user.findUnique({
-                where: { clerkId: clerkUserId }
-            });
-
+            const { user } = await checkAdminAccess();
+            
             if (!user) {
-                return new NextResponse("User not found", { status: 401 });
+                return new NextResponse("Unauthenticated", { status: 401 });
             }
 
             // Find the category by ID or name - include both global categories and user's saloon categories
@@ -114,17 +107,10 @@ export async function GET(request: NextRequest) {
             return NextResponse.json(services);
         } else if (saloonId) {
             // Fetch services for a specific saloon
-            const { userId: clerkUserId } = auth();
-            if (!clerkUserId) {
-                return new NextResponse("Unauthenticated", { status: 401 });
-            }
-
-            const user = await prismadb.user.findUnique({
-                where: { clerkId: clerkUserId }
-            });
-
+            const { user } = await checkAdminAccess();
+            
             if (!user) {
-                return new NextResponse("User not found", { status: 401 });
+                return new NextResponse("Unauthenticated", { status: 401 });
             }
 
             // Verify the saloon belongs to the user
@@ -169,17 +155,10 @@ export async function GET(request: NextRequest) {
             return NextResponse.json(services);
         } else {
             // No parameters provided - return all sub-services for saloon selection
-            const { userId: clerkUserId } = auth();
-            if (!clerkUserId) {
-                return new NextResponse("Unauthenticated", { status: 401 });
-            }
-
-            const user = await prismadb.user.findUnique({
-                where: { clerkId: clerkUserId }
-            });
-
+            const { user } = await checkAdminAccess();
+            
             if (!user) {
-                return new NextResponse("User not found", { status: 401 });
+                return new NextResponse("Unauthenticated", { status: 401 });
             }
 
             // Fetch all sub-services (services with parentServiceId) from global categories
