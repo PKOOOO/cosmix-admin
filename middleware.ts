@@ -49,10 +49,11 @@ const bearerAuthMiddleware = async (req: NextRequest) => {
 
     // **CRITICAL FIX**: Capture X-User-Token header and set as cookie
     // This persists auth across server-side redirects (where headers are lost)
+    // NOTE: httpOnly is FALSE so WebView JavaScript can update this cookie when users switch accounts
     const userToken = req.headers.get("x-user-token");
     if (userToken) {
         response.cookies.set("x-user-token-session", userToken, {
-            httpOnly: true,
+            httpOnly: false, // Must be false so JS can update on account switch!
             secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
             maxAge: 60 * 60 * 24, // 24 hours
