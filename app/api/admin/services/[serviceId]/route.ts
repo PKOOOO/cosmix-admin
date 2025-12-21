@@ -31,7 +31,7 @@ export async function PATCH(
 
         // Check for duplicate names based on service type
         let duplicateService;
-        
+
         if (existingService.parentServiceId) {
             // This is a sub-service - check for duplicates under the same parent
             duplicateService = await prismadb.service.findFirst({
@@ -67,22 +67,22 @@ export async function PATCH(
             updateData.description = description;
         }
         if (workTypes !== undefined) {
-            const validWorkTypes = ["UUDET", "POISTO", "HUOLTO"] as const;
+            const validWorkTypes = ["UUDET", "POISTO", "HUOLTO", "EI_LISAKKEITA", "LYHYET", "KESKIPITKAT", "PITKAT"] as const;
             if (!Array.isArray(workTypes) || !workTypes.every((w) => validWorkTypes.includes(w))) {
-                return new NextResponse("workTypes must be an array of UUDET, POISTO, HUOLTO", { status: 400 });
+                return new NextResponse("workTypes must be an array of UUDET, POISTO, HUOLTO, EI_LISAKKEITA, LYHYET, KESKIPITKAT, PITKAT", { status: 400 });
             }
             updateData.workTypes = workTypes;
         }
-        
+
         console.log('[ADMIN_SERVICE_PATCH] Update data:', updateData);
-        
+
         const service = await prismadb.service.update({
             where: {
                 id: params.serviceId
             },
             data: updateData
         });
-        
+
         console.log('[ADMIN_SERVICE_PATCH] Updated service:', { id: service.id, name: service.name, description: service.description, workTypes: (service as any).workTypes });
 
         return NextResponse.json(service);

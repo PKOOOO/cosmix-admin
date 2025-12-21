@@ -4,13 +4,13 @@ import { AdminClient } from "./components/admin-client";
 
 export default async function AdminPage() {
   const { isAdmin } = await checkAdminAccess();
-  
+
   if (!isAdmin) {
     redirect('/dashboard');
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4">
       <AdminClient />
     </div>
   );

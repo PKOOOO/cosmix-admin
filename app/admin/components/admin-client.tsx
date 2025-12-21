@@ -54,7 +54,7 @@ export const AdminClient = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Global Categories</CardTitle>
@@ -69,7 +69,7 @@ export const AdminClient = () => {
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Parent Services</CardTitle>
@@ -84,7 +84,7 @@ export const AdminClient = () => {
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Saloons</CardTitle>
@@ -99,7 +99,7 @@ export const AdminClient = () => {
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -122,11 +122,11 @@ export const AdminClient = () => {
           <TabsTrigger value="categories">Global Categories</TabsTrigger>
           <TabsTrigger value="services">Parent Services</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="categories" className="space-y-4">
           <AdminCategoriesClient />
         </TabsContent>
-        
+
         <TabsContent value="services" className="space-y-4">
           <AdminServicesClient />
         </TabsContent>

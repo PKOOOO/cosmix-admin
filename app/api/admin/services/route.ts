@@ -48,10 +48,10 @@ export async function POST(req: Request) {
 			}
 
 			// Validate workTypes for sub-services (optional, but if provided must be valid enum values)
-			const validWorkTypes = ["UUDET", "POISTO", "HUOLTO"] as const;
+			const validWorkTypes = ["UUDET", "POISTO", "HUOLTO", "EI_LISAKKEITA", "LYHYET", "KESKIPITKAT", "PITKAT"] as const;
 			if (workTypes !== undefined) {
 				if (!Array.isArray(workTypes) || !workTypes.every((w) => validWorkTypes.includes(w))) {
-					return new NextResponse("workTypes must be an array of UUDET, POISTO, HUOLTO", { status: 400 });
+					return new NextResponse("workTypes must be an array of UUDET, POISTO, HUOLTO, EI_LISAKKEITA, LYHYET, KESKIPITKAT, PITKAT", { status: 400 });
 				}
 			}
 

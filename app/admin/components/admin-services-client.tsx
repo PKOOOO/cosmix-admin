@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertModal } from "@/components/modals/alert-modal";
 import toast from "react-hot-toast";
 
-type WorkType = 'UUDET' | 'POISTO' | 'HUOLTO';
+type WorkType = 'UUDET' | 'POISTO' | 'HUOLTO' | 'EI_LISAKKEITA' | 'LYHYET' | 'KESKIPITKAT' | 'PITKAT';
 
 interface GlobalCategory {
   id: string;
@@ -297,6 +297,42 @@ export const AdminServicesClient = () => {
                       />
                       Huolto
                     </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        name="workTypeEiLisakkeita"
+                        checked={workTypes.includes('EI_LISAKKEITA')}
+                        onChange={() => toggleWorkType('EI_LISAKKEITA')}
+                      />
+                      Ei lisäkkeitä
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        name="workTypeLyhyet"
+                        checked={workTypes.includes('LYHYET')}
+                        onChange={() => toggleWorkType('LYHYET')}
+                      />
+                      Lyhyet
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        name="workTypeKeskipitkat"
+                        checked={workTypes.includes('KESKIPITKAT')}
+                        onChange={() => toggleWorkType('KESKIPITKAT')}
+                      />
+                      Keskipitkät
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        name="workTypePitkat"
+                        checked={workTypes.includes('PITKAT')}
+                        onChange={() => toggleWorkType('PITKAT')}
+                      />
+                      Pitkät
+                    </label>
                   </div>
                 </div>
               )}
@@ -387,7 +423,7 @@ export const AdminServicesClient = () => {
             <Settings className="h-4 w-4" />
             Parent Services ({services.filter((s: any) => !s.parentServiceId).length})
           </h4>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4">
             {services.filter((s: any) => !s.parentServiceId).map((service) => (
               <Card key={service.id}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -456,7 +492,7 @@ export const AdminServicesClient = () => {
                   <div className="space-y-1 text-xs text-muted-foreground">
                     <p>Category: {service.category.name}</p>
                     <p>Parent: {(service as any).parentService?.name}</p>
-                    <p>Types: {(service as any).workTypes && (service as any).workTypes.length > 0 ? (service as any).workTypes.map((t: WorkType) => ({ UUDET: 'Uudet', POISTO: 'Poisto', HUOLTO: 'Huolto' } as const)[t]).join(', ') : '—'}</p>
+                    <p>Types: {(service as any).workTypes && (service as any).workTypes.length > 0 ? (service as any).workTypes.map((t: WorkType) => ({ UUDET: 'Uudet', POISTO: 'Poisto', HUOLTO: 'Huolto', EI_LISAKKEITA: 'Ei lisäkkeitä', LYHYET: 'Lyhyet', KESKIPITKAT: 'Keskipitkät', PITKAT: 'Pitkät' } as const)[t]).join(', ') : '—'}</p>
                     <p>Created: {new Date(service.createdAt).toLocaleDateString()}</p>
                   </div>
                 </CardContent>
