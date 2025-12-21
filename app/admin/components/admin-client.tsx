@@ -118,7 +118,7 @@ export const AdminClient = () => {
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="categories" className="space-y-4">
-        <TabsList>
+        <TabsList className="w-full grid grid-cols-2">
           <TabsTrigger value="categories">Global Categories</TabsTrigger>
           <TabsTrigger value="services">Parent Services</TabsTrigger>
         </TabsList>

@@ -143,7 +143,7 @@ export const AdminCategoriesClient = () => {
               Add Category
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="w-full max-w-lg">
             <DialogHeader>
               <DialogTitle>
                 {editingCategory ? "Edit Category" : "Create Category"}

@@ -269,13 +269,14 @@ export const AdminServicesClient = () => {
               {(isCreatingSubService || (editingService && (editingService as any).parentServiceId)) && (
                 <div className="space-y-2">
                   <Label>Work Types (optional)</Label>
-                  <div className="flex gap-6 text-sm">
+                  <div className="grid grid-cols-1 gap-3 text-sm">
                     <label className="flex items-center gap-2">
                       <input
                         type="checkbox"
                         name="workTypeUudet"
                         checked={workTypes.includes('UUDET')}
                         onChange={() => toggleWorkType('UUDET')}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                       />
                       Uudet
                     </label>
@@ -285,6 +286,7 @@ export const AdminServicesClient = () => {
                         name="workTypePoisto"
                         checked={workTypes.includes('POISTO')}
                         onChange={() => toggleWorkType('POISTO')}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                       />
                       Poisto
                     </label>
@@ -294,6 +296,7 @@ export const AdminServicesClient = () => {
                         name="workTypeHuolto"
                         checked={workTypes.includes('HUOLTO')}
                         onChange={() => toggleWorkType('HUOLTO')}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                       />
                       Huolto
                     </label>
@@ -303,6 +306,7 @@ export const AdminServicesClient = () => {
                         name="workTypeEiLisakkeita"
                         checked={workTypes.includes('EI_LISAKKEITA')}
                         onChange={() => toggleWorkType('EI_LISAKKEITA')}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                       />
                       Ei lisäkkeitä
                     </label>
@@ -312,6 +316,7 @@ export const AdminServicesClient = () => {
                         name="workTypeLyhyet"
                         checked={workTypes.includes('LYHYET')}
                         onChange={() => toggleWorkType('LYHYET')}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                       />
                       Lyhyet
                     </label>
@@ -321,6 +326,7 @@ export const AdminServicesClient = () => {
                         name="workTypeKeskipitkat"
                         checked={workTypes.includes('KESKIPITKAT')}
                         onChange={() => toggleWorkType('KESKIPITKAT')}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                       />
                       Keskipitkät
                     </label>
@@ -330,6 +336,7 @@ export const AdminServicesClient = () => {
                         name="workTypePitkat"
                         checked={workTypes.includes('PITKAT')}
                         onChange={() => toggleWorkType('PITKAT')}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                       />
                       Pitkät
                     </label>
