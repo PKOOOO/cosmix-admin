@@ -225,7 +225,7 @@ export const AdminServicesClient = () => {
         </div>
 
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="sm:max-w-2xl">
+          <DialogContent className="w-full max-w-lg">
             <DialogHeader>
               <DialogTitle>
                 {editingService

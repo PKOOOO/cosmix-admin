@@ -149,8 +149,8 @@ export const AdminCategoriesClient = () => {
                 {editingCategory ? "Edit Category" : "Create Category"}
               </DialogTitle>
               <DialogDescription>
-                {editingCategory 
-                  ? "Update the category name below." 
+                {editingCategory
+                  ? "Update the category name below."
                   : "Add a new global category that all saloons can use."
                 }
               </DialogDescription>
@@ -174,7 +174,7 @@ export const AdminCategoriesClient = () => {
               <Button variant="outline" onClick={resetForm}>
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={editingCategory ? handleUpdate : handleCreate}
                 disabled={loading}
               >
@@ -186,7 +186,7 @@ export const AdminCategoriesClient = () => {
       </div>
 
       {/* Categories List */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4">
         {categories.map((category) => (
           <Card key={category.id}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
