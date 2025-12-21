@@ -135,6 +135,10 @@ enum ServiceWorkType {
   UUDET
   POISTO
   HUOLTO
+  EI_LISAKKEITA
+  LYHYET
+  KESKIPITKAT
+  PITKAT
 }
 
 // ------------------- BOOKING -------------------
