@@ -138,6 +138,17 @@ export async function DELETE(
             return new NextResponse("Cannot delete service that is being used by saloons", { status: 400 });
         }
 
+        // Check if service has any bookings
+        const bookingsCount = await prismadb.booking.count({
+            where: {
+                serviceId: params.serviceId
+            }
+        });
+
+        if (bookingsCount > 0) {
+            return new NextResponse("Cannot delete service that has existing bookings", { status: 400 });
+        }
+
         // Delete the service
         await prismadb.service.delete({
             where: {
@@ -151,6 +162,13 @@ export async function DELETE(
         console.log('[ADMIN_SERVICE_DELETE]', error);
         if (error instanceof Error && error.message === "Admin access required") {
             return new NextResponse("Admin access required", { status: 403 });
+        }
+        // Handle Prisma foreign key constraint errors
+        if (error && typeof error === 'object' && 'code' in error) {
+            const prismaError = error as { code: string; meta?: any };
+            if (prismaError.code === 'P2003') {
+                return new NextResponse("Cannot delete service: it is referenced by other records", { status: 400 });
+            }
         }
         return new NextResponse("Internal error", { status: 500 });
     }

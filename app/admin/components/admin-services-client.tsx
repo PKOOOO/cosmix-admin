@@ -155,9 +155,19 @@ export const AdminServicesClient = () => {
       setDeleteId(null);
       setOpenDelete(false);
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting service:', error);
-      toast.error("Failed to delete service");
+      // Extract error message from axios response
+      let errorMessage = "Failed to delete service";
+      if (error.response?.data) {
+        // NextResponse with string body returns the string directly
+        errorMessage = typeof error.response.data === 'string' 
+          ? error.response.data 
+          : error.response.data.message || errorMessage;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
