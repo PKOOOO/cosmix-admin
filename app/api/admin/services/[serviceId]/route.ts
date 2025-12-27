@@ -127,17 +127,6 @@ export async function DELETE(
             }
         }
 
-        // Check if service is used in any saloon services
-        const saloonServicesCount = await prismadb.saloonService.count({
-            where: {
-                serviceId: params.serviceId
-            }
-        });
-
-        if (saloonServicesCount > 0) {
-            return new NextResponse("Cannot delete service that is being used by saloons", { status: 400 });
-        }
-
         // Check if service has any bookings
         const bookingsCount = await prismadb.booking.count({
             where: {
@@ -148,6 +137,14 @@ export async function DELETE(
         if (bookingsCount > 0) {
             return new NextResponse("Cannot delete service that has existing bookings", { status: 400 });
         }
+
+        // Delete all saloon services that reference this service first
+        // This will remove the service from all saloons
+        await prismadb.saloonService.deleteMany({
+            where: {
+                serviceId: params.serviceId
+            }
+        });
 
         // Delete the service
         await prismadb.service.delete({
