@@ -200,8 +200,8 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                 loading={loading}
             />
 
-            {/* Main content container with proper bottom padding for mobile */}
-            <div className="pb-20 md:pb-0">
+            {/* Main content container */}
+            <div>
                 <Form {...form}>
                     <form
                         id="saloon-form"
@@ -577,24 +577,21 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                             />
                         </div>
 
+                        {/* Mobile Submit Button - Below Services */}
+                        <Button 
+                            disabled={loading} 
+                            className="md:hidden w-full h-12 shadow-lg hover:shadow-xl transition-all duration-200 bg-brand-dark hover:bg-brand-dark/90 text-white font-medium" 
+                            type="submit"
+                        >
+                            Tallentaa
+                        </Button>
+
                         {/* Desktop Submit Button */}
                         <Button disabled={loading} className="hidden md:flex w-full md:w-auto md:ml-auto" type="submit">
                             {action}
                         </Button>
                     </form>
                 </Form>
-            </div>
-
-            {/* Mobile Bottom Submit Button */}
-            <div className="md:hidden fixed bottom-14 left-0 right-0 z-[60] px-4 pb-2">
-                <Button
-                    disabled={loading}
-                    className="w-full h-12 shadow-lg hover:shadow-xl transition-all duration-200 bg-brand-dark hover:bg-brand-dark/90 text-white font-medium"
-                    type="submit"
-                    form="saloon-form"
-                >
-                    Tallentaa
-                </Button>
             </div>
         </div>
     );
