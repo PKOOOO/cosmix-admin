@@ -101,7 +101,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                 fieldsToValidate = ['name'];
                 break;
             case 2:
-                fieldsToValidate = ['shortIntro'];
+                fieldsToValidate = ['shortIntro', 'description'];
                 break;
             case 3:
                 fieldsToValidate = ['images'];
@@ -316,21 +316,40 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                             </div>
                         )}
 
-                        {/* Step 2: Short Intro */}
+                        {/* Step 2: Description & Short Intro */}
                         {currentStep === 2 && (
                             <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                                <Heading title="Kerro lyhyt esittely yrityksestäsi." />
+                                <Heading title="Kerro yrityksestäsi." />
                                 <FormField
                                     control={form.control}
                                     name="shortIntro"
                                     render={({ field }) => (
                                         <FormItem>
+                                            <FormLabel>Lyhyt esittely</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     disabled={loading}
                                                     placeholder="esim. Premium-hius- ja kauneuspalvelut Helsingissä"
                                                     className="text-lg py-6"
                                                     autoFocus
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="description"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Pitempi kuvaus</FormLabel>
+                                            <FormControl>
+                                                <Textarea
+                                                    disabled={loading}
+                                                    placeholder="Kerro enemmän palveluistasi ja salongistasi..."
+                                                    className="min-h-[120px]"
                                                     {...field}
                                                 />
                                             </FormControl>
@@ -394,16 +413,14 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                     control={form.control}
                                     name="selectedServices"
                                     render={({ field }) => {
-                                        // Group services by category and parent
+                                        // Group services ONLY by category
                                         const groupedServices = services.reduce((acc: any, service: any) => {
                                             const categoryName = service.category?.name || 'Uncategorized';
-                                            const parentName = service.parentService?.name || 'No Parent';
-                                            const key = `${categoryName}::${parentName}`;
+                                            const key = categoryName;
 
                                             if (!acc[key]) {
                                                 acc[key] = {
                                                     category: categoryName,
-                                                    parent: parentName,
                                                     services: []
                                                 };
                                             }
@@ -419,7 +436,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                                 s.name.toLowerCase().includes(query) ||
                                                 s.description?.toLowerCase().includes(query) ||
                                                 group.category.toLowerCase().includes(query) ||
-                                                group.parent.toLowerCase().includes(query)
+                                                (s.parentService?.name || "").toLowerCase().includes(query)
                                             );
                                         }).map(([key, group]: [string, any]) => ({
                                             key,
@@ -430,7 +447,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                                 return s.name.toLowerCase().includes(query) ||
                                                     s.description?.toLowerCase().includes(query) ||
                                                     group.category.toLowerCase().includes(query) ||
-                                                    group.parent.toLowerCase().includes(query);
+                                                    (s.parentService?.name || "").toLowerCase().includes(query);
                                             })
                                         }));
 
@@ -538,7 +555,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                                                                                         )}
                                                                                                     </button>
                                                                                                     <span className="text-sm font-semibold">
-                                                                                                        {group.category} → {group.parent}
+                                                                                                        {group.category}
                                                                                                     </span>
                                                                                                     <span className="text-xs text-muted-foreground">
                                                                                                         ({group.services.length} {group.services.length === 1 ? 'service' : 'services'})
@@ -574,6 +591,9 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                                                                                 >
                                                                                                     {service.name}
                                                                                                 </label>
+                                                                                                <p className="text-xs text-muted-foreground">
+                                                                                                    {service.parentService?.name}
+                                                                                                </p>
                                                                                             </td>
                                                                                             <td className="p-3">
                                                                                                 <p className="text-xs text-muted-foreground line-clamp-2">
@@ -616,7 +636,6 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                                                                         )}
                                                                                         <div className="text-left">
                                                                                             <p className="text-sm font-semibold">{group.category}</p>
-                                                                                            <p className="text-xs text-muted-foreground">{group.parent}</p>
                                                                                             <p className="text-xs text-muted-foreground mt-1">
                                                                                                 {group.services.length} {group.services.length === 1 ? 'service' : 'services'}
                                                                                             </p>
@@ -652,6 +671,9 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                                                                                 >
                                                                                                     {service.name}
                                                                                                 </label>
+                                                                                                <p className="text-xs text-muted-foreground">
+                                                                                                    {service.parentService?.name}
+                                                                                                </p>
                                                                                                 {service.description && (
                                                                                                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                                                                                                         {service.description}
