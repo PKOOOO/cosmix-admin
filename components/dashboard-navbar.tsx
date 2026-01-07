@@ -54,7 +54,9 @@ export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
   const [loading, setLoading] = useState(true);
   const { getToken } = useAuth();
   useEffect(() => {
-    setHasSaloonsState(hasSaloons);
+    if (hasSaloons) {
+      setHasSaloonsState(true);
+    }
   }, [hasSaloons]);
 
   useEffect(() => {
