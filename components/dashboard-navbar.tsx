@@ -154,8 +154,10 @@ export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
   // Admin Panel removed - access via direct URL only
   const adminRoutes: Route[] = [];
 
+  // Show all routes, just disable the ones that require saloons
+  // Only filter by adminOnly, not by disabled status
   const availableRoutes = routes.filter((route) => {
-    return !route.disabled && (!route.adminOnly || isAdmin);
+    return !route.adminOnly || isAdmin;
   });
 
   return (

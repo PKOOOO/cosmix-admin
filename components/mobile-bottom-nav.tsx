@@ -94,9 +94,9 @@ export function MobileBottomNav({ hasSaloons }: MobileBottomNavProps) {
     },
   ];
 
-  // Filter routes based on admin status and availability
+  // Show all routes, just disable them visually - only filter by adminOnly
   const availableRoutes = mobileRoutes.filter(route =>
-    !route.disabled && (!(route as any).adminOnly || isAdmin)
+    !(route as any).adminOnly || isAdmin
   );
 
   return (
@@ -110,21 +110,28 @@ export function MobileBottomNav({ hasSaloons }: MobileBottomNavProps) {
         {availableRoutes.map((route) => (
           <Link
             key={route.href}
-            href={route.href}
+            href={route.disabled ? "#" : route.href}
+            onClick={route.disabled ? (e) => e.preventDefault() : undefined}
             className={cn(
               "flex flex-col items-center justify-center min-w-0 flex-1 px-2 py-1 rounded-lg transition-colors",
-              route.active
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground"
+              route.disabled
+                ? "text-muted-foreground/40 cursor-not-allowed"
+                : route.active
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
             )}
           >
             <route.icon className={cn(
               "h-5 w-5 mb-1",
-              route.active ? "text-primary" : "text-muted-foreground"
+              route.disabled
+                ? "text-muted-foreground/40"
+                : route.active ? "text-primary" : "text-muted-foreground"
             )} />
             <span className={cn(
               "text-xs font-medium truncate max-w-full",
-              route.active ? "text-primary" : "text-muted-foreground"
+              route.disabled
+                ? "text-muted-foreground/40"
+                : route.active ? "text-primary" : "text-muted-foreground"
             )}>
               {route.label}
             </span>
