@@ -49,37 +49,53 @@ const NavLink = ({ route }: { route: Route }) => (
 export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
   const pathname = usePathname();
   const [isAdmin, setIsAdmin] = useState(false);
+  // Initialize with prop, but allow API to update it (handles stale server data)
+  const [hasSaloonsState, setHasSaloonsState] = useState(hasSaloons);
   const [loading, setLoading] = useState(true);
   const { getToken } = useAuth();
+  useEffect(() => {
+    setHasSaloonsState(hasSaloons);
+  }, [hasSaloons]);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
         const clerkToken = await getToken();
         const headers: Record<string, string> = {};
-        
+
         // Send Clerk token if available
         if (clerkToken) {
           headers['X-User-Token'] = clerkToken;
         }
-        
+
         // Get bearer token from cookie (set by WebView)
         const adminToken = document.cookie
           .split('; ')
           .find(row => row.startsWith('admin_token='))
           ?.split('=')[1];
-        
+
         // Send bearer token in Authorization header if available
         if (adminToken) {
           headers['Authorization'] = `Bearer ${adminToken}`;
         }
-        
+
         console.log('[NAVBAR] Checking admin status, Clerk token:', !!clerkToken, 'Bearer token:', !!adminToken);
-        
+
         const response = await axios.get('/api/admin/check', { headers });
         console.log('[NAVBAR] Admin check response:', response.data);
         // Explicitly check - only set to true if explicitly true
         const adminStatus = response.data?.isAdmin === true;
+
+        // Update hasSaloons from API if available (more reliable on client nav)
+        if (typeof response.data?.hasSaloons === 'boolean') {
+          const apiHasSaloons = response.data.hasSaloons;
+          // Only update if true (don't accidentally hide if prop was true but API flaked, though API is source of truth?)
+          // Actually, API is more fresh. Let's trust it if it returns true.
+          if (apiHasSaloons) {
+            setHasSaloonsState(true);
+          }
+        }
+
         console.log('[NAVBAR] Setting isAdmin to:', adminStatus);
         setIsAdmin(adminStatus);
       } catch (error) {
@@ -98,21 +114,21 @@ export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
       label: 'Palvelutilastot',
       icon: BarChart3,
       active: pathname === '/dashboard',
-      disabled: !hasSaloons,
+      disabled: !hasSaloonsState && !pathname.includes('/dashboard/saloons/'),
     },
     {
       href: '/dashboard/integration',
       label: 'Palkkaintegraatio',
       icon: CloudIcon,
       active: pathname === '/dashboard/integration',
-      disabled: !hasSaloons,
+      disabled: !hasSaloonsState && !pathname.includes('/dashboard/saloons/'),
     },
     {
       href: '/dashboard/bookings',
       label: 'Varaukset',
       icon: CalendarCheck,
       active: pathname === '/dashboard/bookings',
-      disabled: !hasSaloons,
+      disabled: !hasSaloonsState && !pathname.includes('/dashboard/saloons/'),
     },
     {
       href: '/dashboard/saloons',

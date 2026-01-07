@@ -99,11 +99,11 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           )
         }}
       </CldUploadWidget>
-      {value.length > 0 && (
+      {/* {value.length > 0 && (
         <p className="text-xs text-muted-foreground mt-2">
           {value.length} {value.length === 1 ? 'kuva ladattu' : 'kuvaa ladattu'}
         </p>
-      )}
+      )} */}
       {/* Clear open flag when unmounting */}
       <script dangerouslySetInnerHTML={{ __html: `window.__cloudinaryOpen = false;` }} />
     </div>

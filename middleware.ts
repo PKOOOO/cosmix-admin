@@ -114,9 +114,15 @@ const bearerAuthMiddleware = async (req: NextRequest) => {
         }
     }
 
-    // For API routes, require bearer token authentication
+    // For API routes, require authentication (bearer token OR user session cookie)
+    // Bearer token is used for initial WebView requests, but subsequent API calls
+    // from within the page use the x-user-token-session cookie for authentication
     if (isApi) {
-        if (!isAuthorizedRequest(req)) {
+        const hasUserSessionCookie = req.cookies.get("x-user-token-session");
+        const hasBearerToken = isAuthorizedRequest(req);
+
+        if (!hasBearerToken && !hasUserSessionCookie) {
+            console.log('[MIDDLEWARE] API access denied - no bearer token or session cookie');
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
     }

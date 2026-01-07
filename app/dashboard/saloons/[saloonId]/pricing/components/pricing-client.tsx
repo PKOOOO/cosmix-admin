@@ -318,7 +318,7 @@ export const PricingClient: React.FC<PricingClientProps> = ({
                                                         className="flex-1 lg:flex-none"
                                                     >
                                                         <Trash2 className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-0" />
-                                                        <span className="lg:hidden text-xs">Delete</span>
+                                                        <span className="lg:hidden text-xs">Poistaa</span>
                                                     </Button>
                                                 </div>
                                             </div>

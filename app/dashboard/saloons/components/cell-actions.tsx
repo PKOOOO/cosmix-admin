@@ -46,7 +46,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
     try {
       setLoading(true);
       const response = await axios.delete(`/api/saloons/${data.id}`);
-      
+
       // Check if user has remaining salons
       if (!response.data.hasRemainingSaloons) {
         // No remaining salons, show salon creation modal
@@ -122,7 +122,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
               Set Prices
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem 
+          <DropdownMenuItem
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -133,7 +133,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
             }}
           >
             <Trash className="mr-2 h-4 w-4" />
-            Delete
+            Poistaa
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         if (categoryParam) {
             // Fetch services by category for the user's saloons
             const { user } = await checkAdminAccess();
-            
+
             if (!user) {
                 return new NextResponse("Unauthenticated", { status: 401 });
             }
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
         } else if (saloonId) {
             // Fetch services for a specific saloon
             const { user } = await checkAdminAccess();
-            
+
             if (!user) {
                 return new NextResponse("Unauthenticated", { status: 401 });
             }
@@ -155,11 +155,16 @@ export async function GET(request: NextRequest) {
             return NextResponse.json(services);
         } else {
             // No parameters provided - return all sub-services for saloon selection
+            console.log('[SERVICES_API] Fetching all sub-services for saloon selection...');
+
             const { user } = await checkAdminAccess();
-            
+
             if (!user) {
+                console.log('[SERVICES_API] No user found - returning 401');
                 return new NextResponse("Unauthenticated", { status: 401 });
             }
+
+            console.log('[SERVICES_API] User authenticated:', user.id);
 
             // Fetch all sub-services (services with parentServiceId) from global categories
             const services = await prismadb.service.findMany({
@@ -190,6 +195,22 @@ export async function GET(request: NextRequest) {
                     { name: 'asc' }
                 ]
             });
+
+            console.log('[SERVICES_API] Found', services.length, 'sub-services from global categories');
+
+            // If no services found, let's check what categories exist
+            if (services.length === 0) {
+                const allCategories = await prismadb.category.findMany({
+                    select: { id: true, name: true, isGlobal: true }
+                });
+                console.log('[SERVICES_API] All categories in DB:', allCategories);
+
+                const allServices = await prismadb.service.findMany({
+                    select: { id: true, name: true, parentServiceId: true, categoryId: true }
+                });
+                console.log('[SERVICES_API] All services in DB:', allServices.length, 'total');
+                console.log('[SERVICES_API] Services with parentServiceId:', allServices.filter(s => s.parentServiceId).length);
+            }
 
             return NextResponse.json(services);
         }

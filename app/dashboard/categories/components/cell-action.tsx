@@ -53,14 +53,14 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   const onDelete = async () => {
     try {
       setLoading(true);
-      
+
       // Use different API endpoint for global categories
       if (data.isGlobal) {
         await axios.delete(`/api/admin/categories/${data.id}`);
       } else {
         await axios.delete(`/api/categories/${data.id}`);
       }
-      
+
       toast.success("Category deleted successfully.", {
         style: {
           borderRadius: "10px",
@@ -102,7 +102,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
             <Copy className="mr-2 h-4 w-4" />
             Copy Id
           </DropdownMenuItem>
-          
+
           {/* Only show edit/delete for admin users */}
           {isAdmin && (
             <>
@@ -119,7 +119,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
                 <Edit className="mr-2 h-4 w-4" />
                 {data.isGlobal ? "Manage in Admin" : "Update"}
               </DropdownMenuItem>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -129,7 +129,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
                 }}
               >
                 <Trash className="mr-2 h-4 w-4" />
-                Delete
+                Poistaa
               </DropdownMenuItem>
             </>
           )}

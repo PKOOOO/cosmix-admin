@@ -41,7 +41,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
     try {
       setLoading(true);
       await axios.delete(`/api/services/${data.id}`);
-      
+
       toast.success("Service deleted successfully.", {
         style: {
           borderRadius: "10px",
@@ -91,7 +91,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
             <Edit className="mr-2 h-4 w-4" />
             Update
           </DropdownMenuItem>
-          <DropdownMenuItem 
+          <DropdownMenuItem
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -101,7 +101,7 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
             }}
           >
             <Trash className="mr-2 h-4 w-4" />
-            Delete
+            Poistaa
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

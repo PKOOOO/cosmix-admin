@@ -3,8 +3,6 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Map, { Marker, Popup } from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin, Search, Check } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -26,8 +24,8 @@ export const MapboxLocationPicker: React.FC<LocationPickerProps> = ({
   disabled = false
 }) => {
   const [viewState, setViewState] = useState({
-    longitude: initialLocation?.longitude || 2.3522, // Default to Paris
-    latitude: initialLocation?.latitude || 48.8566,
+    longitude: initialLocation?.longitude || 24.9384, // Default to Helsinki
+    latitude: initialLocation?.latitude || 60.1699,
     zoom: 13
   });
 
@@ -51,17 +49,14 @@ export const MapboxLocationPicker: React.FC<LocationPickerProps> = ({
   useEffect(() => {
     const checkWebView = () => {
       const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
-      // Check for React Native WebView or other mobile WebView indicators
       const isRNWebView = userAgent.includes('ReactNativeWebView');
       const isAndroidWebView = userAgent.includes('wv');
       const isIOSWebView = /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/i.test(userAgent);
-
       return isRNWebView || isAndroidWebView || isIOSWebView;
     };
 
     const detected = checkWebView();
     setIsWebView(detected);
-    console.log('WebView detected:', detected);
   }, []);
 
   // Handle map load
@@ -90,11 +85,9 @@ export const MapboxLocationPicker: React.FC<LocationPickerProps> = ({
         const location = { latitude: lat, longitude: lng, address };
         setSelectedLocation(location);
         onLocationSelect(location);
-        toast.success('Location selected!');
       })
       .catch(error => {
         console.error('Error reverse geocoding:', error);
-        toast.error('Failed to get address for selected location');
       });
   }, [disabled, onLocationSelect, MAPBOX_TOKEN]);
 
@@ -105,14 +98,14 @@ export const MapboxLocationPicker: React.FC<LocationPickerProps> = ({
     setIsSearching(true);
     try {
       const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${MAPBOX_TOKEN}&limit=5`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${MAPBOX_TOKEN}&limit=5&country=fi`
       );
       const data = await response.json();
       setSearchResults(data.features || []);
       setShowSearchResults(true);
     } catch (error) {
       console.error('Search error:', error);
-      toast.error('Search failed');
+      toast.error('Haku epäonnistui');
     } finally {
       setIsSearching(false);
     }
@@ -133,7 +126,7 @@ export const MapboxLocationPicker: React.FC<LocationPickerProps> = ({
     onLocationSelect(location);
     setShowSearchResults(false);
     setSearchQuery(result.place_name);
-    toast.success('Location selected!');
+    toast.success('Sijainti valittu!');
   }, [onLocationSelect]);
 
   // Handle Enter key in search
@@ -145,68 +138,9 @@ export const MapboxLocationPicker: React.FC<LocationPickerProps> = ({
   };
 
   return (
-    <Card className="w-full overflow-hidden">
-
-      <CardContent className="space-y-4">
-        {/* Search Bar */}
-        <div className="relative">
-          <div className="flex gap-2 mt-4">
-            <Input
-              placeholder="Search for a location..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={handleSearchKeyPress}
-              disabled={disabled}
-              className="flex-1"
-            />
-            <Button
-              onClick={handleSearch}
-              disabled={disabled || isSearching || !searchQuery.trim()}
-              size="sm"
-              variant="outline"
-            >
-              <Search className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Search Results */}
-          {showSearchResults && searchResults.length > 0 && (
-            <div className="absolute top-full left-0 right-0 z-10 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
-              {searchResults.map((result, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleSearchResultSelect(result)}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                >
-                  <div className="text-sm font-medium">{result.text}</div>
-                  <div className="text-xs text-gray-500">{result.place_name}</div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Selected Location Info */}
-        {selectedLocation && (
-          <div className="p-4 bg-brand-cream rounded-lg border border-brand-beige">
-            <div className="flex items-start gap-3">
-              <div className="bg-brand-dark text-white p-2 rounded-full">
-                <Check className="h-4 w-4" />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-medium text-brand-dark">Selected Location</h4>
-                <p className="text-sm text-gray-600 mt-1">{selectedLocation.address}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Coordinates: {selectedLocation.latitude.toFixed(6)}, {selectedLocation.longitude.toFixed(6)}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </CardContent>
-
-      {/* Map - Full Width at Bottom */}
-      <div className="h-96 w-full overflow-hidden" style={{ position: 'relative', minHeight: '384px' }}>
+    <div className="relative w-full h-[115vh] md:h-[calc(100vh-120px)] min-h-[500px]">
+      {/* Full Screen Map */}
+      <div className="absolute inset-0 overflow-hidden">
         <Map
           ref={mapRef}
           {...viewState}
@@ -215,11 +149,10 @@ export const MapboxLocationPicker: React.FC<LocationPickerProps> = ({
           onLoad={handleMapLoad}
           onError={handleMapError}
           mapboxAccessToken={MAPBOX_TOKEN}
-          style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}
+          style={{ width: '100%', height: '100%' }}
           mapStyle="mapbox://styles/mapbox/streets-v12"
           cursor={disabled ? 'default' : 'crosshair'}
           attributionControl={false}
-          // WebView optimizations
           preserveDrawingBuffer={isWebView}
           antialias={true}
           failIfMajorPerformanceCaveat={false}
@@ -233,13 +166,99 @@ export const MapboxLocationPicker: React.FC<LocationPickerProps> = ({
               latitude={selectedLocation.latitude}
               anchor="bottom"
             >
-              <div className="bg-brand-dark text-white p-2 rounded-full shadow-lg">
-                <MapPin className="h-4 w-4" />
+              <div className="bg-[#423120] text-white p-3 rounded-full shadow-lg animate-bounce">
+                <MapPin className="h-6 w-6" />
               </div>
             </Marker>
           )}
         </Map>
       </div>
-    </Card>
+
+      {/* Floating Search Bar - Styled like cosmix-v2 */}
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 w-[90%] max-w-md">
+        <div className="relative">
+          <div
+            className="flex items-center bg-white rounded-full border-2 border-[#423120] px-4 py-3 shadow-lg"
+            style={{
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+            }}
+          >
+            <Search className="h-6 w-6 text-[#423120] mr-3 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Etsi osoitetta..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={handleSearchKeyPress}
+              onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
+              disabled={disabled}
+              autoComplete="off"
+              className="flex-1 text-lg font-medium text-[#423120] placeholder-[#423120]/50 bg-transparent outline-none"
+              style={{ fontFamily: 'inherit' }}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setShowSearchResults(false);
+                }}
+                className="ml-2 text-[#423120]/50 hover:text-[#423120]"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Search Results Dropdown */}
+          {showSearchResults && searchResults.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-200 max-h-60 overflow-y-auto z-20">
+              {searchResults.map((result, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleSearchResultSelect(result)}
+                  className="w-full text-left px-4 py-3 hover:bg-[#F4EDE5] border-b border-gray-100 last:border-b-0 first:rounded-t-2xl last:rounded-b-2xl transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <MapPin className="h-4 w-4 text-[#423120] flex-shrink-0" />
+                    <div>
+                      <div className="text-sm font-medium text-[#423120]">{result.text}</div>
+                      <div className="text-xs text-gray-500 line-clamp-1">{result.place_name}</div>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Selected Location Badge - Bottom */}
+      {selectedLocation && (
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 w-[90%] max-w-md">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-[#D7C3A7]">
+            <div className="flex items-center gap-3">
+              <div className="bg-[#423120] text-white p-2 rounded-full">
+                <Check className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[#423120] truncate">{selectedLocation.address}</p>
+                <p className="text-xs text-gray-500">
+                  {selectedLocation.latitude.toFixed(4)}, {selectedLocation.longitude.toFixed(4)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tap to select hint */}
+      {/* {!selectedLocation && (
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+          <div className="bg-[#423120]/90 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
+            Napauta karttaa valitaksesi sijainti
+          </div>
+        </div>
+      )} */}
+    </div>
   );
 };

@@ -2,10 +2,10 @@
 "use client";
 import * as z from "zod";
 import { Saloon } from "@prisma/client";
-import { Trash } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useEffect } from "react";
+import React from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
@@ -14,14 +14,14 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { AlertModal } from "@/components/modals/alert-modal";
+
 import ImageUpload from "@/components/ui/image-upload";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapboxLocationPicker } from "@/components/ui/mapbox-location-picker";
-import { Search, ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronsUpDown, Check, Search, ChevronDown, ChevronRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import React from "react";
 
 const formSchema = z.object({
     name: z.string().min(1, "Name is required."),
@@ -45,7 +45,7 @@ interface SaloonFormProps {
 export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
     const router = useRouter();
 
-    const [open, setOpen] = useState(false);
+
     const [loading, setLoading] = useState(false);
     const [services, setServices] = useState<any[]>([]);
     const [loadingServices, setLoadingServices] = useState(false);
@@ -59,6 +59,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
         address: string;
     } | null>(null);
     const [keyboardHeight, setKeyboardHeight] = useState(0);
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
     // Detect keyboard using visualViewport API for accurate height
     useEffect(() => {
@@ -124,10 +125,11 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
         setCanSubmit(false);
     };
 
+
     const title = initialData ? "Edit saloon" : "Create saloon";
     const description = initialData ? "Edit saloon details" : "Add a new saloon";
     const toastMessage = initialData ? "Saloon updated successfully." : "Salonin luominen onnistui.";
-    const action = initialData ? "Save changes" : "Create";
+    const action = initialData ? "Save changes" : "Luoda";
 
     const form = useForm<SaloonFormValues>({
         resolver: zodResolver(formSchema),
@@ -152,22 +154,55 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
         },
     });
 
-    // Fetch all sub-services for selection and existing salon services
+    // Fetch all sub-services for selection
+    // Removed 'form' from dependencies to prevent infinite loops if form object reference changes
     useEffect(() => {
         const fetchServices = async () => {
             try {
                 setLoadingServices(true);
-
-                // Fetch all available sub-services
-                const servicesResponse = await axios.get('/api/services');
-                const subServices = servicesResponse.data.filter((service: any) => service.parentServiceId);
+                const response = await axios.get('/api/services');
+                // Filter only sub-services (services with parentServiceId)
+                const subServices = response.data.filter((service: any) => service.parentServiceId);
                 setServices(subServices);
+
+                // Set first category as selected initially
+                if (subServices.length > 0) {
+                    const groups = subServices.reduce((groups: any, service: any) => {
+                        // FIX: Handle both string and object categories robustly
+                        let categoryName = 'Other';
+                        if (service.category) {
+                            if (typeof service.category === 'object') {
+                                categoryName = service.category.name || 'Other';
+                            } else {
+                                categoryName = String(service.category);
+                            }
+                        }
+
+                        // Prevent [object Object] if something slipped through
+                        if (categoryName === '[object Object]') categoryName = 'Other';
+
+                        if (!groups[categoryName]) {
+                            groups[categoryName] = [];
+                        }
+                        groups[categoryName].push(service);
+                        return groups;
+                    }, {});
+                    const categories = Object.keys(groups);
+                    if (categories.length > 0) {
+                        setSelectedCategory(categories[0]);
+                    }
+                }
 
                 // If editing, fetch existing salon services
                 if (initialData) {
-                    const saloonServicesResponse = await axios.get(`/api/saloons/${initialData.id}/services`);
-                    const selectedServiceIds = saloonServicesResponse.data.map((saloonService: any) => saloonService.service.id);
-                    form.setValue('selectedServices', selectedServiceIds);
+                    try {
+                        const saloonServicesResponse = await axios.get(`/api/saloons/${initialData.id}/services`);
+                        const selectedServiceIds = saloonServicesResponse.data.map((saloonService: any) => saloonService.service.id);
+                        // Access setValue directly from form closure, strictly internal
+                        form.setValue('selectedServices', selectedServiceIds);
+                    } catch (err) {
+                        console.error("Error fetching existing services", err);
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching services:', error);
@@ -178,17 +213,6 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
         };
         fetchServices();
     }, [initialData, form]);
-
-    // Initialize selected location from initial data
-    useEffect(() => {
-        if (initialData && initialData.latitude && initialData.longitude) {
-            setSelectedLocation({
-                latitude: initialData.latitude,
-                longitude: initialData.longitude,
-                address: initialData.address || 'Selected location'
-            });
-        }
-    }, [initialData]);
 
     const handleLocationSelect = (location: { latitude: number; longitude: number; address: string }) => {
         setSelectedLocation(location);
@@ -227,74 +251,104 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
         }
     };
 
-    const onDelete = async () => {
-        if (!initialData) return;
+    // Watch form values for validation
+    const watchedName = form.watch("name");
+    const watchedIntro = form.watch("shortIntro");
+    const watchedImages = form.watch("images");
+    const watchedLat = form.watch("latitude");
+    const watchedServices = form.watch("selectedServices");
 
-        try {
-            setLoading(true);
-            const response = await axios.delete(
-                `/api/saloons/${initialData.id}`
-            );
-
-            // Check if user has remaining salons
-            if (!response.data.hasRemainingSaloons) {
-                // No remaining salons, navigate to create new salon
-                toast.success("Saloon deleted. Please create a new salon to continue.");
-                // Close modal and navigate to salon creation page
-                setOpen(false);
-                setTimeout(() => {
-                    router.push('/dashboard/saloons/new');
-                }, 200);
-            } else {
-                // Has remaining saloons, navigate normally
-                toast.success("Saloon deleted successfully.");
-                setOpen(false);
-                setTimeout(() => {
-                    router.refresh();
-                    router.push('/dashboard/saloons');
-                }, 100);
-            }
-        } catch (error) {
-            toast.error("Failed to delete saloon. Please try again.");
-            setOpen(false);
-        } finally {
-            setLoading(false);
+    // Check if current step is valid
+    const isStepValid = () => {
+        switch (currentStep) {
+            case 1:
+                return !!watchedName && watchedName.length > 0;
+            case 2:
+                return !!watchedIntro && watchedIntro.length > 0;
+            case 3:
+                return watchedImages && watchedImages.length > 0;
+            case 4:
+                return !!watchedLat;
+            case 5:
+                return watchedServices && watchedServices.length > 0;
+            default:
+                return true;
         }
     };
 
+    // Group services by category
+    const groupedServices = React.useMemo(() => {
+        return services.reduce((groups, service) => {
+            const categoryName = (typeof service.category === 'object' && service.category !== null)
+                ? service.category.name
+                : service.category;
+            const category = categoryName || 'Other';
+
+            if (!groups[category]) {
+                groups[category] = [];
+            }
+            groups[category].push(service);
+            return groups;
+        }, {} as Record<string, any[]>);
+    }, [services]);
+
+    // Get all unique categories
+    const allCategories = React.useMemo(() => Object.keys(groupedServices), [groupedServices]);
+
+    // Filter categories based on search
+    const categories = React.useMemo(() => {
+        if (!searchQuery) return allCategories;
+
+        return allCategories.filter(category => {
+            const categoryServices = groupedServices[category];
+            return categoryServices.some((service: any) =>
+                service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (service.description && service.description.toLowerCase().includes(searchQuery.toLowerCase()))
+            );
+        });
+    }, [allCategories, groupedServices, searchQuery]);
+
+    // Ensure selected category is valid
+    const effectiveSelectedCategory = React.useMemo(() => {
+        if (selectedCategory && categories.includes(selectedCategory)) {
+            return selectedCategory;
+        }
+        return categories.length > 0 ? categories[0] : null;
+    }, [selectedCategory, categories]);
+
+    // Get services for current view (vertical list)
+    const displayServices = React.useMemo(() => {
+        if (!effectiveSelectedCategory) return [];
+        const categoryServices = groupedServices[effectiveSelectedCategory];
+
+        if (!searchQuery) return categoryServices;
+
+        return categoryServices.filter((service: any) =>
+            service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (service.description && service.description.toLowerCase().includes(searchQuery.toLowerCase()))
+        );
+    }, [effectiveSelectedCategory, groupedServices, searchQuery]);
+
     return (
         <div className="relative">
-            <AlertModal
-                isOpen={open}
-                onClose={() => setOpen(false)}
-                onConfirm={onDelete}
-                loading={loading}
-            />
+            {/* Header Section - Hidden on fullscreen steps (map and services) */}
+            {currentStep !== 4 && currentStep !== 5 && (
+                <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+                    {/* Delete button removed as per request */}
+                </div>
+            )}
 
-            {/* Header Section */}
-            <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
-                {initialData && (
-                    <Button
-                        disabled={loading}
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => setOpen(true)}
-                        className="w-full sm:w-auto"
-                    >
-                        <Trash className="h-4 w-4 mr-2" />
-                        Delete Saloon
-                    </Button>
-                )}
-            </div>
+
 
             {/* Main content container with proper bottom padding for mobile */}
             <div
-                className="pb-24 md:pb-0 transition-all duration-200"
+                className={`transition-all duration-200 ${currentStep === 4 ? 'pb-20' : 'pb-24 md:pb-0'}`}
                 style={{ paddingBottom: keyboardHeight > 0 ? `${keyboardHeight + 80}px` : undefined }}
             >
                 <Form {...form}>
                     <form
                         id="saloon-form"
+                        autoComplete="off"
                         onSubmit={(e) => {
                             e.preventDefault();
                             if (currentStep === 5 && canSubmit) {
@@ -302,7 +356,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                 setCanSubmit(false);
                             }
                         }}
-                        className="space-y-4 md:space-y-6 w-full max-w-full"
+                        className={currentStep === 4 ? "w-full max-w-full" : "space-y-4 md:space-y-6 w-full max-w-full"}
                     >
 
                         {/* Step 1: Name */}
@@ -353,24 +407,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                         </FormItem>
                                     )}
                                 />
-                                <FormField
-                                    control={form.control}
-                                    name="description"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Pitempi kuvaus</FormLabel>
-                                            <FormControl>
-                                                <Textarea
-                                                    disabled={loading}
-                                                    placeholder="Kerro enemmän palveluistasi ja salongistasi..."
-                                                    className="min-h-[120px]"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+
                             </div>
                         )}
 
@@ -404,92 +441,34 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                             </div>
                         )}
 
-                        {/* Step 4: Address & Map */}
+                        {/* Step 4: Map */}
                         {currentStep === 4 && (
-                            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                                <Heading title="Missä sijaitset?" />
-
-                                <FormField
-                                    control={form.control}
-                                    name="address"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormControl>
-                                                <Input
-                                                    disabled={loading}
-                                                    placeholder="Osoite"
-                                                    {...field}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
+                            <div className="animate-in fade-in slide-in-from-right-4 duration-300 -mx-4 sm:-mx-8 -mt-[88px] md:-mt-6">
+                                <MapboxLocationPicker
+                                    onLocationSelect={handleLocationSelect}
+                                    initialLocation={selectedLocation || undefined}
+                                    disabled={loading}
                                 />
-
-                                <div className="mt-4">
-                                    <MapboxLocationPicker
-                                        onLocationSelect={handleLocationSelect}
-                                        initialLocation={selectedLocation || undefined}
-                                        disabled={loading}
-                                    />
-                                </div>
                             </div>
                         )}
 
                         {/* Step 5: Services */}
                         {currentStep === 5 && (
-                            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                                <Heading title="Valitse palvelut" />
+                            // Main container: Fixed height (viewport - offset), Flex column
+                            // -mt-[88px] preserves the top alignment user likes
+                            // h-[calc(100vh-50px)] extends lower to close gap above buttons
+                            <div className="animate-in fade-in slide-in-from-right-4 duration-300 -mx-4 sm:-mx-8 -mt-[88px] md:-mt-6 h-[calc(100vh-50px)] flex flex-col">
+
                                 <FormField
                                     control={form.control}
                                     name="selectedServices"
                                     render={({ field }) => {
-                                        // Group services ONLY by category
-                                        const groupedServices = services.reduce((acc: any, service: any) => {
-                                            const categoryName = service.category?.name || 'Uncategorized';
-                                            const key = categoryName;
-
-                                            if (!acc[key]) {
-                                                acc[key] = {
-                                                    category: categoryName,
-                                                    services: []
-                                                };
-                                            }
-                                            acc[key].services.push(service);
-                                            return acc;
-                                        }, {});
-
-                                        // Filter groups based on search
-                                        const filteredGroups = Object.entries(groupedServices).filter(([key, group]: [string, any]) => {
-                                            if (!searchQuery) return true;
-                                            const query = searchQuery.toLowerCase();
-                                            return group.services.some((s: any) =>
-                                                s.name.toLowerCase().includes(query) ||
-                                                s.description?.toLowerCase().includes(query) ||
-                                                group.category.toLowerCase().includes(query) ||
-                                                (s.parentService?.name || "").toLowerCase().includes(query)
-                                            );
-                                        }).map(([key, group]: [string, any]) => ({
-                                            key,
-                                            ...group,
-                                            services: group.services.filter((s: any) => {
-                                                if (!searchQuery) return true;
-                                                const query = searchQuery.toLowerCase();
-                                                return s.name.toLowerCase().includes(query) ||
-                                                    s.description?.toLowerCase().includes(query) ||
-                                                    group.category.toLowerCase().includes(query) ||
-                                                    (s.parentService?.name || "").toLowerCase().includes(query);
-                                            })
-                                        }));
-
-                                        const toggleGroup = (key: string) => {
-                                            const newExpanded = new Set(expandedGroups);
-                                            if (newExpanded.has(key)) {
-                                                newExpanded.delete(key);
+                                        const toggleService = (serviceId: string, currentValues: string[]) => {
+                                            if (currentValues.includes(serviceId)) {
+                                                field.onChange(currentValues.filter((id) => id !== serviceId));
                                             } else {
-                                                newExpanded.add(key);
+                                                field.onChange([...currentValues, serviceId]);
                                             }
-                                            setExpandedGroups(newExpanded);
                                         };
 
                                         const toggleAllInGroup = (groupServices: any[], checked: boolean) => {
@@ -506,217 +485,149 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                         };
 
                                         const isGroupAllSelected = (groupServices: any[]) => {
+                                            if (!groupServices || groupServices.length === 0) return false;
                                             const currentValues = field.value || [];
                                             return groupServices.every((s: any) => currentValues.includes(s.id));
                                         };
 
                                         return (
-                                            <FormItem>
+                                            <FormItem className="flex flex-col h-full">
                                                 <FormControl>
-                                                    <div className="space-y-4">
-                                                        {/* Search Bar */}
-                                                        <div className="relative">
-                                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                                            <Input
-                                                                placeholder="valitse tai etsi palveluita"
-                                                                value={searchQuery}
-                                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                                                onKeyDown={(e) => {
-                                                                    if (e.key === 'Enter') {
-                                                                        e.preventDefault();
-                                                                    }
-                                                                }}
-                                                                className="pl-10"
-                                                            />
+                                                    <div className="flex flex-col h-full">
+
+                                                        {/* FIXED HEADER SECTION (Non-scrollable) */}
+                                                        <div className="flex-none z-30 bg-background/95 backdrop-blur-sm border-b border-border/40">
+
+                                                            {/* Search Bar */}
+                                                            <div className="pt-4 px-4 pb-2">
+                                                                <div className="max-w-md mx-auto">
+                                                                    <div
+                                                                        className="flex items-center bg-white rounded-full border-2 border-[#423120] px-4 py-3 shadow-lg"
+                                                                        style={{ boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)' }}
+                                                                    >
+                                                                        <Search className="h-6 w-6 text-[#423120] mr-3 flex-shrink-0" />
+                                                                        <input
+                                                                            type="text"
+                                                                            placeholder="Valitse tai etsi palveluita..."
+                                                                            value={searchQuery}
+                                                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                                                            className="flex-1 bg-transparent border-none outline-none text-lg placeholder:text-gray-400 text-[#423120]"
+                                                                            autoComplete="off"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Categories Pills */}
+                                                            {categories.length > 0 && (
+                                                                <div className="py-3 px-4 mb-0">
+                                                                    <div className="flex gap-2 overflow-x-auto no-scrollbar p-1">
+                                                                        {categories.map((category) => {
+                                                                            const isSelected = effectiveSelectedCategory === category;
+                                                                            return (
+                                                                                <button
+                                                                                    key={category}
+                                                                                    type="button"
+                                                                                    onClick={() => setSelectedCategory(category)}
+                                                                                    className={`
+                                                                                        whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-all
+                                                                                        ${isSelected
+                                                                                            ? 'bg-[#423120] text-white shadow-md scale-105'
+                                                                                            : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                                                                                        }
+                                                                                    `}
+                                                                                >
+                                                                                    {category}
+                                                                                </button>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                         </div>
 
-                                                        {loadingServices ? (
-                                                            <div className="text-center py-8">
-                                                                <p className="text-sm text-muted-foreground">Loading services...</p>
-                                                            </div>
-                                                        ) : services.length === 0 ? (
-                                                            <div className="text-center py-8">
-                                                                <p className="text-sm text-muted-foreground">No sub-services available. Admins need to create sub-services first.</p>
-                                                            </div>
-                                                        ) : filteredGroups.length === 0 ? (
-                                                            <div className="text-center py-8">
-                                                                <p className="text-sm text-muted-foreground">No services match your search.</p>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="border rounded-md overflow-hidden">
-                                                                {/* Desktop Table View */}
-                                                                <div className="hidden md:block max-h-[500px] overflow-y-auto">
-                                                                    <table className="w-full">
-                                                                        <thead className="bg-muted sticky top-0 z-10">
-                                                                            <tr>
-                                                                                <th className="text-left p-3 text-sm font-medium w-12">
-                                                                                    <Checkbox
-                                                                                        checked={services.length > 0 && (field.value || []).length === services.length}
-                                                                                        onCheckedChange={(checked) => {
-                                                                                            if (checked) {
-                                                                                                field.onChange(services.map((s: any) => s.id));
-                                                                                            } else {
-                                                                                                field.onChange([]);
-                                                                                            }
-                                                                                        }}
-                                                                                    />
-                                                                                </th>
-                                                                                <th className="text-left p-3 text-sm font-medium">Service Name</th>
-                                                                                <th className="text-left p-3 text-sm font-medium">Description</th>
-                                                                                <th className="text-left p-3 text-sm font-medium">Category</th>
-                                                                                <th className="text-left p-3 text-sm font-medium">Parent Service</th>
-                                                                            </tr>
-                                                                        </thead>
-                                                                        <tbody>
-                                                                            {filteredGroups.map((group) => (
-                                                                                <React.Fragment key={group.key}>
-                                                                                    <tr className="bg-muted/50 border-t">
-                                                                                        <td colSpan={5} className="p-2">
-                                                                                            <div className="flex items-center justify-between">
-                                                                                                <div className="flex items-center gap-2">
-                                                                                                    <button
-                                                                                                        type="button"
-                                                                                                        onClick={() => toggleGroup(group.key)}
-                                                                                                        className="p-1 hover:bg-background rounded"
-                                                                                                    >
-                                                                                                        {expandedGroups.has(group.key) ? (
-                                                                                                            <ChevronDown className="h-4 w-4" />
-                                                                                                        ) : (
-                                                                                                            <ChevronRight className="h-4 w-4" />
-                                                                                                        )}
-                                                                                                    </button>
-                                                                                                    <span className="text-sm font-semibold">
-                                                                                                        {group.category}
-                                                                                                    </span>
-                                                                                                    <span className="text-xs text-muted-foreground">
-                                                                                                        ({group.services.length} {group.services.length === 1 ? 'service' : 'services'})
-                                                                                                    </span>
-                                                                                                </div>
-                                                                                                <Checkbox
-                                                                                                    checked={isGroupAllSelected(group.services)}
-                                                                                                    onCheckedChange={(checked) => toggleAllInGroup(group.services, checked as boolean)}
-                                                                                                    onClick={(e) => e.stopPropagation()}
-                                                                                                />
-                                                                                            </div>
-                                                                                        </td>
-                                                                                    </tr>
-                                                                                    {expandedGroups.has(group.key) && group.services.map((service: any) => (
-                                                                                        <tr key={service.id} className="border-t hover:bg-muted/30">
-                                                                                            <td className="p-3">
-                                                                                                <Checkbox
-                                                                                                    checked={field.value?.includes(service.id) || false}
-                                                                                                    onCheckedChange={(checked) => {
-                                                                                                        const currentValues = field.value || [];
-                                                                                                        if (checked) {
-                                                                                                            field.onChange([...currentValues, service.id]);
-                                                                                                        } else {
-                                                                                                            field.onChange(currentValues.filter((id: string) => id !== service.id));
-                                                                                                        }
-                                                                                                    }}
-                                                                                                />
-                                                                                            </td>
-                                                                                            <td className="p-3">
-                                                                                                <label
-                                                                                                    htmlFor={service.id}
-                                                                                                    className="text-sm font-medium cursor-pointer"
-                                                                                                >
-                                                                                                    {service.name}
-                                                                                                </label>
-                                                                                            </td>
-                                                                                            <td className="p-3">
-                                                                                                <p className="text-xs text-muted-foreground line-clamp-2">
-                                                                                                    {service.description || '—'}
-                                                                                                </p>
-                                                                                            </td>
-                                                                                            <td className="p-3">
-                                                                                                <span className="text-xs text-muted-foreground">
-                                                                                                    {group.category}
-                                                                                                </span>
-                                                                                            </td>
-                                                                                            <td className="p-3">
-                                                                                                <span className="text-xs text-muted-foreground">
-                                                                                                    {service.parentService?.name || '—'}
-                                                                                                </span>
-                                                                                            </td>
-                                                                                        </tr>
-                                                                                    ))}
-                                                                                </React.Fragment>
-                                                                            ))}
-                                                                        </tbody>
-                                                                    </table>
+                                                        {/* SCROLLABLE CONTENT SECTION (Flex-1) */}
+                                                        {/* overscroll-contain prevents the parent page from scrolling when this list hits the bottom */}
+                                                        <div className="flex-1 overflow-y-auto overscroll-contain px-4 p-5 pb-20">
+                                                            {loadingServices ? (
+                                                                <div className="text-center py-8">
+                                                                    <p className="text-sm text-muted-foreground">Loading services...</p>
                                                                 </div>
+                                                            ) : services.length === 0 ? (
+                                                                <div className="text-center py-8">
+                                                                    <p className="text-sm text-muted-foreground">No sub-services available. Admins need to create sub-services first.</p>
+                                                                </div>
+                                                            ) : categories.length === 0 ? (
+                                                                <div className="text-center py-8">
+                                                                    <p className="text-sm text-muted-foreground">No services match your search.</p>
+                                                                </div>
+                                                            ) : !effectiveSelectedCategory ? (
+                                                                <div className="text-center py-8">
+                                                                    <p className="text-sm text-muted-foreground">Select a category to view services.</p>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                                                    {/* Category Header (Select All) for Mobile/Desktop */}
+                                                                    <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border/50">
+                                                                        <div>
+                                                                            <h3 className="font-semibold text-lg">{effectiveSelectedCategory}</h3>
+                                                                            <p className="text-xs text-muted-foreground">
+                                                                                {displayServices.length} {displayServices.length === 1 ? 'palvelu' : 'palvelua'}
+                                                                            </p>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-sm text-muted-foreground">Valitse Kaikki</span>
+                                                                            <Checkbox
+                                                                                checked={isGroupAllSelected(displayServices)}
+                                                                                onCheckedChange={(checked) => toggleAllInGroup(displayServices, checked as boolean)}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
 
-                                                                {/* Mobile Card View */}
-                                                                <div className="md:hidden max-h-[500px] overflow-y-auto p-4 space-y-3">
-                                                                    {filteredGroups.map((group) => (
-                                                                        <Collapsible
-                                                                            key={group.key}
-                                                                            open={expandedGroups.has(group.key)}
-                                                                            onOpenChange={() => toggleGroup(group.key)}
-                                                                        >
-                                                                            <CollapsibleTrigger className="w-full">
-                                                                                <div className="flex items-center justify-between p-3 bg-muted rounded-md">
-                                                                                    <div className="flex items-center gap-2 flex-1">
-                                                                                        {expandedGroups.has(group.key) ? (
-                                                                                            <ChevronDown className="h-4 w-4" />
-                                                                                        ) : (
-                                                                                            <ChevronRight className="h-4 w-4" />
-                                                                                        )}
-                                                                                        <div className="text-left">
-                                                                                            <p className="text-sm font-semibold">{group.category}</p>
-                                                                                            <p className="text-xs text-muted-foreground mt-1">
-                                                                                                {group.services.length} {group.services.length === 1 ? 'service' : 'services'}
-                                                                                            </p>
-                                                                                        </div>
+                                                                    {/* List of Services */}
+                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                                        {displayServices.map((service: any) => {
+                                                                            const isChecked = field.value?.includes(service.id) || false;
+                                                                            return (
+                                                                                <div
+                                                                                    key={service.id}
+                                                                                    className={`
+                                                                                        flex items-start gap-3 p-3 border rounded-xl transition-all cursor-pointer
+                                                                                        ${isChecked ? 'bg-[#423120]/5 border-[#423120]/20' : 'bg-card border-border hover:border-[#423120]/30'}
+                                                                                    `}
+                                                                                    onClick={(e) => {
+                                                                                        e.preventDefault(); // Prevent default to avoid double toggles
+                                                                                        toggleService(service.id, field.value || []);
+                                                                                    }}
+                                                                                >
+                                                                                    <div
+                                                                                        className={`
+                                                                                            mr-3 h-5 w-5 rounded-sm border flex items-center justify-center transition-colors
+                                                                                            ${isChecked ? 'bg-[#423120] border-[#423120]' : 'border-neutral-400 bg-transparent'}
+                                                                                        `}
+                                                                                    >
+                                                                                        {isChecked && <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />}
                                                                                     </div>
-                                                                                    <Checkbox
-                                                                                        checked={isGroupAllSelected(group.services)}
-                                                                                        onCheckedChange={(checked) => toggleAllInGroup(group.services, checked as boolean)}
-                                                                                        onClick={(e) => e.stopPropagation()}
-                                                                                    />
+                                                                                    <div className="flex-1 select-none">
+                                                                                        <h4 className={`text-base font-semibold ${isChecked ? 'text-[#423120]' : 'text-foreground'}`}>
+                                                                                            {service.name}
+                                                                                        </h4>
+                                                                                        {service.parentService?.name && (
+                                                                                            <p className="text-xs text-muted-foreground mb-1">{service.parentService.name}</p>
+                                                                                        )}
+                                                                                        {service.description && (
+                                                                                            <p className="text-xs text-muted-foreground line-clamp-2">
+                                                                                                {service.description}
+                                                                                            </p>
+                                                                                        )}
+                                                                                    </div>
                                                                                 </div>
-                                                                            </CollapsibleTrigger>
-                                                                            <CollapsibleContent>
-                                                                                <div className="space-y-2 mt-2 pl-4">
-                                                                                    {group.services.map((service: any) => (
-                                                                                        <div key={service.id} className="flex items-start gap-3 p-2 border rounded-md">
-                                                                                            <Checkbox
-                                                                                                id={service.id}
-                                                                                                checked={field.value?.includes(service.id) || false}
-                                                                                                onCheckedChange={(checked) => {
-                                                                                                    const currentValues = field.value || [];
-                                                                                                    if (checked) {
-                                                                                                        field.onChange([...currentValues, service.id]);
-                                                                                                    } else {
-                                                                                                        field.onChange(currentValues.filter((id: string) => id !== service.id));
-                                                                                                    }
-                                                                                                }}
-                                                                                            />
-                                                                                            <div className="flex-1 min-w-0">
-                                                                                                <label
-                                                                                                    htmlFor={service.id}
-                                                                                                    className="text-sm font-medium cursor-pointer block"
-                                                                                                >
-                                                                                                    {service.name}
-                                                                                                </label>
-                                                                                                <p className="text-xs text-muted-foreground">
-                                                                                                    {service.parentService?.name}
-                                                                                                </p>
-                                                                                                {service.description && (
-                                                                                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                                                                                        {service.description}
-                                                                                                    </p>
-                                                                                                )}
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    ))}
-                                                                                </div>
-                                                                            </CollapsibleContent>
-                                                                        </Collapsible>
-                                                                    ))}
+                                                                            );
+                                                                        })}
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        )}
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </FormControl>
                                                 <FormMessage />
@@ -740,7 +651,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                                 </Button>
                             )}
                             <Button
-                                disabled={loading}
+                                disabled={loading || !isStepValid()}
                                 type={currentStep === 5 ? "submit" : "button"}
                                 onClick={currentStep === 5 ? () => setCanSubmit(true) : nextStep}
                             >
@@ -768,7 +679,7 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                     </Button>
                 )}
                 <Button
-                    disabled={loading}
+                    disabled={loading || !isStepValid()}
                     className="flex-1"
                     type={currentStep === 5 ? "submit" : "button"}
                     form={currentStep === 5 ? "saloon-form" : undefined}

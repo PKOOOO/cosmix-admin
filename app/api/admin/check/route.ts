@@ -205,8 +205,15 @@ export async function GET(req: Request) {
                 }
 
                 console.log('[ADMIN_CHECK] Returning isAdmin:', user.isAdmin, 'for user:', user.email);
+                // Check if user has any saloons
+                const saloonsCount = await prismadb.saloon.count({
+                    where: { userId: user.id }
+                });
+
+                console.log('[ADMIN_CHECK] Returning isAdmin:', user.isAdmin, 'hasSaloons:', saloonsCount > 0);
                 return NextResponse.json({
                     isAdmin: user.isAdmin,
+                    hasSaloons: saloonsCount > 0,
                     user: { id: user.id, name: user.name, email: user.email }
                 });
             }
@@ -218,8 +225,15 @@ export async function GET(req: Request) {
             const { isAdmin: bearerAdmin, user: bearerUser } = await checkAdminAccess();
             if (bearerAdmin && bearerUser) {
                 console.log('[ADMIN_CHECK] Returning bearer token admin');
+                // Check if bearer user has any saloons
+                const saloonsCount = await prismadb.saloon.count({
+                    where: { userId: bearerUser.id }
+                });
+
+                console.log('[ADMIN_CHECK] Returning bearer token admin. hasSaloons:', saloonsCount > 0);
                 return NextResponse.json({
                     isAdmin: true,
+                    hasSaloons: saloonsCount > 0,
                     user: { id: bearerUser.id, name: bearerUser.name, email: bearerUser.email }
                 });
             }
@@ -227,10 +241,10 @@ export async function GET(req: Request) {
 
         // No valid auth found or Clerk token was present but user is not admin
         console.log('[ADMIN_CHECK] No valid admin access found');
-        return NextResponse.json({ isAdmin: false, user: null });
+        return NextResponse.json({ isAdmin: false, hasSaloons: false, user: null });
     } catch (error) {
         console.log('[ADMIN_CHECK]', error);
-        return NextResponse.json({ isAdmin: false, user: null });
+        return NextResponse.json({ isAdmin: false, hasSaloons: false, user: null });
     }
 }
 

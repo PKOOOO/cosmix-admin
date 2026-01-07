@@ -1,143 +1,167 @@
 @import url('https://fonts.googleapis.com/css2?family=Philosopher:wght@400;700&display=swap');
 
 @tailwind base;
-  @tailwind components;
-  @tailwind utilities;
+@tailwind components;
+@tailwind utilities;
 
-  html,
-  body,
+html,
+body,
+:root {
+  height: 100%;
+  overflow-x: hidden;
+  max-width: 100vw;
+  font-family: 'Philosopher', sans-serif;
+  font-weight: 700;
+}
+
+/* Force light mode */
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: light;
+}
+
+@layer base {
   :root {
-    height: 100%;
-    overflow-x: hidden;
-    max-width: 100vw;
-    font-family: 'Philosopher', sans-serif;
-    font-weight: 700;
+    --background: 30 20% 93%;
+    /* #F4EDE5 */
+    --foreground: 30 35% 19%;
+    /* #423120 */
+
+    --card: 0 0% 100%;
+    /* #FFFFFF */
+    --card-foreground: 30 35% 19%;
+    /* #423120 */
+
+    --popover: 0 0% 100%;
+    /* #FFFFFF */
+    --popover-foreground: 30 35% 19%;
+    /* #423120 */
+
+    --primary: 30 35% 19%;
+    /* #423120 */
+    --primary-foreground: 0 0% 100%;
+    /* #FFFFFF */
+
+    --secondary: 30 25% 75%;
+    /* #D7C3A7 */
+    --secondary-foreground: 30 35% 19%;
+    /* #423120 */
+
+    --muted: 30 25% 75%;
+    /* #D7C3A7 */
+    --muted-foreground: 30 35% 19%;
+    /* #423120 */
+
+    --accent: 30 20% 85%;
+    /* #E0D7CA */
+    --accent-foreground: 30 35% 19%;
+    /* #423120 */
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 30 25% 75%;
+    /* #D7C3A7 */
+    --input: 30 25% 75%;
+    /* #D7C3A7 */
+    --ring: 30 35% 19%;
+    /* #423120 */
+
+    --radius: 0.5rem;
+
+    --chart-1: 30 35% 19%;
+    /* #423120 - Dark Brown */
+
+    --chart-2: 30 25% 75%;
+    /* #D7C3A7 - Light Beige */
+
+    --chart-3: 30 20% 85%;
+    /* #E0D7CA - Hover Beige */
+
+    --chart-4: 30 35% 19%;
+    /* #423120 - Dark Brown (variant) */
+
+    --chart-5: 30 25% 75%;
+    /* #D7C3A7 - Light Beige (variant) */
+    --sidebar: 0 0% 100%;
+    /* #FFFFFF */
+    --sidebar-foreground: 30 35% 19%;
+    /* #423120 */
+    --sidebar-primary: 30 35% 19%;
+    /* #423120 */
+    --sidebar-primary-foreground: 0 0% 100%;
+    /* #FFFFFF */
+    --sidebar-accent: 30 20% 85%;
+    /* #E0D7CA */
+    --sidebar-accent-foreground: 30 35% 19%;
+    /* #423120 */
+    --sidebar-border: 30 25% 75%;
+    /* #D7C3A7 */
+    --sidebar-ring: 30 35% 19%;
+    /* #423120 */
+    --sidebar-background: 0 0% 100%;
+    /* #FFFFFF */
   }
 
-  /* Force light mode */
-  html {
-    color-scheme: light;
-  }
-  
-  html.dark {
-    color-scheme: light;
+}
+
+@layer base {
+  * {
+    @apply border-border;
   }
 
-  @layer base {
-    :root {
-      --background: 30 20% 93%; /* #F4EDE5 */
-      --foreground: 30 35% 19%; /* #423120 */
+  body {
+    @apply bg-background text-foreground;
+  }
+}
 
-      --card: 0 0% 100%; /* #FFFFFF */
-      --card-foreground: 30 35% 19%; /* #423120 */
+@layer components {
 
-      --popover: 0 0% 100%; /* #FFFFFF */
-      --popover-foreground: 30 35% 19%; /* #423120 */
-
-      --primary: 30 35% 19%; /* #423120 */
-      --primary-foreground: 0 0% 100%; /* #FFFFFF */
-
-      --secondary: 30 25% 75%; /* #D7C3A7 */
-      --secondary-foreground: 30 35% 19%; /* #423120 */
-
-      --muted: 30 25% 75%; /* #D7C3A7 */
-      --muted-foreground: 30 35% 19%; /* #423120 */
-
-      --accent: 30 20% 85%; /* #E0D7CA */
-      --accent-foreground: 30 35% 19%; /* #423120 */
-
-      --destructive: 0 84.2% 60.2%;
-      --destructive-foreground: 0 0% 98%;
-
-      --border: 30 25% 75%; /* #D7C3A7 */
-      --input: 30 25% 75%; /* #D7C3A7 */
-      --ring: 30 35% 19%; /* #423120 */
-
-      --radius: 0.5rem;
-
-      --chart-1: 30 35% 19%; /* #423120 - Dark Brown */
-
-      --chart-2: 30 25% 75%; /* #D7C3A7 - Light Beige */
-
-      --chart-3: 30 20% 85%; /* #E0D7CA - Hover Beige */
-
-      --chart-4: 30 35% 19%; /* #423120 - Dark Brown (variant) */
-
-      --chart-5: 30 25% 75%; /* #D7C3A7 - Light Beige (variant) */
-      --sidebar: 0 0% 100%; /* #FFFFFF */
-      --sidebar-foreground: 30 35% 19%; /* #423120 */
-      --sidebar-primary: 30 35% 19%; /* #423120 */
-      --sidebar-primary-foreground: 0 0% 100%; /* #FFFFFF */
-      --sidebar-accent: 30 20% 85%; /* #E0D7CA */
-      --sidebar-accent-foreground: 30 35% 19%; /* #423120 */
-      --sidebar-border: 30 25% 75%; /* #D7C3A7 */
-      --sidebar-ring: 30 35% 19%; /* #423120 */
-      --sidebar-background: 0 0% 100%; /* #FFFFFF */
-    }
-
+  /* Custom hover effects for category sections and square blocks */
+  .category-hover {
+    @apply transition-colors duration-200;
   }
 
-  @layer base {
-    * {
-      @apply border-border;
-    }
-    body {
-      @apply bg-background text-foreground;
-    }
+  .category-hover:hover {
+    background-color: #E0D7CA;
   }
 
-  @layer components {
-    /* Custom hover effects for category sections and square blocks */
-    .category-hover {
-      @apply transition-colors duration-200;
-    }
-    
-    .category-hover:hover {
-      background-color: #E0D7CA;
-    }
-    
-    /* Square block hover effects */
-    .square-block {
-      @apply transition-colors duration-200;
-    }
-    
-    .square-block:hover {
-      background-color: #E0D7CA;
-    }
-    
-    /* Card hover effects */
-    .card-hover {
-      @apply transition-all duration-200;
-    }
-    
-    .card-hover:hover {
-      background-color: #E0D7CA;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(66, 49, 32, 0.1);
-    }
+  /* Square block hover effects */
+  .square-block {
+    @apply transition-colors duration-200;
   }
 
-  @layer utilities {
-    /* Override any default browser yellow focus styles */
-    *:focus {
-      outline: 2px solid #423120 !important;
-      outline-offset: 2px !important;
-    }
-    
-    *:focus-visible {
-      outline: 2px solid #423120 !important;
-      outline-offset: 2px !important;
-    }
-    
-    /* Override any default browser yellow selection */
-    ::selection {
-      background-color: #E0D7CA !important;
-      color: #423120 !important;
-    }
-    
-    /* Override any default browser yellow highlight */
-    ::-moz-selection {
-      background-color: #E0D7CA !important;
-      color: #423120 !important;
-    }
+  .square-block:hover {
+    background-color: #E0D7CA;
   }
+
+  /* Card hover effects */
+  .card-hover {
+    @apply transition-all duration-200;
+  }
+
+  .card-hover:hover {
+    background-color: #E0D7CA;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(66, 49, 32, 0.1);
+  }
+}
+
+@layer utilities {
+  /* Interactive element focus styles are handled by Tailwind classes (ring-2, etc.) */
+
+  /* Override any default browser yellow selection */
+  ::selection {
+    background-color: #E0D7CA !important;
+    color: #423120 !important;
+  }
+
+  /* Override any default browser yellow highlight */
+  ::-moz-selection {
+    background-color: #E0D7CA !important;
+    color: #423120 !important;
+  }
+}

@@ -63,7 +63,7 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
     };
 
     return (
-        <div className="relative min-h-screen">
+        <div className="flex flex-col justify-center items-center h-[calc(100vh-180px)] w-full overflow-hidden">
 
 
             {data.length === 0 ? (
@@ -131,7 +131,7 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
                                                 className="w-full md:w-auto py-8 md:py-2"
                                             >
                                                 <Edit className="mr-2 h-4 w-4" />
-                                                muokkaa salonki
+                                                Muokkaa salonkia
                                             </Button>
                                             {saloon.subServices.length > 0 && (
                                                 <Button
