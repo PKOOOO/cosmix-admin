@@ -69,28 +69,28 @@ export function MobileBottomNav({ hasSaloons }: MobileBottomNavProps) {
       label: 'Palvelutilastot',
       icon: BarChart3,
       active: pathname === '/dashboard',
-      disabled: !hasSaloonsState,
+      disabled: false,
     },
     {
       href: '/dashboard/saloons',
       label: 'Palvelusi',
       icon: List,
       active: pathname === '/dashboard/saloons',
-      disabled: false, // Always allow access to saloons
+      disabled: false,
     },
     {
       href: '/dashboard/bookings',
       label: 'Varaukset',
       icon: CalendarCheck,
       active: pathname === '/dashboard/bookings',
-      disabled: !hasSaloonsState,
+      disabled: false,
     },
     {
       href: '/dashboard/integration',
       label: 'Integration',
       icon: CloudIcon,
       active: pathname === '/dashboard/integration',
-      disabled: !hasSaloonsState,
+      disabled: false,
     },
   ];
 
