@@ -35,13 +35,11 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
             const response = await axios.delete(`/api/saloons/${deleteId}`);
 
             if (!response.data.hasRemainingSaloons) {
-                toast.success("Saloon deleted. Please create a new salon to continue.");
                 setOpen(false);
                 setTimeout(() => {
                     router.push('/dashboard/saloons/new');
                 }, 200);
             } else {
-                toast.success("Saloon deleted successfully.");
                 setOpen(false);
                 setTimeout(() => {
                     router.refresh();
