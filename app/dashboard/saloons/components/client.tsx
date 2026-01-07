@@ -83,12 +83,12 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
                 </div>
             ) : (
                 <>
-                    <div className="flex justify-center">
+                    <div className="flex justify-center w-full px-4">
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 w-full max-w-6xl">
                             {data.map((saloon) => (
-                                <Card key={saloon.id} className="overflow-hidden flex flex-col">
+                                <Card key={saloon.id} className="overflow-hidden flex flex-col w-full">
 
-                                    <CardContent className="space-y-4 flex-1 flex flex-col">
+                                    <CardContent className="space-y-4 flex-1 flex flex-col px-6">
                                         {/* Rating - Always show 5 stars */}
                                         <div className="flex items-center gap-2 mt-4">
                                             <div className="flex items-center gap-0.5">
@@ -123,12 +123,12 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
                                         </div>
 
                                         {/* Actions */}
-                                        <div className="flex flex-col md:flex-row gap-2 pt-4">
+                                        <div className="flex flex-col gap-2 pt-4">
                                             <Button
                                                 variant="outline"
                                                 size="sm"
                                                 onClick={() => router.push(`/dashboard/saloons/${saloon.id}`)}
-                                                className="w-full md:w-auto py-8 md:py-2"
+                                                className="w-full py-8"
                                             >
                                                 <Edit className="mr-2 h-4 w-4" />
                                                 Muokkaa salonkia
@@ -138,7 +138,7 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => router.push(`/dashboard/saloons/${saloon.id}/pricing`)}
-                                                    className="w-full md:w-auto py-8 md:py-2"
+                                                    className="w-full py-8"
                                                 >
                                                     <DollarSign className="mr-2 h-4 w-4" />
                                                     Aseta Salon hinta
@@ -148,7 +148,7 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
                                                 variant="destructive"
                                                 size="sm"
                                                 onClick={() => handleDeleteClick(saloon.id)}
-                                                className="w-full md:w-auto py-8 md:py-2"
+                                                className="w-full py-8"
                                             >
                                                 <Trash className="mr-2 h-4 w-4" />
                                                 Poista salonki

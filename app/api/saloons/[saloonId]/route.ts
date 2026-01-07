@@ -165,7 +165,21 @@ export async function DELETE(
       },
     });
 
-    // Delete the saloon
+    // First, delete all services offered by this saloon (SaloonService junction table)
+    await prismadb.saloonService.deleteMany({
+      where: {
+        saloonId: params.saloonId,
+      },
+    });
+
+    // Delete all bookings for this saloon
+    await prismadb.booking.deleteMany({
+      where: {
+        saloonId: params.saloonId,
+      },
+    });
+
+    // Delete the saloon (other relations like images, reviews, timeSlots have onDelete: Cascade)
     const saloon = await prismadb.saloon.delete({
       where: {
         id: params.saloonId,
