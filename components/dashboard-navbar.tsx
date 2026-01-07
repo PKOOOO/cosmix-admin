@@ -54,8 +54,16 @@ export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
   const [loading, setLoading] = useState(true);
   const { getToken } = useAuth();
   useEffect(() => {
-    if (hasSaloons) {
+    // Check localStorage on mount
+    const storedHasSaloons = localStorage.getItem('cosmix_has_saloons') === 'true';
+
+    if (storedHasSaloons || hasSaloons) {
       setHasSaloonsState(true);
+    }
+
+    // Update localStorage if true
+    if (hasSaloons) {
+      localStorage.setItem('cosmix_has_saloons', 'true');
     }
   }, [hasSaloons]);
 
