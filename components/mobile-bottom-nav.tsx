@@ -22,12 +22,36 @@ export function MobileBottomNav({ hasSaloons }: MobileBottomNavProps) {
   const pathname = usePathname();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Initialize with prop, but allow API to update it
+  const [hasSaloonsState, setHasSaloonsState] = useState(hasSaloons);
+
+  useEffect(() => {
+    // Check localStorage on mount
+    const storedHasSaloons = localStorage.getItem('cosmix_has_saloons') === 'true';
+    if (storedHasSaloons || hasSaloons) {
+      setHasSaloonsState(true);
+    }
+    if (hasSaloons) {
+      localStorage.setItem('cosmix_has_saloons', 'true');
+    }
+  }, [hasSaloons]);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
         const response = await axios.get('/api/admin/check');
         setIsAdmin(response.data.isAdmin);
+
+        // Update hasSaloons from API (source of truth)
+        if (typeof response.data?.hasSaloons === 'boolean') {
+          const apiHasSaloons = response.data.hasSaloons;
+          setHasSaloonsState(apiHasSaloons);
+          if (apiHasSaloons) {
+            localStorage.setItem('cosmix_has_saloons', 'true');
+          } else {
+            localStorage.removeItem('cosmix_has_saloons');
+          }
+        }
       } catch (error) {
         console.error('Error checking admin status:', error);
         setIsAdmin(false);
@@ -45,7 +69,7 @@ export function MobileBottomNav({ hasSaloons }: MobileBottomNavProps) {
       label: 'Palvelutilastot',
       icon: BarChart3,
       active: pathname === '/dashboard',
-      disabled: !hasSaloons,
+      disabled: !hasSaloonsState,
     },
     {
       href: '/dashboard/saloons',
@@ -59,14 +83,14 @@ export function MobileBottomNav({ hasSaloons }: MobileBottomNavProps) {
       label: 'Varaukset',
       icon: CalendarCheck,
       active: pathname === '/dashboard/bookings',
-      disabled: !hasSaloons,
+      disabled: !hasSaloonsState,
     },
     {
       href: '/dashboard/integration',
       label: 'Integration',
       icon: CloudIcon,
       active: pathname === '/dashboard/integration',
-      disabled: !hasSaloons,
+      disabled: !hasSaloonsState,
     },
   ];
 
@@ -76,9 +100,9 @@ export function MobileBottomNav({ hasSaloons }: MobileBottomNavProps) {
   );
 
   return (
-    <nav 
+    <nav
       className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t border-border md:hidden"
-      style={{ 
+      style={{
         paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)'
       }}
     >

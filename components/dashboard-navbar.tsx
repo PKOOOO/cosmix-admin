@@ -96,13 +96,15 @@ export function DashboardNavbar({ hasSaloons }: DashboardNavbarProps) {
         // Explicitly check - only set to true if explicitly true
         const adminStatus = response.data?.isAdmin === true;
 
-        // Update hasSaloons from API if available (more reliable on client nav)
+        // Update hasSaloons from API (source of truth for fresh state)
         if (typeof response.data?.hasSaloons === 'boolean') {
           const apiHasSaloons = response.data.hasSaloons;
-          // Only update if true (don't accidentally hide if prop was true but API flaked, though API is source of truth?)
-          // Actually, API is more fresh. Let's trust it if it returns true.
+          setHasSaloonsState(apiHasSaloons);
+          // Update localStorage to match API state
           if (apiHasSaloons) {
-            setHasSaloonsState(true);
+            localStorage.setItem('cosmix_has_saloons', 'true');
+          } else {
+            localStorage.removeItem('cosmix_has_saloons');
           }
         }
 
