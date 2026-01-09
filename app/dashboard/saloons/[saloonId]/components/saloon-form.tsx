@@ -917,6 +917,33 @@ export const SaloonForm: React.FC<SaloonFormProps> = ({ initialData }) => {
                 </Form>
             </div>
 
+            {/* Mobile Sticky Bottom Buttons - Only show on Step 2 (Services) */}
+            {currentStep === 2 && (
+                <div
+                    className="md:hidden fixed left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-gray-200 p-4 shadow-lg flex gap-3 transition-all duration-200"
+                    style={{ bottom: keyboardHeight > 0 ? `${keyboardHeight}px` : '0px' }}
+                >
+                    <Button
+                        disabled={loading}
+                        variant="outline"
+                        type="button"
+                        onClick={prevStep}
+                        className="flex-1"
+                    >
+                        Takaisin
+                    </Button>
+                    <Button
+                        disabled={loading}
+                        className="flex-1"
+                        type="submit"
+                        form="saloon-form"
+                        onClick={() => setCanSubmit(true)}
+                    >
+                        {action}
+                    </Button>
+                </div>
+            )}
+
         </div>
     );
 };

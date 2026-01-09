@@ -130,17 +130,12 @@ export const AdminCategoriesClient = () => {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-medium">Global Categories</h3>
-          <p className="text-sm text-muted-foreground">
-            Create categories that all saloons can use
-          </p>
-        </div>
+
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Category
+            <Button size="sm" onClick={resetForm}>
+              <Plus className="h-4 w-4 mr-1" />
+              Add
             </Button>
           </DialogTrigger>
           <DialogContent className="w-full max-w-lg">
@@ -170,13 +165,14 @@ export const AdminCategoriesClient = () => {
                 <Label htmlFor="popular">Popular</Label>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={resetForm}>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={resetForm} className="w-full sm:w-auto">
                 Cancel
               </Button>
               <Button
                 onClick={editingCategory ? handleUpdate : handleCreate}
                 disabled={loading}
+                className="w-full sm:w-auto"
               >
                 {editingCategory ? "Update" : "Create"}
               </Button>
@@ -185,38 +181,38 @@ export const AdminCategoriesClient = () => {
         </Dialog>
       </div>
 
-      {/* Categories List */}
-      <div className="grid gap-4">
+      {/* Categories List - Compact rows */}
+      <div className="space-y-2">
         {categories.map((category) => (
-          <Card key={category.id}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{category.name}</CardTitle>
-              <div className="flex space-x-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => openEditDialog(category)}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => openDeleteDialog(category.id)}
-                >
-                  <Trash className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>
-                Global category available to all saloons
-              </CardDescription>
-              <p className="text-xs text-muted-foreground mt-2">
+          <div
+            key={category.id}
+            className="flex items-center justify-between p-3 border rounded-lg bg-card"
+          >
+            <div className="min-w-0 flex-1">
+              <h4 className="text-sm font-medium truncate">{category.name}</h4>
+              <p className="text-[10px] text-muted-foreground">
                 Created {new Date(category.createdAt).toLocaleDateString()}
               </p>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => openEditDialog(category)}
+              >
+                <Edit className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => openDeleteDialog(category.id)}
+              >
+                <Trash className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
         ))}
       </div>
 

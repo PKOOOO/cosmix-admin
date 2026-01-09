@@ -6,15 +6,19 @@ import axios from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Settings, Users, Package, Building2 } from "lucide-react";
+import { Plus, Settings, Users, Package, Building2, Euro } from "lucide-react";
 import { AdminCategoriesClient } from "./admin-categories-client";
 import { AdminServicesClient } from "./admin-services-client";
+import { AdminRevenueClient } from "./admin-revenue-client";
+import { AdminSaloonsListClient } from "./admin-saloons-list-client";
+import { AdminUsersListClient } from "./admin-users-list-client";
 
 interface AdminStats {
   globalCategories: number;
   parentServices: number;
   totalSaloons: number;
   totalUsers: number;
+  totalRevenue: number;
 }
 
 export const AdminClient = () => {
@@ -23,9 +27,13 @@ export const AdminClient = () => {
     globalCategories: 0,
     parentServices: 0,
     totalSaloons: 0,
-    totalUsers: 0
+    totalUsers: 0,
+    totalRevenue: 0
   });
   const [loading, setLoading] = useState(true);
+  const [showRevenue, setShowRevenue] = useState(false);
+  const [showSaloons, setShowSaloons] = useState(false);
+  const [showUsers, setShowUsers] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -41,77 +49,82 @@ export const AdminClient = () => {
     fetchStats();
   }, []);
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
-          <p className="text-muted-foreground">
-            Manage global categories and parent services for all saloons
-          </p>
-        </div>
-      </div>
+  // Show Revenue details view
+  if (showRevenue) {
+    return <AdminRevenueClient onBack={() => setShowRevenue(false)} />;
+  }
 
-      {/* Stats Cards */}
-      <div className="grid gap-4">
+  // Show Saloons list view
+  if (showSaloons) {
+    return <AdminSaloonsListClient onBack={() => setShowSaloons(false)} />;
+  }
+
+  // Show Users list view
+  if (showUsers) {
+    return <AdminUsersListClient onBack={() => setShowUsers(false)} />;
+  }
+
+  return (
+    <div className="space-y-4 md:space-y-6">
+      {/* Header */}
+
+
+      {/* Stats Cards - 2x2 on mobile, 4 cols on desktop */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Global Categories</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium">Categories</CardTitle>
+
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <div className="text-xl md:text-2xl font-bold">
               {loading ? "..." : stats.globalCategories}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Available to all saloons
-            </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Parent Services</CardTitle>
-            <Settings className="h-4 w-4 text-muted-foreground" />
+        <Card
+          className="cursor-pointer hover:border-[#423120]/50 transition-colors"
+          onClick={() => setShowRevenue(true)}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium">Revenue</CardTitle>
+
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {loading ? "..." : stats.parentServices}
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <div className="text-xl md:text-2xl font-bold text-green-600">
+              {loading ? "..." : `€${stats.totalRevenue.toFixed(2)}`}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Base service templates
-            </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Saloons</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
+        <Card
+          className="cursor-pointer hover:border-[#423120]/50 transition-colors"
+          onClick={() => setShowSaloons(true)}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium">Saloons</CardTitle>
+
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <div className="text-xl md:text-2xl font-bold">
               {loading ? "..." : stats.totalSaloons}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Registered saloons
-            </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+        <Card
+          className="cursor-pointer hover:border-[#423120]/50 transition-colors"
+          onClick={() => setShowUsers(true)}
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium">Users</CardTitle>
+
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <div className="text-xl md:text-2xl font-bold">
               {loading ? "..." : stats.totalUsers}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Platform users
-            </p>
           </CardContent>
         </Card>
       </div>

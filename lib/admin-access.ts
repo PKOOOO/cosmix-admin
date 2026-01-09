@@ -1,16 +1,50 @@
 import { ensureServiceUser, isAuthorizedRequest } from "./service-auth";
 import { auth, currentUser } from "@clerk/nextjs";
+import { verifyToken } from "@clerk/backend";
 import { headers, cookies } from "next/headers";
 import prismadb from "@/lib/prismadb";
 
-// Simple JWT decode (no verification needed for public claims like userId)
-function decodeJWT(token: string): { sub?: string } | null {
+/**
+ * SECURITY NOTE: We do NOT decode JWT tokens manually anymore.
+ * Previously we had a decodeJWT function that decoded tokens without signature verification,
+ * which allowed anyone to forge tokens and create fake users in the database.
+ * 
+ * Now we ONLY trust:
+ * 1. Clerk's verifyToken() from @clerk/backend to verify tokens from WebView headers (PRIORITY)
+ * 2. Clerk's auth() function for browser session cookies (FALLBACK)
+ * 3. Service-admin for bearer-token-only requests (API access) - ONLY if no x-user-token was provided
+ */
+
+/**
+ * Verify a Clerk JWT token using Clerk's backend API
+ * This ensures the token is actually signed by Clerk and not forged
+ */
+async function verifyClerkToken(token: string): Promise<string | null> {
   try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-    return payload;
-  } catch {
+    // Use Clerk's verifyToken to validate the JWT
+    // This checks the signature, expiration, etc.
+    // Requires CLERK_SECRET_KEY env var to be set
+    // Get issuer from env or construct from publishable key
+    const issuer = process.env.CLERK_JWT_ISSUER ||
+      (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('pk_test_')
+        ? `https://${process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.replace('pk_test_', '').replace('$', '')}.clerk.accounts.dev`
+        : null);
+
+    const verifiedToken = await verifyToken(token, {
+      secretKey: process.env.CLERK_SECRET_KEY,
+      issuer: issuer,
+      clockSkewInMs: 300000, // Allow 5 minutes of clock skew for network latency
+    });
+
+    if (verifiedToken && verifiedToken.sub) {
+      console.log('[ADMIN_ACCESS] Token verified successfully, userId:', verifiedToken.sub);
+      return verifiedToken.sub;
+    }
+
+    console.log('[ADMIN_ACCESS] Token verification returned no userId');
+    return null;
+  } catch (error: any) {
+    console.log('[ADMIN_ACCESS] Token verification failed:', error?.message || error);
     return null;
   }
 }
@@ -19,53 +53,75 @@ export async function checkAdminAccess() {
   // Check for bearer token authentication first (from WebView)
   const isAuthorized = isAuthorizedRequest();
   let clerkUserId: string | null = null;
+  let isTokenVerified = false;
+  let hadUserToken = false; // Track if x-user-token was provided (even if invalid)
 
   console.log('[ADMIN_ACCESS] Starting checkAdminAccess, isAuthorized:', isAuthorized);
 
-  if (isAuthorized) {
-    // Extract Clerk user ID from X-User-Token header
-    const headerPayload = headers();
-    const clerkToken = headerPayload.get("x-user-token");
+  // Check for x-user-token in headers or cookies FIRST
+  // This takes priority because WebView auth uses custom tokens, not Clerk session cookies
+  const headerPayload = headers();
+  const headerToken = headerPayload.get("x-user-token");
 
-    console.log('[ADMIN_ACCESS] Bearer token present, X-User-Token header:', !!clerkToken);
+  let cookieToken: string | null = null;
+  try {
+    const cookieStore = cookies();
+    cookieToken = cookieStore.get("x-user-token-session")?.value || null;
+  } catch (error) {
+    console.log('[ADMIN_ACCESS] Error reading cookie:', error);
+  }
 
-    if (clerkToken) {
-      const decoded = decodeJWT(clerkToken);
-      clerkUserId = decoded?.sub || null;
-      console.log('[ADMIN_ACCESS] Clerk userId from X-User-Token header:', clerkUserId);
+  // PRIORITY 1: Verify x-user-token from header (WebView first load)
+  if (headerToken) {
+    console.log('[ADMIN_ACCESS] Found x-user-token header, verifying...');
+    hadUserToken = true;
+    clerkUserId = await verifyClerkToken(headerToken);
+    if (clerkUserId) {
+      isTokenVerified = true;
     }
   }
 
-  // Check cookie if header was lost (common during navigation)
-  if (!clerkUserId) {
-    try {
-      const cookieStore = cookies();
-      const cookieToken = cookieStore.get("x-user-token-session")?.value;
-      if (cookieToken) {
-        const decoded = decodeJWT(cookieToken);
-        clerkUserId = decoded?.sub || null;
-        console.log('[ADMIN_ACCESS] Clerk userId from cookie:', clerkUserId);
-      }
-    } catch (error) {
-      console.log('[ADMIN_ACCESS] Error reading cookie:', error);
+  // PRIORITY 2: Verify x-user-token-session cookie (WebView navigation)
+  if (!clerkUserId && cookieToken) {
+    console.log('[ADMIN_ACCESS] Found x-user-token-session cookie, verifying...');
+    hadUserToken = true;
+    clerkUserId = await verifyClerkToken(cookieToken);
+    if (clerkUserId) {
+      isTokenVerified = true;
+      console.log('[ADMIN_ACCESS] Clerk userId from verified cookie token:', clerkUserId);
     }
   }
 
-  // Fall back to Clerk auth if no clerkUserId found yet
-  if (!clerkUserId) {
+  // PRIORITY 3: Try Clerk's built-in auth() only if NO x-user-token was provided
+  // This is for browser-based sessions, not WebView
+  // NOTE: We skip this if hadUserToken is true because auth() can return stale/wrong values
+  if (!clerkUserId && !hadUserToken) {
     try {
       const clerkAuth = auth();
-      clerkUserId = clerkAuth?.userId || null;
-      console.log('[ADMIN_ACCESS] Clerk userId from Clerk auth():', clerkUserId);
+      // SECURITY: Never accept "service-admin" from auth() - it's our synthetic user
+      if (clerkAuth?.userId && clerkAuth.userId !== 'service-admin') {
+        clerkUserId = clerkAuth.userId;
+        isTokenVerified = true;
+        console.log('[ADMIN_ACCESS] Clerk userId from Clerk auth():', clerkUserId);
+      }
     } catch (error) {
       console.log('[ADMIN_ACCESS] Clerk auth() failed:', error);
     }
   }
 
+  // SECURITY: If a user token was provided but verification failed, DENY ACCESS
+  // Do NOT fall back to service-admin - this prevents fake token attacks
+  if (hadUserToken && !clerkUserId) {
+    console.log('[ADMIN_ACCESS] SECURITY: x-user-token was provided but verification failed. Denying access.');
+    return { isAdmin: false, user: null };
+  }
+
   // If no user ID found, check if it's a service-admin request (bearer token only, no Clerk)
-  if (!clerkUserId && isAuthorized) {
-    // This is a bearer token request without Clerk authentication - use service-admin
-    console.log('[ADMIN_ACCESS] No Clerk user found, using service-admin for bearer token request');
+  // This is for API-only access (like the mobile app calling APIs)
+  // ONLY allow this if NO x-user-token was provided at all
+  if (!clerkUserId && isAuthorized && !hadUserToken) {
+    // This is a bearer token request without any user token - use service-admin
+    console.log('[ADMIN_ACCESS] No user token provided, using service-admin for bearer token request');
     const user = await ensureServiceUser();
     return { isAdmin: true, user };
   }
@@ -76,43 +132,50 @@ export async function checkAdminAccess() {
     return { isAdmin: false, user: null };
   }
 
-  console.log('[ADMIN_ACCESS] Found Clerk userId:', clerkUserId);
+  // SECURITY CHECK: Only proceed if the token was properly verified
+  if (!isTokenVerified) {
+    console.log('[ADMIN_ACCESS] SECURITY: Token was not verified, denying access');
+    return { isAdmin: false, user: null };
+  }
+
+  console.log('[ADMIN_ACCESS] Found verified Clerk userId:', clerkUserId);
 
   // Check admin status for the Clerk user
   try {
-
-    // Check admin count BEFORE creating user to avoid race conditions
-    // Exclude service-admin user from count (only count real Clerk users)
-    const adminCount = await prismadb.user.count({
-      where: {
-        isAdmin: true,
-        clerkId: { not: 'service-admin' } // Exclude synthetic service user
-      }
-    });
-    const shouldPromoteToAdmin = adminCount === 0;
-
-    // Get user details from Clerk to get real email
-    let clerkUserEmail = `${clerkUserId}@temp.local`;
-    let clerkUserName = "New User";
-
-    try {
-      const clerkUser = await currentUser();
-      if (clerkUser) {
-        clerkUserEmail = clerkUser.emailAddresses[0]?.emailAddress || clerkUserEmail;
-        clerkUserName = clerkUser.firstName && clerkUser.lastName
-          ? `${clerkUser.firstName} ${clerkUser.lastName}`.trim()
-          : clerkUser.firstName || clerkUser.lastName || clerkUserEmail.split('@')[0] || "New User";
-      }
-    } catch (error) {
-      console.log('[ADMIN_ACCESS] Could not fetch Clerk user details:', error);
-    }
-
-    // Find or create the Clerk user in DB
+    // First, check if user already exists in database
     let user = await prismadb.user.findUnique({
       where: { clerkId: clerkUserId },
     });
 
+    // If user doesn't exist, we need to CREATE them
+    // But ONLY if we have verified credentials from Clerk
     if (!user) {
+      // Check admin count BEFORE creating user to avoid race conditions
+      // Exclude service-admin user from count (only count real Clerk users)
+      const adminCount = await prismadb.user.count({
+        where: {
+          isAdmin: true,
+          clerkId: { not: 'service-admin' } // Exclude synthetic service user
+        }
+      });
+      const shouldPromoteToAdmin = adminCount === 0;
+
+      // Get user details from Clerk to get real email
+      let clerkUserEmail = `${clerkUserId}@clerk.local`;
+      let clerkUserName = "New User";
+
+      try {
+        const clerkUser = await currentUser();
+        if (clerkUser) {
+          clerkUserEmail = clerkUser.emailAddresses[0]?.emailAddress || clerkUserEmail;
+          clerkUserName = clerkUser.firstName && clerkUser.lastName
+            ? `${clerkUser.firstName} ${clerkUser.lastName}`.trim()
+            : clerkUser.firstName || clerkUser.lastName || clerkUserEmail.split('@')[0] || "New User";
+        }
+      } catch (error) {
+        console.log('[ADMIN_ACCESS] Could not fetch Clerk user details:', error);
+      }
+
       try {
         user = await prismadb.user.create({
           data: {

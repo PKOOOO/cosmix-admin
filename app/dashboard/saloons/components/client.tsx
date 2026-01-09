@@ -2,7 +2,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Heading } from "@/components/ui/heading";
-import { Plus, Edit, Trash, DollarSign, MapPin, Star, Clock } from "lucide-react";
+import { Plus, Edit, Trash, DollarSign, MapPin, Star, Clock, Scissors } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { SaloonColumn } from "./columns";
@@ -65,19 +65,18 @@ export const SaloonClient: React.FC<SaloonClientProps> = ({
 
 
             {data.length === 0 ? (
-                <div className="fixed inset-0 flex items-center justify-center">
-                    <Card className="mx-4">
-                        <CardContent className="flex flex-col items-center justify-center py-12 px-8">
-                            <Button
-                                onClick={() => router.push('/dashboard/saloons/new')}
-                                size="lg"
-                                className="text-lg px-8 py-6"
-                            >
-                                <Plus className="mr-2 h-5 w-5" />
-                                Luo Saloon
-                            </Button>
-                        </CardContent>
-                    </Card>
+                <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+                    <Scissors className="h-16 w-16 text-muted-foreground mb-4" />
+                    <h2 className="text-2xl font-semibold mb-2">Ei palveluja vielä</h2>
+                    <p className="text-muted-foreground mb-6 max-w-md">
+                        Aloita luomalla ensimmäinen palvelusi. Kun olet luonut palvelun, näet tilastot täällä.
+                    </p>
+                    <a
+                        href="/dashboard/saloons/new"
+                        className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground h-10 px-4 py-2 hover:bg-primary/90"
+                    >
+                        Luo ensimmäinen palvelu
+                    </a>
                 </div>
             ) : (
                 <>

@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import axios from "@/lib/axios";
-import { Plus, Trash, Edit, Settings } from "lucide-react";
+import { Plus, Trash, Edit, Settings, ChevronRight, Check, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertModal } from "@/components/modals/alert-modal";
 import toast from "react-hot-toast";
 
@@ -26,20 +25,32 @@ interface ParentService {
   name: string;
   description?: string;
   workTypes?: WorkType[];
+  categoryId: string;
   category: {
     id: string;
     name: string;
     isGlobal: boolean;
   };
-  subServices: { id: string }[];
+  subServices: { id: string; name: string; description?: string; workTypes?: WorkType[] }[];
+  parentServiceId?: string;
+  parentService?: { id: string; name: string };
   createdAt: string;
   updatedAt: string;
 }
 
+const WORK_TYPE_LABELS: Record<WorkType, string> = {
+  UUDET: 'Uudet',
+  POISTO: 'Poisto',
+  HUOLTO: 'Huolto',
+  EI_LISAKKEITA: 'Ei lisäkkeitä',
+  LYHYET: 'Lyhyet',
+  KESKIPITKAT: 'Keskipitkät',
+  PITKAT: 'Pitkät'
+};
+
 export const AdminServicesClient = () => {
   const router = useRouter();
   const [services, setServices] = useState<ParentService[]>([]);
-  const [parentServices, setParentServices] = useState<ParentService[]>([]);
   const [categories, setCategories] = useState<GlobalCategory[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -52,6 +63,11 @@ export const AdminServicesClient = () => {
   const [workTypes, setWorkTypes] = useState<WorkType[]>([]);
   const [isCreatingSubService, setIsCreatingSubService] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // UI State
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [expandedParentId, setExpandedParentId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchData();
@@ -66,19 +82,63 @@ export const AdminServicesClient = () => {
       setServices(servicesResponse.data);
       setCategories(categoriesResponse.data);
 
-      // Filter parent services for sub-service creation
-      const parentServicesOnly = servicesResponse.data.filter((service: any) => !service.parentServiceId);
-      setParentServices(parentServicesOnly);
+      // Set first category as selected
+      if (categoriesResponse.data.length > 0 && !selectedCategory) {
+        setSelectedCategory(categoriesResponse.data[0].id);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error("Failed to fetch data");
     }
   };
 
-  // Filter parent services by selected category
-  const filteredParentServices = parentServices.filter((service: any) =>
-    service.categoryId === selectedCategoryId
-  );
+  // Group services by category and parent
+  const groupedData = useMemo(() => {
+    const parentServices = services.filter(s => !s.parentServiceId);
+    const subServices = services.filter(s => s.parentServiceId);
+
+    // Group parent services by category
+    const byCategory: Record<string, ParentService[]> = {};
+    parentServices.forEach(service => {
+      const catId = service.categoryId || service.category?.id;
+      if (!byCategory[catId]) {
+        byCategory[catId] = [];
+      }
+      byCategory[catId].push(service);
+    });
+
+    // Attach sub-services to their parents
+    const withSubs = Object.entries(byCategory).reduce((acc, [catId, parents]) => {
+      acc[catId] = parents.map(parent => ({
+        ...parent,
+        subServices: subServices.filter(sub => sub.parentServiceId === parent.id)
+      }));
+      return acc;
+    }, {} as Record<string, ParentService[]>);
+
+    return withSubs;
+  }, [services]);
+
+  // Get parent services for selected category
+  const parentServicesInCategory = useMemo(() => {
+    if (!selectedCategory) return [];
+    let parents = groupedData[selectedCategory] || [];
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      parents = parents.filter(p =>
+        p.name.toLowerCase().includes(query) ||
+        p.subServices?.some(s => s.name.toLowerCase().includes(query))
+      );
+    }
+
+    return parents;
+  }, [selectedCategory, groupedData, searchQuery]);
+
+  // Filter parent services for sub-service creation
+  const filteredParentServices = useMemo(() => {
+    return services.filter(s => !s.parentServiceId && s.categoryId === selectedCategoryId);
+  }, [services, selectedCategoryId]);
 
   const handleCreate = async () => {
     if (!serviceName.trim()) {
@@ -128,7 +188,7 @@ export const AdminServicesClient = () => {
 
     try {
       setLoading(true);
-      const isEditingSub = (editingService as any)?.parentServiceId;
+      const isEditingSub = editingService?.parentServiceId;
       await axios.patch(`/api/admin/services/${editingService.id}`, {
         name: serviceName,
         description: serviceDescription,
@@ -137,6 +197,7 @@ export const AdminServicesClient = () => {
 
       resetForm();
       fetchData();
+      toast.success("Service updated successfully");
     } catch (error) {
       console.error('Error updating service:', error);
       toast.error("Failed to update service");
@@ -157,15 +218,11 @@ export const AdminServicesClient = () => {
       fetchData();
     } catch (error: any) {
       console.error('Error deleting service:', error);
-      // Extract error message from axios response
       let errorMessage = "Failed to delete service";
       if (error.response?.data) {
-        // NextResponse with string body returns the string directly
-        errorMessage = typeof error.response.data === 'string' 
-          ? error.response.data 
+        errorMessage = typeof error.response.data === 'string'
+          ? error.response.data
           : error.response.data.message || errorMessage;
-      } else if (error.message) {
-        errorMessage = error.message;
       }
       toast.error(errorMessage);
     } finally {
@@ -181,9 +238,8 @@ export const AdminServicesClient = () => {
     setEditingService(service);
     setServiceName(service.name);
     setServiceDescription(service.description || "");
-    setSelectedCategoryId(service.category.id);
-    setWorkTypes(((service as any).workTypes as WorkType[]) || []);
-    // popular removed from services
+    setSelectedCategoryId(service.category?.id || service.categoryId);
+    setWorkTypes((service.workTypes as WorkType[]) || []);
     setOpen(true);
   };
 
@@ -205,331 +261,320 @@ export const AdminServicesClient = () => {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header with Buttons */}
+      <div className="flex flex-col gap-3">
         <div>
-          <h3 className="text-lg font-medium">Services Management</h3>
-          <p className="text-sm text-muted-foreground">
-            Create parent services and sub-services that saloons can use
+          <h3 className="text-lg font-medium">Services</h3>
+          <p className="text-xs text-muted-foreground">
+            Manage parent services and sub-services
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => {
-            setIsCreatingSubService(false);
-            setOpen(true);
-          }}>
+
+        {/* Buttons - Stack on mobile */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={() => {
+              setIsCreatingSubService(false);
+              setOpen(true);
+            }}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Parent Service
           </Button>
           <Button
+            size="sm"
             variant="outline"
+            className="w-full sm:w-auto"
             onClick={() => {
               setIsCreatingSubService(true);
               setOpen(true);
             }}
-            disabled={parentServices.length === 0}
+            disabled={services.filter(s => !s.parentServiceId).length === 0}
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Sub-Service
           </Button>
         </div>
+      </div>
 
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="w-full max-w-lg">
-            <DialogHeader>
-              <DialogTitle>
-                {editingService
-                  ? `Edit ${(editingService as any).parentServiceId ? 'Sub-Service' : 'Parent Service'}`
-                  : `Create ${isCreatingSubService ? 'Sub-Service' : 'Parent Service'}`
-                }
-              </DialogTitle>
-              <DialogDescription>
-                {editingService
-                  ? "Update the service details below."
-                  : isCreatingSubService
-                    ? "Add a new sub-service under a parent service."
-                    : "Add a new parent service that saloons can use as a template."
-                }
-              </DialogDescription>
-            </DialogHeader>
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search services..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
+      </div>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Service Name</Label>
-                <Input
-                  id="name"
-                  value={serviceName}
-                  onChange={(e) => setServiceName(e.target.value)}
-                  placeholder="Enter service name"
-                />
-              </div>
+      {/* Category Pills */}
+      {categories.length > 0 && (
+        <div className="flex gap-3 overflow-x-auto no-scrollbar py-2">
+          {categories.map((category) => {
+            const isSelected = selectedCategory === category.id;
+            const count = (groupedData[category.id] || []).length;
+            return (
+              <button
+                key={category.id}
+                type="button"
+                onClick={() => {
+                  setSelectedCategory(category.id);
+                  setExpandedParentId(null);
+                }}
+                className={`
+                  whitespace-nowrap px-4 py-2.5 rounded-full text-sm font-medium transition-all flex items-center gap-2
+                  ${isSelected
+                    ? 'bg-[#423120] text-white shadow-md'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                  }
+                `}
+              >
+                {category.name}
+                {count > 0 && (
+                  <span className={`text-xs ${isSelected ? 'text-white/70' : 'text-muted-foreground'}`}>
+                    ({count})
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description (optional)</Label>
-                <textarea
-                  id="description"
-                  value={serviceDescription}
-                  onChange={(e) => setServiceDescription(e.target.value)}
-                  placeholder="Enter service description"
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                />
-              </div>
+      {/* Services List - Hierarchical */}
+      <div className="space-y-3">
+        {parentServicesInCategory.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-8">
+              <Settings className="h-8 w-8 text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">
+                {searchQuery ? "No services match your search" : "No services in this category"}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          parentServicesInCategory.map((parent) => {
+            const isExpanded = expandedParentId === parent.id;
+            const subCount = parent.subServices?.length || 0;
 
-              {/* Work types for sub-services */}
-              {(isCreatingSubService || (editingService && (editingService as any).parentServiceId)) && (
-                <div className="space-y-2">
-                  <Label>Work Types (optional)</Label>
-                  <div className="grid grid-cols-1 gap-3 text-sm">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        name="workTypeUudet"
-                        checked={workTypes.includes('UUDET')}
-                        onChange={() => toggleWorkType('UUDET')}
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      />
-                      Uudet
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        name="workTypePoisto"
-                        checked={workTypes.includes('POISTO')}
-                        onChange={() => toggleWorkType('POISTO')}
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      />
-                      Poisto
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        name="workTypeHuolto"
-                        checked={workTypes.includes('HUOLTO')}
-                        onChange={() => toggleWorkType('HUOLTO')}
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      />
-                      Huolto
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        name="workTypeEiLisakkeita"
-                        checked={workTypes.includes('EI_LISAKKEITA')}
-                        onChange={() => toggleWorkType('EI_LISAKKEITA')}
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      />
-                      Ei lisäkkeitä
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        name="workTypeLyhyet"
-                        checked={workTypes.includes('LYHYET')}
-                        onChange={() => toggleWorkType('LYHYET')}
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      />
-                      Lyhyet
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        name="workTypeKeskipitkat"
-                        checked={workTypes.includes('KESKIPITKAT')}
-                        onChange={() => toggleWorkType('KESKIPITKAT')}
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      />
-                      Keskipitkät
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        name="workTypePitkat"
-                        checked={workTypes.includes('PITKAT')}
-                        onChange={() => toggleWorkType('PITKAT')}
-                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      />
-                      Pitkät
-                    </label>
+            return (
+              <div key={parent.id} className="space-y-2">
+                {/* Parent Service Card */}
+                <div
+                  className={`
+                    flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all
+                    ${isExpanded ? 'bg-[#423120]/5 border-[#423120]/30' : 'bg-card border-border hover:border-[#423120]/30'}
+                  `}
+                  onClick={() => setExpandedParentId(isExpanded ? null : parent.id)}
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`} />
+                    <div className="min-w-0">
+                      <h4 className="text-sm font-semibold truncate">{parent.name}</h4>
+                      <p className="text-xs text-muted-foreground">
+                        {subCount} {subCount === 1 ? 'sub-service' : 'sub-services'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={(e) => { e.stopPropagation(); openEditModal(parent); }}
+                    >
+                      <Edit className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={(e) => { e.stopPropagation(); openDeleteDialog(parent.id); }}
+                    >
+                      <Trash className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 </div>
-              )}
 
-              {/* Popular removed from services */}
-
-              {!editingService && (
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
-                  <select
-                    id="category"
-                    value={selectedCategoryId}
-                    onChange={(e) => {
-                      setSelectedCategoryId(e.target.value);
-                      setSelectedParentServiceId(""); // Clear parent service when category changes
-                    }}
-                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={categories.length === 0}
-                  >
-                    <option value="">Select a category</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
+                {/* Sub-Services (Expandable) */}
+                {isExpanded && parent.subServices && parent.subServices.length > 0 && (
+                  <div className="ml-6 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                    {parent.subServices.map((sub: any) => (
+                      <div
+                        key={sub.id}
+                        className="flex items-center justify-between p-2.5 bg-muted/30 rounded-lg border border-border/50"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <h5 className="text-sm font-medium truncate">{sub.name}</h5>
+                          {sub.workTypes && sub.workTypes.length > 0 && (
+                            <p className="text-[10px] text-muted-foreground">
+                              {sub.workTypes.map((t: WorkType) => WORK_TYPE_LABELS[t]).join(', ')}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => openEditModal(sub)}
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => openDeleteDialog(sub.id)}
+                          >
+                            <Trash className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
                     ))}
-                  </select>
-                  {categories.length === 0 && (
-                    <p className="text-sm text-red-600">
-                      No global categories available. Please create global categories first.
-                    </p>
-                  )}
-                </div>
-              )}
+                  </div>
+                )}
 
-              {isCreatingSubService && (
-                <div className="space-y-2">
-                  <Label htmlFor="parentService">Parent Service</Label>
-                  <select
-                    id="parentService"
-                    value={selectedParentServiceId}
-                    onChange={(e) => {
-                      setSelectedParentServiceId(e.target.value);
-                    }}
-                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={filteredParentServices.length === 0}
-                  >
-                    <option value="">Select a parent service</option>
-                    {filteredParentServices.map((service) => (
-                      <option key={service.id} value={service.id}>
-                        {service.name}
-                      </option>
-                    ))}
-                  </select>
-                  {filteredParentServices.length === 0 && selectedCategoryId && (
-                    <p className="text-sm text-red-600">
-                      No parent services available in this category. Please create parent services first.
-                    </p>
-                  )}
-                  {!selectedCategoryId && (
-                    <p className="text-sm text-muted-foreground">
-                      Please select a category first to see available parent services.
-                    </p>
-                  )}
-                </div>
-              )}
+                {/* No sub-services message */}
+                {isExpanded && (!parent.subServices || parent.subServices.length === 0) && (
+                  <div className="ml-6 p-3 bg-muted/30 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground">No sub-services yet</p>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingService
+                ? `Edit ${editingService.parentServiceId ? 'Sub-Service' : 'Parent Service'}`
+                : `Create ${isCreatingSubService ? 'Sub-Service' : 'Parent Service'}`
+              }
+            </DialogTitle>
+            <DialogDescription>
+              {editingService
+                ? "Update the service details below."
+                : isCreatingSubService
+                  ? "Add a new sub-service under a parent service."
+                  : "Add a new parent service that saloons can use."
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Service Name</Label>
+              <Input
+                id="name"
+                value={serviceName}
+                onChange={(e) => setServiceName(e.target.value)}
+                placeholder="Enter service name"
+              />
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={resetForm}>
-                Cancel
-              </Button>
-              <Button
-                onClick={editingService ? handleUpdate : handleCreate}
-                disabled={loading}
-              >
-                {editingService ? "Update" : "Create"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (optional)</Label>
+              <textarea
+                id="description"
+                value={serviceDescription}
+                onChange={(e) => setServiceDescription(e.target.value)}
+                placeholder="Enter service description"
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
 
-      {/* Services List */}
-      <div className="space-y-6">
-        {/* Parent Services */}
-        <div>
-          <h4 className="text-md font-medium mb-3 flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Parent Services ({services.filter((s: any) => !s.parentServiceId).length})
-          </h4>
-          <div className="grid gap-4">
-            {services.filter((s: any) => !s.parentServiceId).map((service) => (
-              <Card key={service.id}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{service.name}</CardTitle>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEditModal(service)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openDeleteDialog(service.id)}
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-1 text-xs text-muted-foreground">
-                    <p>Category: {service.category.name}</p>
-                    <p>Sub-services: {service.subServices.length}</p>
-                    <p>Created: {new Date(service.createdAt).toLocaleDateString()}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {/* Work types for sub-services */}
+            {(isCreatingSubService || (editingService && editingService.parentServiceId)) && (
+              <div className="space-y-2">
+                <Label>Work Types (optional)</Label>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {(Object.keys(WORK_TYPE_LABELS) as WorkType[]).map((wt) => (
+                    <label key={wt} className="flex items-center gap-2 p-2 rounded border cursor-pointer hover:bg-muted/50">
+                      <input
+                        type="checkbox"
+                        checked={workTypes.includes(wt)}
+                        onChange={() => toggleWorkType(wt)}
+                        className="h-4 w-4 rounded border-gray-300"
+                      />
+                      <span className="text-xs">{WORK_TYPE_LABELS[wt]}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!editingService && (
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <select
+                  id="category"
+                  value={selectedCategoryId}
+                  onChange={(e) => {
+                    setSelectedCategoryId(e.target.value);
+                    setSelectedParentServiceId("");
+                  }}
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  disabled={categories.length === 0}
+                >
+                  <option value="">Select a category</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {isCreatingSubService && (
+              <div className="space-y-2">
+                <Label htmlFor="parentService">Parent Service</Label>
+                <select
+                  id="parentService"
+                  value={selectedParentServiceId}
+                  onChange={(e) => setSelectedParentServiceId(e.target.value)}
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  disabled={filteredParentServices.length === 0}
+                >
+                  <option value="">Select a parent service</option>
+                  {filteredParentServices.map((service) => (
+                    <option key={service.id} value={service.id}>
+                      {service.name}
+                    </option>
+                  ))}
+                </select>
+                {filteredParentServices.length === 0 && selectedCategoryId && (
+                  <p className="text-xs text-red-600">
+                    No parent services in this category. Create one first.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
-        </div>
 
-        {/* Sub-Services */}
-        <div>
-          <h4 className="text-md font-medium mb-3 flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Sub-Services ({services.filter((s: any) => s.parentServiceId).length})
-          </h4>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {services.filter((s: any) => s.parentServiceId).map((service) => (
-              <Card key={service.id}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{service.name}</CardTitle>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEditModal(service)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openDeleteDialog(service.id)}
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="mb-2">
-                    {service.description || "No description"}
-                  </CardDescription>
-                  <div className="space-y-1 text-xs text-muted-foreground">
-                    <p>Category: {service.category.name}</p>
-                    <p>Parent: {(service as any).parentService?.name}</p>
-                    <p>Types: {(service as any).workTypes && (service as any).workTypes.length > 0 ? (service as any).workTypes.map((t: WorkType) => ({ UUDET: 'Uudet', POISTO: 'Poisto', HUOLTO: 'Huolto', EI_LISAKKEITA: 'Ei lisäkkeitä', LYHYET: 'Lyhyet', KESKIPITKAT: 'Keskipitkät', PITKAT: 'Pitkät' } as const)[t]).join(', ') : '—'}</p>
-                    <p>Created: {new Date(service.createdAt).toLocaleDateString()}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {services.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-8">
-            <Settings className="h-8 w-8 text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">No services yet</p>
-            <p className="text-xs text-muted-foreground">
-              Create your first parent service to get started
-            </p>
-          </CardContent>
-        </Card>
-      )}
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={resetForm} className="w-full sm:w-auto">
+              Cancel
+            </Button>
+            <Button
+              onClick={editingService ? handleUpdate : handleCreate}
+              disabled={loading}
+              className="w-full sm:w-auto"
+            >
+              {editingService ? "Update" : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Modal */}
       <AlertModal
