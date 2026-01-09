@@ -11,13 +11,13 @@ import { AdminCategoriesClient } from "./admin-categories-client";
 import { AdminServicesClient } from "./admin-services-client";
 import { AdminRevenueClient } from "./admin-revenue-client";
 import { AdminSaloonsListClient } from "./admin-saloons-list-client";
-import { AdminUsersListClient } from "./admin-users-list-client";
+
 
 interface AdminStats {
   globalCategories: number;
   parentServices: number;
   totalSaloons: number;
-  totalUsers: number;
+  totalEnrolledServices: number;
   totalRevenue: number;
 }
 
@@ -27,13 +27,12 @@ export const AdminClient = () => {
     globalCategories: 0,
     parentServices: 0,
     totalSaloons: 0,
-    totalUsers: 0,
+    totalEnrolledServices: 0,
     totalRevenue: 0
   });
   const [loading, setLoading] = useState(true);
   const [showRevenue, setShowRevenue] = useState(false);
   const [showSaloons, setShowSaloons] = useState(false);
-  const [showUsers, setShowUsers] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -59,10 +58,7 @@ export const AdminClient = () => {
     return <AdminSaloonsListClient onBack={() => setShowSaloons(false)} />;
   }
 
-  // Show Users list view
-  if (showUsers) {
-    return <AdminUsersListClient onBack={() => setShowUsers(false)} />;
-  }
+
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -113,17 +109,13 @@ export const AdminClient = () => {
           </CardContent>
         </Card>
 
-        <Card
-          className="cursor-pointer hover:border-[#423120]/50 transition-colors"
-          onClick={() => setShowUsers(true)}
-        >
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 p-3 md:p-6">
-            <CardTitle className="text-xs md:text-sm font-medium">Users</CardTitle>
-
+            <CardTitle className="text-xs md:text-sm font-medium">Enrolled Services</CardTitle>
           </CardHeader>
           <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
             <div className="text-xl md:text-2xl font-bold">
-              {loading ? "..." : stats.totalUsers}
+              {loading ? "..." : stats.totalEnrolledServices}
             </div>
           </CardContent>
         </Card>

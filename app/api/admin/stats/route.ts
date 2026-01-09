@@ -11,7 +11,7 @@ export async function GET() {
             globalCategoriesCount,
             parentServicesCount,
             totalSaloonsCount,
-            totalUsersCount,
+            totalEnrolledServicesCount,
             revenueResult
         ] = await Promise.all([
             // Global categories count
@@ -24,8 +24,10 @@ export async function GET() {
             }),
             // Total saloons count
             prismadb.saloon.count(),
-            // Total users count
-            prismadb.user.count(),
+            // Total unique enrolled services (count distinct services that saloons have enrolled)
+            prismadb.saloonService.groupBy({
+                by: ['serviceId'],
+            }).then(groups => groups.length),
             // Total revenue from all bookings
             prismadb.booking.aggregate({
                 _sum: {
@@ -40,7 +42,7 @@ export async function GET() {
             globalCategories: globalCategoriesCount,
             parentServices: parentServicesCount,
             totalSaloons: totalSaloonsCount,
-            totalUsers: totalUsersCount,
+            totalEnrolledServices: totalEnrolledServicesCount,
             totalRevenue: totalRevenue
         });
 

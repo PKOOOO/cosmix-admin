@@ -365,7 +365,7 @@ export const AdminServicesClient = () => {
                 {/* Parent Service Card */}
                 <div
                   className={`
-                    flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all
+                    flex items-center justify-between p-6 border rounded-lg cursor-pointer transition-all
                     ${isExpanded ? 'bg-[#423120]/5 border-[#423120]/30' : 'bg-card border-border hover:border-[#423120]/30'}
                   `}
                   onClick={() => setExpandedParentId(isExpanded ? null : parent.id)}

@@ -186,13 +186,11 @@ export const AdminCategoriesClient = () => {
         {categories.map((category) => (
           <div
             key={category.id}
-            className="flex items-center justify-between p-3 border rounded-lg bg-card"
+            className="flex items-center justify-between p-6 border rounded-lg bg-card"
           >
             <div className="min-w-0 flex-1">
-              <h4 className="text-sm font-medium truncate">{category.name}</h4>
-              <p className="text-[10px] text-muted-foreground">
-                Created {new Date(category.createdAt).toLocaleDateString()}
-              </p>
+              <h4 className="text-sm font-bold truncate">{category.name}</h4>
+
             </div>
             <div className="flex items-center gap-1">
               <Button
