@@ -10,18 +10,21 @@ export const useStripe = () => {
     const onStripeConnect = async () => {
         try {
             setOnStripeAccountPending(true)
+            console.log('[STRIPE] Starting Stripe Connect...')
             const account = await axios.get(`/api/stripe/connect`)
+            console.log('[STRIPE] API response:', JSON.stringify(account.data))
             if (account) {
                 setOnStripeAccountPending(false)
                 if (account.data.url) {
+                    console.log('[STRIPE] Redirecting to:', account.data.url)
                     window.location.href = account.data.url
                 } else if (account.data.connected) {
-                    // Already connected, refresh the page
+                    console.log('[STRIPE] Already connected, refreshing')
                     router.refresh()
                 }
             }
-        } catch (error) {
-            console.log(error)
+        } catch (error: any) {
+            console.error('[STRIPE] Connect error:', error?.response?.status, error?.response?.data || error?.message || error)
             setOnStripeAccountPending(false)
         }
     }
@@ -41,8 +44,8 @@ export const useStripe = () => {
         }
     }
 
-    return { 
-        onStripeConnect, 
+    return {
+        onStripeConnect,
         onStripeAccountPending,
         onStripeDisconnect,
         onStripeDisconnectPending
