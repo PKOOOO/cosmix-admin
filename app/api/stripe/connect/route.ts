@@ -71,13 +71,13 @@ export async function GET() {
       },
       metadata: {
         userId: user.id,
-        clerkId: userId,
+        clerkId: user.clerkId,
       },
     });
 
     // Save the Stripe account ID to the user
     await prismadb.user.update({
-      where: { clerkId: userId },
+      where: { clerkId: user.clerkId },
       data: { stripeId: account.id },
     });
 
