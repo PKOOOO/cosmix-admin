@@ -1,8 +1,8 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import prismadb from "@/lib/prismadb";
 import { headers } from "next/headers";
+import { checkAdminAccess } from "@/lib/admin-access";
 
 // Connect to Stripe
 export async function GET() {
@@ -16,17 +16,9 @@ export async function GET() {
       typescript: true,
     });
 
-    const { userId } = auth();
-    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
-
-    // Get the user from database
-    const user = await prismadb.user.findUnique({
-      where: { clerkId: userId },
-    });
-
-    if (!user) {
-      return new NextResponse("User not found", { status: 404 });
-    }
+    // Use checkAdminAccess which handles WebView auth (x-user-token-session cookie)
+    const { user } = await checkAdminAccess();
+    if (!user) return new NextResponse("Unauthorized", { status: 401 });
 
     // Get the base URL from headers for dynamic callback URLs
     const headersList = headers();
@@ -39,7 +31,7 @@ export async function GET() {
     // If user already has a Stripe account, check if onboarding is complete
     if (accountId) {
       const account = await stripe.accounts.retrieve(accountId);
-      
+
       // If onboarding is complete, no need to create a new link
       if (account.details_submitted) {
         return NextResponse.json({
@@ -47,7 +39,7 @@ export async function GET() {
           connected: true,
         });
       }
-      
+
       // If onboarding not complete, create a new onboarding link
       const accountLink = await stripe.accountLinks.create({
         account: accountId,
@@ -121,17 +113,9 @@ export async function DELETE() {
       typescript: true,
     });
 
-    const { userId } = auth();
-    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
-
-    // Get the user from database
-    const user = await prismadb.user.findUnique({
-      where: { clerkId: userId },
-    });
-
-    if (!user) {
-      return new NextResponse("User not found", { status: 404 });
-    }
+    // Use checkAdminAccess which handles WebView auth (x-user-token-session cookie)
+    const { user } = await checkAdminAccess();
+    if (!user) return new NextResponse("Unauthorized", { status: 401 });
 
     if (!user.stripeId) {
       return new NextResponse("No Stripe account connected", { status: 400 });
@@ -155,9 +139,9 @@ export async function DELETE() {
       data: { stripeId: null },
     });
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: "Stripe account disconnected successfully",
-      disconnected: true 
+      disconnected: true
     });
   } catch (error) {
     console.error("An error occurred when disconnecting Stripe:", error);
