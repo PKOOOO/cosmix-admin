@@ -135,7 +135,7 @@ export async function DELETE() {
 
     // Remove the Stripe ID from the user
     await prismadb.user.update({
-      where: { clerkId: userId },
+      where: { clerkId: user.clerkId },
       data: { stripeId: null },
     });
 
