@@ -173,7 +173,20 @@ export async function POST(req: Request) {
         const PLATFORM_FEE_PERCENT = 0.10;
 
         const providerStripeId = servicesData[0]?.saloonService?.saloon?.user?.stripeId ?? null;
-        if (!providerStripeId) {
+
+        // Only route to provider if their transfers capability is active
+        let transfersActive = false;
+        if (providerStripeId) {
+            try {
+                const account = await stripe.accounts.retrieve(providerStripeId);
+                transfersActive = account.capabilities?.transfers === 'active';
+                if (!transfersActive) {
+                    console.warn('[CHECKOUT_POST] Provider transfers capability not active — payment goes to platform only');
+                }
+            } catch (e) {
+                console.warn('[CHECKOUT_POST] Could not retrieve provider Stripe account:', e);
+            }
+        } else {
             console.warn('[CHECKOUT_POST] Provider has no Stripe account — payment goes to platform only');
         }
 
@@ -188,7 +201,7 @@ export async function POST(req: Request) {
             },
         };
 
-        if (providerStripeId) {
+        if (providerStripeId && transfersActive) {
             intentParams.application_fee_amount = Math.round(totalAmount * 100 * PLATFORM_FEE_PERCENT);
             intentParams.transfer_data = { destination: providerStripeId };
         }
