@@ -24,9 +24,8 @@ export async function GET() {
         const application = await prismadb.providerApplication.findUnique({
           where: { userId: user.id },
         });
-        appName = application?.businessName
-          ?? `${application?.firstName ?? ""} ${application?.lastName ?? ""}`.trim()
-          || null;
+        const fullName = `${application?.firstName ?? ""} ${application?.lastName ?? ""}`.trim();
+        appName = application?.businessName ?? (fullName || null);
         appAddress = application?.address ?? null;
       } catch {}
 
