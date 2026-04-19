@@ -250,10 +250,11 @@ export async function GET(req: Request) {
                 where: { userId: user.id }
             });
 
-            console.log('[ADMIN_CHECK] Returning isAdmin:', user.isAdmin, 'hasSaloons:', saloonsCount > 0);
+            console.log('[ADMIN_CHECK] Returning isAdmin:', user.isAdmin, 'hasSaloons:', saloonsCount > 0, 'providerStatus:', user.providerStatus);
             return NextResponse.json({
                 isAdmin: user.isAdmin,
                 hasSaloons: saloonsCount > 0,
+                providerStatus: user.providerStatus ?? 'NOT_APPLIED',
                 user: { id: user.id, name: user.name, email: user.email }
             });
         }
@@ -273,6 +274,7 @@ export async function GET(req: Request) {
                 return NextResponse.json({
                     isAdmin: true,
                     hasSaloons: saloonsCount > 0,
+                    providerStatus: 'ACTIVE',
                     user: { id: bearerUser.id, name: bearerUser.name, email: bearerUser.email }
                 });
             }
