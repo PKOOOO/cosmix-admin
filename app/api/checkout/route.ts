@@ -180,6 +180,8 @@ export async function POST(req: Request) {
             try {
                 const account = await stripe.accounts.retrieve(providerStripeId);
                 transfersActive = account.capabilities?.transfers === 'active';
+                console.log('[CHECKOUT_POST] Provider capabilities:', JSON.stringify(account.capabilities));
+                console.log('[CHECKOUT_POST] charges_enabled:', account.charges_enabled, 'payouts_enabled:', account.payouts_enabled);
                 if (!transfersActive) {
                     console.warn('[CHECKOUT_POST] Provider transfers capability not active — payment goes to platform only');
                 }
