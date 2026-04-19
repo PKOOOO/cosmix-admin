@@ -170,18 +170,30 @@ export async function POST(req: Request) {
 
         // Create Stripe PaymentIntent
         const stripe = getStripe();
-        const paymentIntent = await stripe.paymentIntents.create({
-            amount: Math.round(totalAmount * 100), // Convert to cents
+        const PLATFORM_FEE_PERCENT = 0.10;
+
+        const providerStripeId = servicesData[0]?.saloonService?.saloon?.user?.stripeId ?? null;
+        if (!providerStripeId) {
+            console.warn('[CHECKOUT_POST] Provider has no Stripe account — payment goes to platform only');
+        }
+
+        const intentParams: Stripe.PaymentIntentCreateParams = {
+            amount: Math.round(totalAmount * 100),
             currency: 'eur',
-            automatic_payment_methods: {
-                enabled: true,
-            },
+            automatic_payment_methods: { enabled: true },
             metadata: {
                 bookingIds: bookings.map(b => b.id).join(','),
                 customerEmail: customerInfo.email,
                 customerName: customerInfo.name,
             },
-        });
+        };
+
+        if (providerStripeId) {
+            intentParams.application_fee_amount = Math.round(totalAmount * 100 * PLATFORM_FEE_PERCENT);
+            intentParams.transfer_data = { destination: providerStripeId };
+        }
+
+        const paymentIntent = await stripe.paymentIntents.create(intentParams);
 
         console.log('PaymentIntent created:', paymentIntent.id);
 
