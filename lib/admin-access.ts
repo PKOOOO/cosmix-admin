@@ -92,7 +92,24 @@ export async function checkAdminAccess() {
     }
   }
 
-  // PRIORITY 3: Try Clerk's built-in auth() only if NO x-user-token was provided
+  // PRIORITY 3: Authorization Bearer header as Clerk JWT (native mobile clients)
+  // Runs when no x-user-token is present — mobile sends Clerk JWT directly as Bearer
+  if (!clerkUserId && !hadUserToken) {
+    const adminApiKey = process.env.ADMIN_API_KEY || '';
+    const bearerRaw = headerPayload.get('authorization') ?? '';
+    const bearerToken = bearerRaw.startsWith('Bearer ') ? bearerRaw.slice(7).trim() : '';
+    if (bearerToken && bearerToken !== adminApiKey && bearerToken.split('.').length === 3) {
+      console.log('[ADMIN_ACCESS] Found Clerk JWT in Authorization Bearer, verifying...');
+      hadUserToken = true;
+      clerkUserId = await verifyClerkToken(bearerToken);
+      if (clerkUserId) {
+        isTokenVerified = true;
+        console.log('[ADMIN_ACCESS] Clerk userId from Bearer JWT:', clerkUserId);
+      }
+    }
+  }
+
+  // PRIORITY 4: Try Clerk's built-in auth() only if NO x-user-token was provided
   // This is for browser-based sessions, not WebView
   // NOTE: We skip this if hadUserToken is true because auth() can return stale/wrong values
   if (!clerkUserId && !hadUserToken) {

@@ -1,7 +1,7 @@
 // app/api/bookings/route.ts
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { requireServiceUser } from "@/lib/service-auth";
+import { checkAdminAccess } from "@/lib/admin-access";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -15,7 +15,8 @@ export async function OPTIONS() {
 
 export async function POST(req: Request) {
     try {
-        const serviceUser = await requireServiceUser();
+        const { user: serviceUser } = await checkAdminAccess();
+        if (!serviceUser) return new NextResponse("Unauthorized", { status: 401 });
         const body = await req.json();
 
         const { serviceId, bookingTime, saloonId } = body;
@@ -54,8 +55,8 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
     try {
-        // Require bearer auth; returns synthetic admin user
-        await requireServiceUser();
+        const { user } = await checkAdminAccess();
+        if (!user) return new NextResponse("Unauthorized", { status: 401 });
 
         const bookings = await prismadb.booking.findMany({
             include: {
