@@ -49,8 +49,8 @@ export async function POST(
       data: { adminNotes: body.notes ?? null },
     });
 
-    // Phase 3 approved → create Saloon if none exists
-    if (application.currentPhase === 3) {
+    // Phase 2 approved → create Saloon so provider can add services in phase 3
+    if (application.currentPhase === 2) {
       const existingSaloon = await prismadb.saloon.findFirst({
         where: { userId: application.userId },
       });
