@@ -7,18 +7,31 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ProviderStatus {
+  NOT_APPLIED
+  PHASE1_PENDING
+  PHASE1_APPROVED
+  PHASE2_PENDING
+  PHASE2_APPROVED
+  PHASE3_PENDING
+  ACTIVE
+  REJECTED
+}
+
 // ------------------- USERS -------------------
 model User {
-  id         String     @id @default(uuid())
-  clerkId    String     @unique
-  email      String     @unique
-  name       String?
-  isAdmin    Boolean    @default(false)  // Admin status - first user becomes admin
-  stripeId   String?    @unique          // Stripe Connect account ID
+  id              String              @id @default(uuid())
+  clerkId         String              @unique
+  email           String              @unique
+  name            String?
+  isAdmin         Boolean             @default(false)
+  stripeId        String?             @unique
+  providerStatus  ProviderStatus      @default(NOT_APPLIED)
 
-  bookings   Booking[]
-  saloons    Saloon[]    // A user can own multiple saloons
-  reviews    SaloonReview[]
+  bookings        Booking[]
+  saloons         Saloon[]
+  reviews         SaloonReview[]
+  application     ProviderApplication?
 
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
@@ -192,6 +205,45 @@ model SaloonReview {
   @@index([userId])
   @@index([bookingId])
   @@map("saloon_reviews")
+}
+
+// ------------------- PROVIDER APPLICATION -------------------
+model ProviderApplication {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+
+  // Phase 1 — Expression of Interest
+  firstName         String?
+  lastName          String?
+  phone             String?
+  city              String?
+  neighbourhood     String?
+  address           String?
+  serviceCategories String[]
+
+  // Phase 2 — Contract & Verification
+  legalName       String?
+  dateOfBirth     String?
+  finnishId       String?
+  nationality     String?
+  businessName    String?
+  yTunnus         String?
+  businessType    String?
+  documentUrls    String[]
+  termsAccepted   Boolean   @default(false)
+  termsAcceptedAt DateTime?
+  stripeConnected Boolean   @default(false)
+
+  // Admin fields
+  adminNotes     String?
+  rejectedReason String?
+  currentPhase   Int       @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("provider_applications")
 }
 
 // ------------------- SALOON TIME SLOTS -------------------
