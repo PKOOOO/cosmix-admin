@@ -76,7 +76,6 @@ export async function provisionStripeForApplication(applicationId: string): Prom
       business_profile: {
         name: application.businessName || `${application.firstName} ${application.lastName}`,
         mcc: "7230",
-        url: process.env.NEXT_PUBLIC_APP_URL || "https://cosmix-admin-one.vercel.app",
       },
       external_account: {
         object: "bank_account" as const,
