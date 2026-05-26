@@ -67,69 +67,109 @@ export async function POST(
       }
 
       // Auto-create pre-filled Stripe Express account (only if user doesn't already have one)
+      console.log("[Stripe] User stripeId before:", application.user.stripeId);
+
       if (!application.user.stripeId) {
-        try {
-          if (
-            !application.dateOfBirth ||
-            !application.firstName ||
-            !application.lastName ||
-            !application.finnishId ||
-            !application.address ||
-            !application.city ||
-            !application.bankAccountName ||
-            !application.iban
-          ) {
-            throw new Error("Application missing required fields for Stripe pre-fill");
-          }
+        console.log("[Stripe] Creating account for:", {
+          applicationId: application.id,
+          userId: application.userId,
+          email: application.user.email,
+          firstName: application.firstName,
+          lastName: application.lastName,
+          dob: application.dateOfBirth,
+          finnishId: application.finnishId,
+          address: application.address,
+          city: application.city,
+          businessName: application.businessName,
+          iban: application.iban,
+          bankAccountName: application.bankAccountName,
+        });
 
-          const [day, month, year] = application.dateOfBirth.split("/").map(Number);
+        const missing: string[] = [];
+        if (!application.dateOfBirth) missing.push("dateOfBirth");
+        if (!application.firstName) missing.push("firstName");
+        if (!application.lastName) missing.push("lastName");
+        if (!application.finnishId) missing.push("finnishId");
+        if (!application.address) missing.push("address");
+        if (!application.city) missing.push("city");
+        if (!application.bankAccountName) missing.push("bankAccountName");
+        if (!application.iban) missing.push("iban");
 
-          const account = await stripe.accounts.create({
-            type: "express",
-            country: "FI",
-            email: application.user.email,
-            capabilities: {
-              card_payments: { requested: true },
-              transfers: { requested: true },
-            },
-            business_type: "individual",
-            individual: {
-              first_name: application.firstName,
-              last_name: application.lastName,
-              email: application.user.email,
-              dob: { day, month, year },
-              id_number: application.finnishId,
-              address: {
-                line1: application.address,
-                city: application.city,
-                country: "FI",
-              },
-            },
-            business_profile: {
-              name: application.businessName || `${application.firstName} ${application.lastName}`,
-              mcc: "7230",
-              url: process.env.NEXT_PUBLIC_APP_URL || "https://cosmix-admin-one.vercel.app",
-            },
-            external_account: {
-              object: "bank_account",
+        if (missing.length > 0) {
+          console.error("[Stripe] SKIPPED — missing required fields:", missing);
+        } else {
+          try {
+            const [day, month, year] = application.dateOfBirth!.split("/").map(Number);
+            console.log("[Stripe] Parsed DOB:", { day, month, year });
+
+            const accountPayload = {
+              type: "express" as const,
               country: "FI",
-              currency: "eur",
-              account_holder_name: application.bankAccountName,
-              account_number: application.iban,
-            },
-          });
+              email: application.user.email,
+              capabilities: {
+                card_payments: { requested: true },
+                transfers: { requested: true },
+              },
+              business_type: "individual" as const,
+              individual: {
+                first_name: application.firstName!,
+                last_name: application.lastName!,
+                email: application.user.email,
+                dob: { day, month, year },
+                id_number: application.finnishId!,
+                address: {
+                  line1: application.address!,
+                  city: application.city!,
+                  country: "FI",
+                },
+              },
+              business_profile: {
+                name: application.businessName || `${application.firstName} ${application.lastName}`,
+                mcc: "7230",
+                url: process.env.NEXT_PUBLIC_APP_URL || "https://cosmix-admin-one.vercel.app",
+              },
+              external_account: {
+                object: "bank_account" as const,
+                country: "FI",
+                currency: "eur",
+                account_holder_name: application.bankAccountName!,
+                account_number: application.iban!,
+              },
+            };
 
-          await prismadb.user.update({
-            where: { id: application.userId },
-            data: {
-              stripeId: account.id,
-              stripeAccountStatus: "incomplete",
-            },
-          });
-        } catch (stripeError) {
-          console.error("[ADMIN_APPLICATION_APPROVE_STRIPE]", stripeError);
-          // Don't fail the approval; provider can complete Stripe setup manually later
+            console.log("[Stripe] Calling stripe.accounts.create with payload:", JSON.stringify(accountPayload, null, 2));
+
+            const account = await stripe.accounts.create(accountPayload);
+
+            console.log("[Stripe] Account created:", account.id);
+            console.log("[Stripe] charges_enabled:", account.charges_enabled, "payouts_enabled:", account.payouts_enabled);
+            console.log("[Stripe] Requirements:", JSON.stringify(account.requirements, null, 2));
+            console.log("[Stripe] external_accounts count:", account.external_accounts?.data?.length ?? 0);
+
+            await prismadb.user.update({
+              where: { id: application.userId },
+              data: {
+                stripeId: account.id,
+                stripeAccountStatus: "incomplete",
+              },
+            });
+
+            console.log("[Stripe] Saved stripeId to user:", application.userId);
+          } catch (stripeError: any) {
+            // Surface the real Stripe error so we can see it in Vercel logs
+            console.error("[Stripe] CREATE FAILED");
+            console.error("[Stripe] type:", stripeError?.type);
+            console.error("[Stripe] code:", stripeError?.code);
+            console.error("[Stripe] param:", stripeError?.param);
+            console.error("[Stripe] statusCode:", stripeError?.statusCode);
+            console.error("[Stripe] message:", stripeError?.message);
+            console.error("[Stripe] raw:", stripeError?.raw);
+            console.error("[Stripe] stack:", stripeError?.stack);
+            // Don't fail the approval; provider can complete Stripe setup manually later
+          }
         }
+      } else {
+        console.log("[Stripe] Skipped — user already has stripeId:", application.user.stripeId);
       }
     }
 
