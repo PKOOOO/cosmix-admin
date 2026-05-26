@@ -230,6 +230,8 @@ model ProviderApplication {
   businessName    String?
   yTunnus         String?
   businessType    String?
+  bankAccountName String?
+  iban            String?
   documentUrls    String[]
   termsAccepted   Boolean   @default(false)
   termsAcceptedAt DateTime?

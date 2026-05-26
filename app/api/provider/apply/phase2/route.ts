@@ -35,14 +35,21 @@ export async function POST(req: Request) {
     const body = await req.json();
     const {
       legalName, dateOfBirth, finnishId, nationality,
-      businessName, businessType, documentUrls, termsAccepted, yTunnus,
+      businessName, businessType, bankAccountName, iban,
+      documentUrls, termsAccepted, yTunnus,
     } = body;
 
     if (
       !legalName || !dateOfBirth || !finnishId || !nationality ||
-      !businessName || !businessType || !documentUrls?.length || !termsAccepted
+      !businessName || !businessType || !bankAccountName || !iban ||
+      !documentUrls?.length || !termsAccepted
     ) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers: corsHeaders });
+    }
+
+    const cleanIban = String(iban).replace(/\s+/g, "").toUpperCase();
+    if (!/^FI\d{16}$/.test(cleanIban)) {
+      return NextResponse.json({ error: "Invalid Finnish IBAN" }, { status: 400, headers: corsHeaders });
     }
 
     await prismadb.providerApplication.update({
@@ -55,6 +62,8 @@ export async function POST(req: Request) {
         businessName,
         yTunnus: yTunnus ?? null,
         businessType,
+        bankAccountName,
+        iban: cleanIban,
         documentUrls,
         termsAccepted: true,
         termsAcceptedAt: new Date(),
