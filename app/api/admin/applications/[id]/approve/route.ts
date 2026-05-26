@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { checkAdminAccess } from "@/lib/admin-access";
+import { stripe } from "@/lib/stripe";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -63,6 +64,72 @@ export async function POST(
             address: application.address,
           },
         });
+      }
+
+      // Auto-create pre-filled Stripe Express account (only if user doesn't already have one)
+      if (!application.user.stripeId) {
+        try {
+          if (
+            !application.dateOfBirth ||
+            !application.firstName ||
+            !application.lastName ||
+            !application.finnishId ||
+            !application.address ||
+            !application.city ||
+            !application.bankAccountName ||
+            !application.iban
+          ) {
+            throw new Error("Application missing required fields for Stripe pre-fill");
+          }
+
+          const [day, month, year] = application.dateOfBirth.split("/").map(Number);
+
+          const account = await stripe.accounts.create({
+            type: "express",
+            country: "FI",
+            email: application.user.email,
+            capabilities: {
+              card_payments: { requested: true },
+              transfers: { requested: true },
+            },
+            business_type: "individual",
+            individual: {
+              first_name: application.firstName,
+              last_name: application.lastName,
+              email: application.user.email,
+              dob: { day, month, year },
+              id_number: application.finnishId,
+              address: {
+                line1: application.address,
+                city: application.city,
+                country: "FI",
+              },
+            },
+            business_profile: {
+              name: application.businessName || `${application.firstName} ${application.lastName}`,
+              mcc: "7230",
+              url: process.env.NEXT_PUBLIC_APP_URL || "https://cosmix-admin-one.vercel.app",
+            },
+            external_account: {
+              object: "bank_account",
+              country: "FI",
+              currency: "eur",
+              account_holder_name: application.bankAccountName,
+              account_number: application.iban,
+            },
+          });
+
+          await prismadb.user.update({
+            where: { id: application.userId },
+            data: {
+              stripeId: account.id,
+              stripeAccountStatus: "incomplete",
+            },
+          });
+        } catch (stripeError) {
+          console.error("[ADMIN_APPLICATION_APPROVE_STRIPE]", stripeError);
+          // Don't fail the approval; provider can complete Stripe setup manually later
+        }
       }
     }
 
