@@ -35,7 +35,7 @@ function EmbedOnboardingInner() {
     };
 
     const instance = loadConnectAndInitialize({
-      publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
+      publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISH_KEY!,
       fetchClientSecret,
       appearance: {
         variables: {

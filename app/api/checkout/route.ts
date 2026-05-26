@@ -216,7 +216,7 @@ export async function POST(req: Request) {
         const response = {
             success: true,
             paymentIntentClientSecret: paymentIntent.client_secret,
-            publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+            publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISH_KEY,
             bookingIds: bookings.map(b => b.id),
             amount: totalAmount,
             paymentMethod: 'online',
