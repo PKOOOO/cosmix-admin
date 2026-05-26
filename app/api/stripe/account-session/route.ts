@@ -17,7 +17,12 @@ export async function POST(req: Request) {
     const session = await stripe.accountSessions.create({
       account: accountId,
       components: {
-        account_onboarding: { enabled: true },
+        account_onboarding: {
+          enabled: true,
+          features: {
+            disable_stripe_user_authentication: true,
+          },
+        },
       },
     });
 
