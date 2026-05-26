@@ -29,6 +29,8 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.7",
+    "@stripe/connect-js": "^3.4.4",
+    "@stripe/react-connect-js": "^3.4.2",
     "@tanstack/react-table": "^8.16.0",
     "@types/nodemailer": "^7.0.2",
     "axios": "^1.6.8",

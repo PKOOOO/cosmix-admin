@@ -1,97 +1,36 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
-import { checkAdminAccess } from "@/lib/admin-access";
-import prismadb from "@/lib/prismadb";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-User-Token",
-};
-
-export async function OPTIONS() {
-  return NextResponse.json({}, { headers: corsHeaders });
-}
-
-// GET — check current Stripe account status
-export async function GET() {
+export async function POST(req: Request) {
   try {
-    const { user } = await checkAdminAccess();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
+    const { accountId } = await req.json();
+
+    if (!accountId) {
+      return NextResponse.json(
+        { error: "accountId is required" },
+        { status: 400 }
+      );
     }
 
-    if (!user.stripeId) {
-      return NextResponse.json({ status: "not_connected" }, { headers: corsHeaders });
-    }
+    console.log("[AccountSession] Creating for account:", accountId);
 
-    const account = await stripe.accounts.retrieve(user.stripeId);
-    return NextResponse.json(
-      {
-        status: account.details_submitted ? "active" : "incomplete",
-        chargesEnabled: account.charges_enabled,
-        payoutsEnabled: account.payouts_enabled,
-      },
-      { headers: corsHeaders }
-    );
-  } catch (error) {
-    console.error("[ACCOUNT_SESSION_GET]", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500, headers: corsHeaders }
-    );
-  }
-}
-
-// POST — create or retrieve account + return AccountSession client_secret
-export async function POST() {
-  try {
-    const { user } = await checkAdminAccess();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
-    }
-
-    let stripeId = user.stripeId;
-
-    if (!stripeId) {
-      const account = await stripe.accounts.create({
-        type: "express",
-        country: "FI",
-        email: user.email,
-        capabilities: {
-          card_payments: { requested: true },
-          transfers: { requested: true },
-        },
-        metadata: {
-          userId: user.id,
-          clerkId: user.clerkId,
-        },
-      });
-
-      await prismadb.user.update({
-        where: { id: user.id },
-        data: { stripeId: account.id },
-      });
-
-      stripeId = account.id;
-    }
-
-    const accountSession = await stripe.accountSessions.create({
-      account: stripeId,
+    const session = await stripe.accountSessions.create({
+      account: accountId,
       components: {
         account_onboarding: { enabled: true },
       },
     });
 
+    console.log("[AccountSession] Created, expires_at:", session.expires_at);
+
+    return NextResponse.json({
+      clientSecret: session.client_secret,
+    });
+  } catch (error: any) {
+    console.error("[AccountSession] Error:", error);
     return NextResponse.json(
-      { client_secret: accountSession.client_secret },
-      { headers: corsHeaders }
-    );
-  } catch (error) {
-    console.error("[ACCOUNT_SESSION_POST]", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500, headers: corsHeaders }
+      { error: error.message || "Failed to create session" },
+      { status: 500 }
     );
   }
 }
