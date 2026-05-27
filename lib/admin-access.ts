@@ -21,19 +21,11 @@ import { getOrCreateUserFromClerk } from "./get-or-create-user";
  */
 async function verifyClerkToken(token: string): Promise<string | null> {
   try {
-    // Use Clerk's verifyToken to validate the JWT
-    // This checks the signature, expiration, etc.
-    // Requires CLERK_SECRET_KEY env var to be set
-    // Get issuer from env or construct from publishable key
-    const issuer = process.env.CLERK_JWT_ISSUER ||
-      (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.includes('pk_test_')
-        ? `https://${process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.replace('pk_test_', '').replace('$', '')}.clerk.accounts.dev`
-        : null);
-
+    // Use Clerk's verifyToken to validate the JWT.
+    // Issuer is derived automatically from CLERK_SECRET_KEY in @clerk/backend v1+.
     const verifiedToken = await verifyToken(token, {
       secretKey: process.env.CLERK_SECRET_KEY,
-      issuer: issuer,
-      clockSkewInMs: 300000, // Allow 5 minutes of clock skew for network latency
+      clockSkewInMs: 300000, // 5 minutes for network latency
     });
 
     if (verifiedToken && verifiedToken.sub) {
