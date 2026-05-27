@@ -1,10 +1,11 @@
 // app/post-sign-in/page.tsx
-import { auth, currentUser } from "@clerk/nextjs"
+import { auth } from "@clerk/nextjs"
 import { verifyToken } from "@clerk/backend"
 import { redirect } from "next/navigation"
 import { headers, cookies } from "next/headers"
 import prismadb from "@/lib/prismadb"
-import { isAuthorizedRequest, ADMIN_EXTERNAL_ID } from "@/lib/service-auth"
+import { isAuthorizedRequest } from "@/lib/service-auth"
+import { getOrCreateUserFromClerk } from "@/lib/get-or-create-user"
 import { PostSignInClient } from "./post-sign-in-client"
 import { PostSignInError } from "./error-component"
 
@@ -47,23 +48,6 @@ async function verifyClerkToken(token: string): Promise<string | null> {
     console.log('[POST_SIGN_IN] Token verification failed:', error?.message || error);
     return null;
   }
-}
-
-// Helper function to wait for user creation (in case webhook is delayed)
-async function findUserWithRetry(clerkUserId: string, maxRetries = 3) {
-  for (let i = 0; i < maxRetries; i++) {
-    const user = await prismadb.user.findUnique({
-      where: { clerkId: clerkUserId }
-    })
-
-    if (user) return user
-
-    // Wait 1 second before retrying (webhook might be processing)
-    if (i < maxRetries - 1) {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-    }
-  }
-  return null
 }
 
 export default async function PostSignIn() {
@@ -140,116 +124,12 @@ export default async function PostSignIn() {
     redirect('/');
   }
 
-  // Check if user has any saloons
-  let user = await findUserWithRetry(clerkUserId)
-  console.log("PostSignIn - user lookup result:", user ? `Found user ${user.id}` : "No user found")
-
-  // If user doesn't exist in database, create them
+  const user = await getOrCreateUserFromClerk(clerkUserId);
   if (!user) {
-    console.log("PostSignIn - user not found in database, creating user")
-    // Get user details from Clerk to get real email
-    let clerkUserEmail = `${clerkUserId}@clerk.local`;
-    let clerkUserName = "New User";
-
-    try {
-      const clerkUser = await currentUser();
-      if (clerkUser) {
-        clerkUserEmail = clerkUser.emailAddresses[0]?.emailAddress || clerkUserEmail;
-        clerkUserName = clerkUser.firstName && clerkUser.lastName
-          ? `${clerkUser.firstName} ${clerkUser.lastName}`.trim()
-          : clerkUser.firstName || clerkUser.lastName || clerkUserEmail.split('@')[0] || "New User";
-      }
-    } catch (error) {
-      console.log("PostSignIn - Could not fetch Clerk user details:", error);
-    }
-
-    try {
-      // Check if this is the first Clerk user (admin) - exclude service-admin
-      const adminCount = await prismadb.user.count({
-        where: {
-          isAdmin: true,
-          clerkId: { not: ADMIN_EXTERNAL_ID } // Exclude synthetic service user
-        }
-      });
-      const isFirstUser = adminCount === 0;
-
-      // Create user with real email and name from Clerk
-      user = await prismadb.user.create({
-        data: {
-          clerkId: clerkUserId,
-          email: clerkUserEmail,
-          name: clerkUserName,
-          isAdmin: isFirstUser, // Set admin status for first Clerk user
-        }
-      })
-      console.log("PostSignIn - user created successfully:", user.id, isFirstUser ? "(Admin)" : "", "email:", user.email)
-    } catch (error: any) {
-      console.error("PostSignIn - error creating user:", error)
-      // Handle unique constraint errors
-      if (error.code === 'P2002') {
-        console.log("PostSignIn - Unique constraint error, target:", error.meta?.target);
-
-        // Check if it's a clerkId conflict (most common case)
-        if (error.meta?.target?.includes('clerkId')) {
-          // User with this clerkId already exists - fetch it
-          user = await prismadb.user.findUnique({
-            where: { clerkId: clerkUserId }
-          });
-          if (user) {
-            console.log("PostSignIn - Found existing user by clerkId:", user.email);
-          }
-        }
-        // Check if it's an email conflict
-        else if (error.meta?.target?.includes('email')) {
-          // User with this email already exists, try to find by email and update clerkId
-          const existingUser = await prismadb.user.findUnique({
-            where: { email: clerkUserEmail },
-          });
-
-          if (existingUser) {
-            // If existing user doesn't have a clerkId, update it
-            if (!existingUser.clerkId) {
-              user = await prismadb.user.update({
-                where: { email: clerkUserEmail },
-                data: {
-                  clerkId: clerkUserId,
-                  name: clerkUserName,
-                  // Don't change isAdmin if user already exists
-                },
-              });
-              console.log("PostSignIn - Linked existing user to Clerk ID:", clerkUserId);
-            } else {
-              // User already has a clerkId, just use it
-              user = existingUser;
-              console.log("PostSignIn - Using existing user with different clerkId");
-            }
-          } else {
-            // Email conflict but user not found - try finding by clerkId as fallback
-            user = await prismadb.user.findUnique({
-              where: { clerkId: clerkUserId }
-            });
-          }
-        }
-
-        // Final fallback: try to find by clerkId one more time
-        if (!user) {
-          user = await prismadb.user.findUnique({
-            where: { clerkId: clerkUserId }
-          });
-        }
-
-        if (user) {
-          console.log("PostSignIn - found existing user after retry:", user.id)
-        }
-      }
-
-      if (!user) {
-        // If we still don't have a user, show error page
-        console.error("PostSignIn - Could not create or find user after error handling");
-        return <PostSignInError />
-      }
-    }
+    console.error("PostSignIn - getOrCreateUserFromClerk returned null");
+    return <PostSignInError />;
   }
+  console.log("PostSignIn - user ready:", user.id, user.isAdmin ? "(Admin)" : "", "email:", user.email);
 
   const userSaloons = await prismadb.saloon.findMany({
     where: {
