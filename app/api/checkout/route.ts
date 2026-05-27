@@ -169,28 +169,9 @@ export async function POST(req: Request) {
         }
 
         // Create Stripe PaymentIntent
+        // Funds are credited to the platform Stripe account; providers are paid out
+        // manually via SEPA bank transfer (see /api/provider/revenue for the 10% fee math).
         const stripe = getStripe();
-        const PLATFORM_FEE_PERCENT = 0.10;
-
-        const providerStripeId = servicesData[0]?.saloonService?.saloon?.user?.stripeId ?? null;
-
-        // Only route to provider if their transfers capability is active
-        let transfersActive = false;
-        if (providerStripeId) {
-            try {
-                const account = await stripe.accounts.retrieve(providerStripeId);
-                transfersActive = account.capabilities?.transfers === 'active';
-                console.log('[CHECKOUT_POST] Provider capabilities:', JSON.stringify(account.capabilities));
-                console.log('[CHECKOUT_POST] charges_enabled:', account.charges_enabled, 'payouts_enabled:', account.payouts_enabled);
-                if (!transfersActive) {
-                    console.warn('[CHECKOUT_POST] Provider transfers capability not active — payment goes to platform only');
-                }
-            } catch (e) {
-                console.warn('[CHECKOUT_POST] Could not retrieve provider Stripe account:', e);
-            }
-        } else {
-            console.warn('[CHECKOUT_POST] Provider has no Stripe account — payment goes to platform only');
-        }
 
         const intentParams: Stripe.PaymentIntentCreateParams = {
             amount: Math.round(totalAmount * 100),
@@ -202,11 +183,6 @@ export async function POST(req: Request) {
                 customerName: customerInfo.name,
             },
         };
-
-        if (providerStripeId && transfersActive) {
-            intentParams.application_fee_amount = Math.round(totalAmount * 100 * PLATFORM_FEE_PERCENT);
-            intentParams.transfer_data = { destination: providerStripeId };
-        }
 
         const paymentIntent = await stripe.paymentIntents.create(intentParams);
 

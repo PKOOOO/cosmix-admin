@@ -33,18 +33,22 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const {
-      legalName, dateOfBirth, finnishId, nationality,
-      businessName, businessType, bankAccountName, iban,
-      documentUrls, termsAccepted, yTunnus,
-    } = body;
+    const { legalName, dateOfBirth, iban, bankAccountName, idPhotoUrl, termsAccepted } = body;
 
-    if (
-      !legalName || !dateOfBirth || !finnishId || !nationality ||
-      !businessName || !businessType || !bankAccountName || !iban ||
-      !documentUrls?.length || !termsAccepted
-    ) {
+    if (!legalName || !dateOfBirth || !iban || !bankAccountName || !idPhotoUrl || !termsAccepted) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers: corsHeaders });
+    }
+
+    // Enforce 18+ server-side
+    const dobMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(dateOfBirth);
+    if (!dobMatch) {
+      return NextResponse.json({ error: "Invalid date of birth format" }, { status: 400, headers: corsHeaders });
+    }
+    const dob = new Date(Number(dobMatch[3]), Number(dobMatch[2]) - 1, Number(dobMatch[1]));
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - 18);
+    if (dob.getTime() > cutoff.getTime()) {
+      return NextResponse.json({ error: "Must be 18 or older to register" }, { status: 400, headers: corsHeaders });
     }
 
     const cleanIban = String(iban).replace(/\s+/g, "").toUpperCase();
@@ -57,14 +61,9 @@ export async function POST(req: Request) {
       data: {
         legalName,
         dateOfBirth,
-        finnishId,
-        nationality,
-        businessName,
-        yTunnus: yTunnus ?? null,
-        businessType,
         bankAccountName,
         iban: cleanIban,
-        documentUrls,
+        idPhotoUrl,
         termsAccepted: true,
         termsAcceptedAt: new Date(),
         currentPhase: 2,

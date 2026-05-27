@@ -25,8 +25,9 @@ const IntegrationPage = async () => {
         redirect('/dashboard/saloons');
     }
 
-    // Check Stripe connection status
-    const stripeConnected = !!user.stripeId;
+    // Stripe Connect has been removed in favor of manual SEPA payouts.
+    // This page is retained but reports no provider Stripe account.
+    const stripeConnected = false;
 
     return (
         <div className="flex-col">

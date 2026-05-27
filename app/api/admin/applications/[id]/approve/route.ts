@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { checkAdminAccess } from "@/lib/admin-access";
-import { provisionStripeForApplication } from "@/lib/provision-stripe";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -66,11 +65,6 @@ export async function POST(
         });
       }
 
-      // Auto-create pre-filled Stripe Express account (idempotent — skips if stripeId already set
-      // or if required fields are missing). Errors are logged but don't block approval; admin can
-      // retry via POST /api/admin/applications/[id]/provision-stripe.
-      const stripeResult = await provisionStripeForApplication(application.id);
-      console.log("[Stripe] provision result:", stripeResult.status);
     }
 
     return NextResponse.json({ success: true, nextStatus }, { headers: corsHeaders });

@@ -7,9 +7,12 @@
     "build": "next build && prisma generate",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "cleanup": "node --env-file=.env scripts/cleanup-users.mjs",
+    "cleanup:dry": "node --env-file=.env scripts/cleanup-users.mjs --dry-run"
   },
   "dependencies": {
+    "@clerk/backend": "^3.4.13",
     "@clerk/nextjs": "^4.30.0",
     "@hookform/error-message": "^2.0.1",
     "@hookform/resolvers": "^3.3.4",

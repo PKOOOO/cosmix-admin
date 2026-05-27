@@ -22,7 +22,7 @@ export async function GET() {
     const applications = await prismadb.providerApplication.findMany({
       include: {
         user: {
-          select: { id: true, name: true, email: true, providerStatus: true, stripeId: true, stripeAccountStatus: true },
+          select: { id: true, name: true, email: true, providerStatus: true },
         },
       },
       orderBy: { updatedAt: "desc" },

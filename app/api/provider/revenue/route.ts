@@ -44,13 +44,28 @@ export async function GET() {
 
     const confirmedBookings = bookings.filter((b) => b.status !== "cancelled");
     const totalRevenue = confirmedBookings.reduce((sum, b) => sum + (b.totalAmount ?? 0), 0);
+    const platformFeeRate = 0.10;
+    const platformFee = Math.round(totalRevenue * platformFeeRate * 100) / 100;
+    const pendingBalance = Math.round((totalRevenue - platformFee) * 100) / 100;
+
+    const application = await prismadb.providerApplication.findUnique({
+      where: { userId: user.id },
+      select: { iban: true, bankAccountName: true },
+    });
 
     return NextResponse.json(
       {
         saloon: { id: saloon.id, name: saloon.name },
         totalRevenue,
+        platformFee,
+        platformFeeRate,
+        pendingBalance,
         bookingsCount: confirmedBookings.length,
         bookings,
+        payout: {
+          iban: application?.iban ?? null,
+          bankAccountName: application?.bankAccountName ?? null,
+        },
       },
       { headers: corsHeaders }
     );
