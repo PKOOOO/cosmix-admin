@@ -33,9 +33,9 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { legalName, dateOfBirth, iban, bankAccountName, idPhotoUrl, termsAccepted } = body;
+    const { legalName, dateOfBirth, iban, bankAccountName, qualificationDocs, termsAccepted } = body;
 
-    if (!legalName || !dateOfBirth || !iban || !bankAccountName || !idPhotoUrl || !termsAccepted) {
+    if (!legalName || !dateOfBirth || !iban || !bankAccountName || !Array.isArray(qualificationDocs) || qualificationDocs.length === 0 || !termsAccepted) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers: corsHeaders });
     }
 
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
         dateOfBirth,
         bankAccountName,
         iban: cleanIban,
-        idPhotoUrl,
+        qualificationDocs,
         termsAccepted: true,
         termsAcceptedAt: new Date(),
         currentPhase: 2,
