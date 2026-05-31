@@ -19,7 +19,6 @@ export async function POST() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
     }
 
-    // Enforce phase order — must be PHASE2_APPROVED before submitting phase 3
     const dbUser = await prismadb.user.findUnique({
       where: { id: user.id },
       select: { providerStatus: true },
@@ -27,21 +26,8 @@ export async function POST() {
 
     if (dbUser?.providerStatus !== "PHASE2_APPROVED") {
       return NextResponse.json(
-        { error: "Phase 2 must be approved before submitting Phase 3" },
+        { error: "Phase 2 must be approved before completing salon setup" },
         { status: 403, headers: corsHeaders }
-      );
-    }
-
-    // Verify provider has at least one service on their saloon
-    const saloon = await prismadb.saloon.findFirst({
-      where: { userId: user.id },
-      include: { _count: { select: { saloonServices: true } } },
-    });
-
-    if (!saloon || saloon._count.saloonServices === 0) {
-      return NextResponse.json(
-        { error: "Add at least one service before submitting" },
-        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -52,10 +38,10 @@ export async function POST() {
 
     await prismadb.user.update({
       where: { id: user.id },
-      data: { providerStatus: "PHASE3_PENDING" },
+      data: { providerStatus: "ACTIVE" },
     });
 
-    return NextResponse.json({ success: true }, { headers: corsHeaders });
+    return NextResponse.json({ success: true, status: "ACTIVE" }, { headers: corsHeaders });
   } catch (error) {
     console.error("[PROVIDER_APPLY_PHASE3]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: corsHeaders });
