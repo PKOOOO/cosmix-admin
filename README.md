@@ -1,4 +1,4 @@
-# Cosmix Admin - Salon Management System
+# Servey Admin - Salon Management System
 
 A comprehensive salon management system built with Next.js, featuring Paytrail payment integration for Finnish businesses.
 

@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// COSMIX brand colors
+// SERVEY brand colors
 const BRAND_COLORS = {
   primary: '#423120',
   secondary: '#D7C3A7',
@@ -134,7 +134,7 @@ export function generateUserBookingConfirmationEmail(bookingData: {
       <body>
         <div class="container">
           <div class="header">
-            <h1>COSMIX</h1>
+            <h1>SERVEY</h1>
             <p>Varausvahvistus</p>
           </div>
           
@@ -184,11 +184,11 @@ export function generateUserBookingConfirmationEmail(bookingData: {
             <p>Jos sinulla on kysymyksiä tai tarvitset muuttaa varausta, ota yhteyttä kampaamoon suoraan.</p>
             
             <p>Nähdään pian!</p>
-            <p>Ystävällisin terveisin,<br><strong>COSMIX-tiimi</strong></p>
+            <p>Ystävällisin terveisin,<br><strong>SERVEY-tiimi</strong></p>
           </div>
           
           <div class="footer">
-            <p>© 2024 COSMIX. Kaikki oikeudet pidätetään.</p>
+            <p>© 2024 SERVEY. Kaikki oikeudet pidätetään.</p>
             <p>Tämä on automaattinen viesti, älä vastaa tähän sähköpostiin.</p>
           </div>
         </div>
@@ -215,9 +215,9 @@ Jos sinulla on kysymyksiä tai tarvitset muuttaa varausta, ota yhteyttä kampaam
 
 Nähdään pian!
 Ystävällisin terveisin,
-COSMIX-tiimi
+SERVEY-tiimi
 
-© 2024 COSMIX. Kaikki oikeudet pidätetään.
+© 2024 SERVEY. Kaikki oikeudet pidätetään.
 Tämä on automaattinen viesti, älä vastaa tähän sähköpostiin.
     `
   };
@@ -332,7 +332,7 @@ export function generateSalonNotificationEmail(bookingData: {
       <body>
         <div class="container">
           <div class="header">
-            <h1>COSMIX</h1>
+            <h1>SERVEY</h1>
             <p>Uusi varaus</p>
           </div>
           
@@ -393,11 +393,11 @@ export function generateSalonNotificationEmail(bookingData: {
             <p><strong>Muista:</strong> Asiakas maksaa palvelun paikalla käteisellä tai kortilla.</p>
             
             <p>Hyvää työpäivää!</p>
-            <p>Ystävällisin terveisin,<br><strong>COSMIX-tiimi</strong></p>
+            <p>Ystävällisin terveisin,<br><strong>SERVEY-tiimi</strong></p>
           </div>
           
           <div class="footer">
-            <p>© 2024 COSMIX. Kaikki oikeudet pidätetään.</p>
+            <p>© 2024 SERVEY. Kaikki oikeudet pidätetään.</p>
             <p>Tämä on automaattinen viesti, älä vastaa tähän sähköpostiin.</p>
           </div>
         </div>
@@ -426,9 +426,9 @@ Muista: Asiakas maksaa palvelun paikalla käteisellä tai kortilla.
 
 Hyvää työpäivää!
 Ystävällisin terveisin,
-COSMIX-tiimi
+SERVEY-tiimi
 
-© 2024 COSMIX. Kaikki oikeudet pidätetään.
+© 2024 SERVEY. Kaikki oikeudet pidätetään.
 Tämä on automaattinen viesti, älä vastaa tähän sähköpostiin.
     `
   };

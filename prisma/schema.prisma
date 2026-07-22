@@ -26,6 +26,7 @@ model User {
   name            String?
   isAdmin         Boolean             @default(false)
   providerStatus      ProviderStatus  @default(NOT_APPLIED)
+  pushToken       String?
 
   bookings        Booking[]
   saloons         Saloon[]

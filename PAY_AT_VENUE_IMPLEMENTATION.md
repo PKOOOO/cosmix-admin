@@ -1,7 +1,7 @@
-# Pay at Venue Implementation - COSMIX
+# Pay at Venue Implementation - SERVEY
 
 ## Overview
-This document outlines the complete implementation of the "Pay at Venue" booking system for COSMIX, replacing the previous Stripe/Paytrail payment processing with direct payment at the salon location.
+This document outlines the complete implementation of the "Pay at Venue" booking system for SERVEY, replacing the previous Stripe/Paytrail payment processing with direct payment at the salon location.
 
 ## Backend Changes (Next.js)
 
@@ -24,7 +24,7 @@ This document outlines the complete implementation of the "Pay at Venue" booking
 
 **Features:**
 - SMTP configuration using environment variables
-- Finnish email templates with COSMIX branding
+- Finnish email templates with SERVEY branding
 - User booking confirmation emails
 - Salon notification emails
 - Professional HTML and text versions
@@ -98,7 +98,7 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=gabrielplus2001@gmail.com
 SMTP_PASSWORD=wfqf rmow gnxb gcem
-SMTP_FROM=COSMIX gabrielplus2001@gmail.com
+SMTP_FROM=SERVEY gabrielplus2001@gmail.com
 
 # Database
 DATABASE_URL=your_database_url
@@ -125,13 +125,13 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 - **Subject:** "Vahvistus varauksestasi - [Salon Name]"
 - **Content:** Booking details, payment reminder, salon information
 - **Language:** Finnish
-- **Styling:** COSMIX brand colors and professional design
+- **Styling:** SERVEY brand colors and professional design
 
 ### Salon Notification Email
 - **Subject:** "Uusi varaus - [Customer Name] - [Service Name]"
 - **Content:** Customer details, booking information, payment reminder
 - **Language:** Finnish
-- **Styling:** COSMIX brand colors and professional design
+- **Styling:** SERVEY brand colors and professional design
 
 ## Testing Instructions
 

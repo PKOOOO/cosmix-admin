@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { auth } from "@clerk/nextjs/server";
 import { sendBookingConfirmationToUser, sendBookingNotificationToSalon } from "@/lib/email";
+import { sendPushNotification } from "@/lib/send-notification";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -229,6 +230,16 @@ export async function PATCH(req: Request) {
         }
 
         const emailPromises = [];
+        // Collected after each booking is confirmed; sent (best-effort) once the
+        // booking success path is already determined so notifications never affect it.
+        const pushNotifications: Array<{
+            customerToken: string | null;
+            providerToken: string | null;
+            serviceName: string;
+            saloonName: string;
+            customerName: string;
+            whenLabel: string;
+        }> = [];
 
         // Update all bookings to confirmed status
         for (const bookingId of bookingIds) {
@@ -236,6 +247,7 @@ export async function PATCH(req: Request) {
                 where: { id: bookingId },
                 data: { status: 'confirmed' },
                 include: {
+                    user: true, // customer — for their pushToken
                     saloon: {
                         include: {
                             user: true
@@ -289,8 +301,28 @@ export async function PATCH(req: Request) {
                 });
                 emailPromises.push(salonEmailPromise);
             }
+
+            // Compact, human-readable label for push bodies, e.g. "Mon 2 Jun at 14:00"
+            const whenLabel = `${new Date(booking.bookingTime).toLocaleDateString('en-GB', {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short'
+            })} at ${new Date(booking.bookingTime).toLocaleTimeString('en-GB', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            })}`;
+
+            pushNotifications.push({
+                customerToken: booking.user?.pushToken ?? null,
+                providerToken: booking.saloon.user?.pushToken ?? null,
+                serviceName: booking.service.name,
+                saloonName: booking.saloon.name,
+                customerName: booking.customerName || 'A customer',
+                whenLabel,
+            });
         }
-        
+
         // Send all emails in parallel
         try {
             await Promise.all(emailPromises);
@@ -298,6 +330,37 @@ export async function PATCH(req: Request) {
         } catch (emailError) {
             console.error('Error sending confirmation emails:', emailError);
             // Don't fail the confirmation if email fails
+        }
+
+        // Best-effort push notifications. The booking is already confirmed at this point,
+        // so any failure here must never affect the response. sendPushNotification also
+        // swallows its own errors, but we wrap defensively per the notification contract.
+        try {
+            const pushPromises: Promise<void>[] = [];
+            for (const n of pushNotifications) {
+                // C1 → Customer
+                if (n.customerToken) {
+                    pushPromises.push(sendPushNotification(
+                        n.customerToken,
+                        "Booking Confirmed ✓",
+                        `${n.serviceName} at ${n.saloonName} on ${n.whenLabel}`,
+                        { type: "booking_confirmed" }
+                    ));
+                }
+                // P7 → Provider
+                if (n.providerToken) {
+                    pushPromises.push(sendPushNotification(
+                        n.providerToken,
+                        "New Booking 🎉",
+                        `${n.customerName} booked ${n.serviceName} on ${n.whenLabel}`,
+                        { type: "new_booking" }
+                    ));
+                }
+            }
+            await Promise.all(pushPromises);
+        } catch (pushError) {
+            console.error('Error sending push notifications:', pushError);
+            // Never fail the confirmation if push fails
         }
 
         return NextResponse.json({

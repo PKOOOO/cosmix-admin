@@ -42,7 +42,7 @@ const StripeModal = ({
                 <Image
                   src={`https://res.cloudinary.com/dzmrvngco/image/upload/v1758023591/Icon_wvp1b1.jpg`}
                   fill
-                  alt="Cosmix"
+                  alt="Servey"
                 />
               </div>
 

@@ -151,7 +151,7 @@ const bearerAuthMiddleware = async (req: NextRequest) => {
                  <body>
                      <div class="container">
                          <h1>Access Restricted</h1>
-                         <p>This dashboard is only accessible via the Cosmix mobile app.</p>
+                         <p>This dashboard is only accessible via the Servey mobile app.</p>
                      </div>
                  </body>
                  </html>`,
