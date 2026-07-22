@@ -28,6 +28,7 @@ export async function GET(req: Request) {
                         id: true,
                         name: true,
                         description: true,
+                        parentServiceId: true,
                         saloonServices: {
                             select: {
                                 price: true,
