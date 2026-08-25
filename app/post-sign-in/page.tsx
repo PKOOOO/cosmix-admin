@@ -4,7 +4,7 @@ import { verifyToken } from "@clerk/backend"
 import { redirect } from "next/navigation"
 import { headers, cookies } from "next/headers"
 import prismadb from "@/lib/prismadb"
-import { isAuthorizedRequest } from "@/lib/service-auth"
+import { ADMIN_EXTERNAL_ID, isAuthorizedRequest } from "@/lib/service-auth"
 import { getOrCreateUserFromClerk } from "@/lib/get-or-create-user"
 import { PostSignInClient } from "./post-sign-in-client"
 import { PostSignInError } from "./error-component"
@@ -52,7 +52,13 @@ export default async function PostSignIn() {
   // PRIORITY 1: Try Clerk's built-in auth() first - this is the most secure
   try {
     const clerkAuth = auth();
-    if (clerkAuth?.userId) {
+    // SECURITY: Never accept the synthetic service id from auth() — it is the
+    // lib/fake-clerk stub (tsconfig "paths"), which returns it unconditionally.
+    // Accepting it short-circuits the verified-token paths below, so this page
+    // never reached them and always fell through to getOrCreateUserFromClerk
+    // ("service-admin") → null → <PostSignInError />. Same guard as
+    // checkAdminAccess().
+    if (clerkAuth?.userId && clerkAuth.userId !== ADMIN_EXTERNAL_ID) {
       clerkUserId = clerkAuth.userId;
       isTokenVerified = true;
       console.log("PostSignIn - Clerk userId from Clerk auth():", clerkUserId);

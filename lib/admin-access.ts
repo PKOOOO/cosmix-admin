@@ -1,4 +1,4 @@
-import { ensureServiceUser, isAuthorizedRequest } from "./service-auth";
+import { ADMIN_EXTERNAL_ID, ensureServiceUser, isAuthorizedRequest } from "./service-auth";
 import { auth } from "@clerk/nextjs";
 import { verifyToken } from "@clerk/backend";
 import { headers, cookies } from "next/headers";
@@ -161,6 +161,25 @@ export async function checkAdminAccess() {
     console.error("Error checking admin access:", error);
     return { isAdmin: false, user: null };
   }
+}
+
+/**
+ * Resolve the request to a REAL end user (customer or provider), never the
+ * synthetic service user.
+ *
+ * checkAdminAccess() falls back to `service-admin` for bearer-token-only
+ * requests, which is right for shared/anonymous data (e.g. anonymous checkout)
+ * but wrong for anything owned by one specific human: the bearer key ships
+ * inside the Expo bundle, so that fallback would let any holder of it write to
+ * the shared service row. Use this for per-user writes such as push tokens.
+ *
+ * Returns null when only the bearer key was presented, or when no verified
+ * Clerk user could be resolved.
+ */
+export async function getEndUser() {
+  const { user } = await checkAdminAccess();
+  if (!user || user.clerkId === ADMIN_EXTERNAL_ID) return null;
+  return user;
 }
 
 export async function requireAdmin() {

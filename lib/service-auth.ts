@@ -35,64 +35,82 @@ export const isAuthorizedRequest = (req?: NextRequest) => {
   return !!token && token === ADMIN_API_KEY;
 };
 
+// Fallback address for the service row when ADMIN_EMAIL is unusable.
+const SERVICE_FALLBACK_EMAIL = `service-${ADMIN_EXTERNAL_ID}@cosmix.local`;
+
+// Clerk mints user ids as `user_<id>`. Any row carrying one belongs to a real
+// human and must never be repurposed as the synthetic service user.
+const isRealClerkUser = (clerkId: string) => clerkId.startsWith("user_");
+
+const createServiceUser = (email: string) =>
+  prismadb.user.create({
+    data: {
+      clerkId: ADMIN_EXTERNAL_ID,
+      email,
+      name: "Service User",
+      isAdmin: false, // Service user is NOT an admin
+    },
+  });
+
 // Ensure there is at least one service user record to attach data to
 // Note: This user is NOT an admin - it's just a system user for bearer token auth
 export const ensureServiceUser = async () => {
-  let user = await prismadb.user.findUnique({
+  const existing = await prismadb.user.findUnique({
     where: { clerkId: ADMIN_EXTERNAL_ID },
   });
 
-  if (!user) {
-    try {
-      // Try to create with the standard email
-      user = await prismadb.user.create({
-        data: {
-          clerkId: ADMIN_EXTERNAL_ID,
-          email: ADMIN_EMAIL,
-          name: "Service User",
-          isAdmin: false, // Service user is NOT an admin
-        },
-      });
-    } catch (error: any) {
-      // If email already exists, try to find user by email and update it
-      if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
-        const existingUser = await prismadb.user.findUnique({
-          where: { email: ADMIN_EMAIL },
-        });
-        
-        if (existingUser) {
-          // Update existing user to have the service-admin clerkId
-          user = await prismadb.user.update({
-            where: { email: ADMIN_EMAIL },
-            data: {
-              clerkId: ADMIN_EXTERNAL_ID,
-              isAdmin: false, // Ensure it's not admin
-            },
-          });
-        } else {
-          // If email exists but we can't find it, use a unique email
-          user = await prismadb.user.create({
-            data: {
-              clerkId: ADMIN_EXTERNAL_ID,
-              email: `service-${ADMIN_EXTERNAL_ID}@cosmix.local`,
-              name: "Service User",
-              isAdmin: false,
-            },
-          });
-        }
-      } else {
-        throw error;
-      }
-    }
-  } else if (user.isAdmin) {
+  if (existing) {
     // If service-admin was previously set as admin, update it to non-admin
-    user = await prismadb.user.update({
-      where: { clerkId: ADMIN_EXTERNAL_ID },
-      data: { isAdmin: false },
+    if (existing.isAdmin) {
+      return prismadb.user.update({
+        where: { clerkId: ADMIN_EXTERNAL_ID },
+        data: { isAdmin: false },
+      });
+    }
+    return existing;
+  }
+
+  // `email` is @unique, so creating the service row under ADMIN_EMAIL collides
+  // whenever a real user already holds that address. Claiming their row (the
+  // old behaviour) rewrote their clerkId to ADMIN_EXTERNAL_ID, which orphans
+  // their Clerk identity: getOrCreateUserFromClerk then hits the same unique
+  // email conflict, returns null, and every authenticated request from that
+  // account 401s. Resolve the collision up front instead of on P2002.
+  const holder = await prismadb.user.findUnique({ where: { email: ADMIN_EMAIL } });
+
+  if (holder && isRealClerkUser(holder.clerkId)) {
+    console.error(
+      `[service-auth] ADMIN_EMAIL (${ADMIN_EMAIL}) belongs to Clerk user ${holder.clerkId}. ` +
+      `Refusing to claim their row; using ${SERVICE_FALLBACK_EMAIL} instead. ` +
+      `Set ADMIN_EMAIL to a synthetic address that no real user can register.`
+    );
+  }
+
+  // Only a legacy synthetic row (no Clerk identity) may be converted in place.
+  if (holder && !isRealClerkUser(holder.clerkId)) {
+    return prismadb.user.update({
+      where: { email: ADMIN_EMAIL },
+      data: {
+        clerkId: ADMIN_EXTERNAL_ID,
+        isAdmin: false, // Ensure it's not admin
+      },
     });
   }
 
-  return user;
+  const email = holder ? SERVICE_FALLBACK_EMAIL : ADMIN_EMAIL;
+
+  try {
+    return await createServiceUser(email);
+  } catch (error: any) {
+    // Concurrent request won the race, or the fallback address is taken too.
+    if (error.code === "P2002") {
+      const raced = await prismadb.user.findUnique({
+        where: { clerkId: ADMIN_EXTERNAL_ID },
+      });
+      if (raced) return raced;
+    }
+    throw error;
+  }
 };
 
 export const getServiceUser = async (req?: NextRequest) => {

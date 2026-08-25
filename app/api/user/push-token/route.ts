@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { checkAdminAccess } from "@/lib/admin-access";
+import { getEndUser } from "@/lib/admin-access";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-User-Token",
 };
 
 export async function OPTIONS() {
@@ -14,8 +14,11 @@ export async function OPTIONS() {
 
 export async function POST(req: Request) {
     try {
-        const { user } = await checkAdminAccess();
-        if (!user) return new NextResponse("Unauthorized", { status: 401 });
+        // A push token belongs to one device of one human — the shared bearer
+        // key alone must not be enough to write it, or it lands on the service
+        // row. Requires a verified Clerk user (X-User-Token).
+        const user = await getEndUser();
+        if (!user) return new NextResponse("Unauthorized", { status: 401, headers: corsHeaders });
 
         const body = await req.json();
         const { pushToken } = body;

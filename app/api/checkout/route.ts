@@ -4,6 +4,7 @@ import prismadb from "@/lib/prismadb";
 import { auth } from "@clerk/nextjs/server";
 import { sendBookingConfirmationToUser, sendBookingNotificationToSalon } from "@/lib/email";
 import { sendPushNotification } from "@/lib/send-notification";
+import { ADMIN_EXTERNAL_ID } from "@/lib/service-auth";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -45,9 +46,17 @@ export async function POST(req: Request) {
         let resolvedClerkUserId: string | null = null;
         try {
             const { userId: clerkUserId } = auth();
-            if (clerkUserId) {
+            // SECURITY: `auth()` resolves to lib/fake-clerk via the tsconfig
+            // "paths" alias, so it returns the synthetic service id on EVERY
+            // request. Trusting it made checkout create a single shared user
+            // row carrying the paying customer's email + name, and attach
+            // every booking on the platform to it. Same guard as
+            // checkAdminAccess() already applies at its own auth() call.
+            if (clerkUserId && clerkUserId !== ADMIN_EXTERNAL_ID) {
                 resolvedClerkUserId = clerkUserId;
                 console.log('Checkout: resolved Clerk userId from auth():', resolvedClerkUserId);
+            } else if (clerkUserId) {
+                console.warn('Checkout: ignoring synthetic service id from auth(); using customer payload instead');
             }
         } catch (e) {
             console.log('Checkout: auth() failed or not available');

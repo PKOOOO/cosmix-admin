@@ -1,5 +1,4 @@
 // app/api/services/route.ts
-import { auth } from "@clerk/nextjs";
 import { NextRequest, NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { checkAdminAccess } from "@/lib/admin-access";
@@ -226,7 +225,6 @@ export async function GET(request: NextRequest) {
 // POST method - Create new service and optionally link to multiple saloons
 export async function POST(req: Request) {
     try {
-        const { userId } = auth();
         const body = await req.json();
 
         const {
@@ -238,17 +236,21 @@ export async function POST(req: Request) {
             isParent
         } = body;
 
-        if (!userId) {
+        // Resolve the acting user from the verified Clerk token, NOT from
+        // auth() — that resolves to lib/fake-clerk via the tsconfig "paths"
+        // alias and returns the synthetic service id for every request, so the
+        // ownership checks below were being made against the shared service row.
+        const { isAdmin, user } = await checkAdminAccess();
+        if (!user) {
             return new NextResponse("Unauthenticated", { status: 401 });
         }
+
         if (!name) {
             return new NextResponse("Name is required", { status: 400 });
         }
         if (!categoryId) {
             return new NextResponse("Category ID is required", { status: 400 });
         }
-        // Check if user is admin
-        const { isAdmin } = await checkAdminAccess();
 
         // Only admins can create parent services
         if (isParent && !isAdmin) {
@@ -258,17 +260,6 @@ export async function POST(req: Request) {
         // Only require saloonIds for non-parent services
         if (!isParent && (!saloonIds || saloonIds.length === 0)) {
             return new NextResponse("At least one saloon is required for non-parent services", { status: 400 });
-        }
-
-        // First, find the user record using Clerk ID
-        const user = await prismadb.user.findUnique({
-            where: {
-                clerkId: userId
-            }
-        });
-
-        if (!user) {
-            return new NextResponse("User not found", { status: 401 });
         }
 
         // Create the service first

@@ -4,7 +4,7 @@ import { isAuthorizedRequest } from "./lib/service-auth";
 
 const allowedOrigins = [
     process.env.FRONTEND_STORE_URL || "http://192.168.1.148:3001",
-    "https://cosmix-admin.vercel.app",
+    "https://cosmix-admin-one.vercel.app",
     "http://192.168.1.148:3001",
     "http://192.168.1.145:3000",  // Local development server
     "http://localhost:8081",      // Expo development server
