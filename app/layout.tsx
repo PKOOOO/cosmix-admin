@@ -1,5 +1,4 @@
 import { Philosopher } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
 
 import { ModalProvider } from "@/providers/modal-provider";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -33,26 +32,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
-        <body className={philosopher.className}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem={false}
-            disableTransitionOnChange
-          >
-            <NextTopLoader
-              color="#423120" // Brand dark color
-              height={3}
-              showSpinner={true}
-            />
-            <ToastProvider />
-            <ModalProvider />
-            {children}
-          </ThemeProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body className={philosopher.className}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          <NextTopLoader
+            color="#423120" // Brand dark color
+            height={3}
+            showSpinner={true}
+          />
+          <ToastProvider />
+          <ModalProvider />
+          {children}
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }

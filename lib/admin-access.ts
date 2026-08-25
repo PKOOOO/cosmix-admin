@@ -1,5 +1,4 @@
 import { ADMIN_EXTERNAL_ID, ensureServiceUser, isAuthorizedRequest } from "./service-auth";
-import { auth } from "@clerk/nextjs";
 import { verifyToken } from "@clerk/backend";
 import { headers, cookies } from "next/headers";
 import { getOrCreateUserFromClerk } from "./get-or-create-user";
@@ -11,8 +10,11 @@ import { getOrCreateUserFromClerk } from "./get-or-create-user";
  * 
  * Now we ONLY trust:
  * 1. Clerk's verifyToken() from @clerk/backend to verify tokens from WebView headers (PRIORITY)
- * 2. Clerk's auth() function for browser session cookies (FALLBACK)
- * 3. Service-admin for bearer-token-only requests (API access) - ONLY if no x-user-token was provided
+ * 2. Service-admin for bearer-token-only requests (API access) - ONLY if no x-user-token was provided
+ *
+ * There is no browser-session path. Clerk's auth() used to serve as a fallback
+ * here, but this app has no Clerk browser sessions and no Clerk authMiddleware,
+ * so auth() could only ever throw.
  */
 
 /**
@@ -98,23 +100,6 @@ export async function checkAdminAccess() {
         isTokenVerified = true;
         console.log('[ADMIN_ACCESS] Clerk userId from Bearer JWT:', clerkUserId);
       }
-    }
-  }
-
-  // PRIORITY 4: Try Clerk's built-in auth() only if NO x-user-token was provided
-  // This is for browser-based sessions, not WebView
-  // NOTE: We skip this if hadUserToken is true because auth() can return stale/wrong values
-  if (!clerkUserId && !hadUserToken) {
-    try {
-      const clerkAuth = auth();
-      // SECURITY: Never accept "service-admin" from auth() - it's our synthetic user
-      if (clerkAuth?.userId && clerkAuth.userId !== 'service-admin') {
-        clerkUserId = clerkAuth.userId;
-        isTokenVerified = true;
-        console.log('[ADMIN_ACCESS] Clerk userId from Clerk auth():', clerkUserId);
-      }
-    } catch (error) {
-      console.log('[ADMIN_ACCESS] Clerk auth() failed:', error);
     }
   }
 

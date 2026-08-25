@@ -236,10 +236,10 @@ export async function POST(req: Request) {
             isParent
         } = body;
 
-        // Resolve the acting user from the verified Clerk token, NOT from
-        // auth() — that resolves to lib/fake-clerk via the tsconfig "paths"
-        // alias and returns the synthetic service id for every request, so the
-        // ownership checks below were being made against the shared service row.
+        // Resolve the acting user from the verified Clerk token. This used to
+        // read auth(), which resolved to a lib/fake-clerk stub returning the
+        // synthetic service id for every request — so the ownership checks
+        // below were being made against the shared service row.
         const { isAdmin, user } = await checkAdminAccess();
         if (!user) {
             return new NextResponse("Unauthenticated", { status: 401 });

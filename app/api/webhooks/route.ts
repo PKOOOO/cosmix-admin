@@ -2,7 +2,8 @@
 import { Webhook } from "svix";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { WebhookEvent } from "@clerk/nextjs/server";
+// WebhookEvent lives in @clerk/backend — @clerk/nextjs v4 does not export it.
+import type { WebhookEvent } from "@clerk/backend";
 
 import prismadb from "@/lib/prismadb";
 

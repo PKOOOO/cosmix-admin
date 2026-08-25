@@ -1,10 +1,8 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { auth } from "@clerk/nextjs/server";
 import { sendBookingConfirmationToUser, sendBookingNotificationToSalon } from "@/lib/email";
 import { sendPushNotification } from "@/lib/send-notification";
-import { ADMIN_EXTERNAL_ID } from "@/lib/service-auth";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -42,25 +40,6 @@ export async function POST(req: Request) {
         
         console.log('Checkout request received:', { saloonServiceIds, customerInfo });
         
-        // Resolve authenticated Clerk user if present
-        let resolvedClerkUserId: string | null = null;
-        try {
-            const { userId: clerkUserId } = auth();
-            // SECURITY: `auth()` resolves to lib/fake-clerk via the tsconfig
-            // "paths" alias, so it returns the synthetic service id on EVERY
-            // request. Trusting it made checkout create a single shared user
-            // row carrying the paying customer's email + name, and attach
-            // every booking on the platform to it. Same guard as
-            // checkAdminAccess() already applies at its own auth() call.
-            if (clerkUserId && clerkUserId !== ADMIN_EXTERNAL_ID) {
-                resolvedClerkUserId = clerkUserId;
-                console.log('Checkout: resolved Clerk userId from auth():', resolvedClerkUserId);
-            } else if (clerkUserId) {
-                console.warn('Checkout: ignoring synthetic service id from auth(); using customer payload instead');
-            }
-        } catch (e) {
-            console.log('Checkout: auth() failed or not available');
-        }
 
         // Calculate total amount and validate services
         let totalAmount = 0;
@@ -100,57 +79,30 @@ export async function POST(req: Request) {
             servicesData.push({ saloonService, saloonId, serviceId });
         }
 
-        // Create or find a user for the booking
-        let userId: string | null = null;
+        // Create or find a user for the booking, keyed on the customer payload.
+        // Checkout does no identity resolution: it used to read auth(), which
+        // resolved to a stub returning the synthetic service id on every
+        // request, so the "authenticated Clerk user" branch here only ever
+        // corrupted data. Bookings are matched by customer email instead.
+        let userId: string;
 
-        // 1) Prefer authenticated Clerk user
-        if (resolvedClerkUserId) {
-            let user = await prismadb.user.findUnique({ where: { clerkId: resolvedClerkUserId } });
+        // Try to find existing user by email first
+        const existingByEmail = customerInfo?.email
+            ? await prismadb.user.findFirst({ where: { email: customerInfo.email } })
+            : null;
 
-            // 1a) If not found but we have email, link existing email user to this Clerk account
-            if (!user && customerInfo?.email) {
-                const byEmail = await prismadb.user.findFirst({ where: { email: customerInfo.email } });
-                if (byEmail) {
-                    user = await prismadb.user.update({
-                        where: { id: byEmail.id },
-                        data: { clerkId: resolvedClerkUserId }
-                    });
+        if (existingByEmail) {
+            userId = existingByEmail.id;
+        } else {
+            // Create a temporary user for anonymous bookings
+            const tempUser = await prismadb.user.create({
+                data: {
+                    clerkId: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    email: customerInfo?.email ?? `unknown+${Date.now()}@example.com`,
+                    name: customerInfo?.name ?? 'Unknown',
                 }
-            }
-
-            // 1b) Still not found, create a proper user with clerkId
-            if (!user) {
-                user = await prismadb.user.create({
-                    data: {
-                        clerkId: resolvedClerkUserId,
-                        email: customerInfo?.email ?? `unknown+${Date.now()}@example.com`,
-                        name: customerInfo?.name ?? 'Unknown',
-                    }
-                });
-            }
-            userId = user.id;
-        }
-
-        // 2) If no Clerk auth, fall back to customer payload
-        if (!userId) {
-            // Try to find existing user by email first
-            const existingByEmail = customerInfo?.email
-                ? await prismadb.user.findFirst({ where: { email: customerInfo.email } })
-                : null;
-
-            if (existingByEmail) {
-                userId = existingByEmail.id;
-            } else {
-                // Create a temporary user for anonymous bookings
-                const tempUser = await prismadb.user.create({
-                    data: {
-                        clerkId: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                        email: customerInfo?.email ?? `unknown+${Date.now()}@example.com`,
-                        name: customerInfo?.name ?? 'Unknown',
-                    }
-                });
-                userId = tempUser.id;
-            }
+            });
+            userId = tempUser.id;
         }
 
         // Create bookings first (with pending status)
@@ -161,7 +113,7 @@ export async function POST(req: Request) {
             // Create booking with pending status (will be confirmed after payment)
             const booking = await prismadb.booking.create({
                 data: {
-                    userId: userId!,
+                    userId: userId,
                     saloonId: saloonId,
                     serviceId: serviceId,
                     bookingTime: new Date(customerInfo.bookingTime),

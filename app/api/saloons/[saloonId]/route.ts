@@ -1,5 +1,4 @@
 // app/api/saloons/[saloonId]/route.ts
-import { auth, currentUser } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { checkAdminAccess } from "@/lib/admin-access";
