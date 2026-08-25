@@ -4,6 +4,9 @@ import { isAuthorizedRequest } from "./lib/service-auth";
 
 const allowedOrigins = [
     process.env.FRONTEND_STORE_URL || "http://192.168.1.148:3001",
+    "https://www.kosmiks.com",    // custom domain (canonical)
+    "https://kosmiks.com",        // apex — 308s to www, allowed in case anything hits it
+    // Kept: APKs already in the field still point here until they are rebuilt.
     "https://cosmix-admin-one.vercel.app",
     "http://192.168.1.148:3001",
     "http://192.168.1.145:3000",  // Local development server
