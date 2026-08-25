@@ -169,6 +169,10 @@ model Booking {
   bookingTime  DateTime
   status       String   @default("confirmed") // confirmed, completed, cancelled, no_show
   paymentMethod String  @default("pay_at_venue") // pay_at_venue, online (for future use)
+  // Stripe PaymentIntent that paid for this booking. Null for pay_at_venue and
+  // for rows predating this column. PATCH /api/checkout confirms a booking only
+  // when the caller presents the PaymentIntent recorded here.
+  paymentIntentId String?
 
   customerName  String?
   customerPhone String?
