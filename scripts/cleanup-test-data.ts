@@ -17,7 +17,7 @@ const EXECUTE = process.argv.includes("--execute");
 
 const KEEP_EMAILS = ["piusgko@gmail.com", "maxongaro147@gmail.com"];
 
-const line = (label, n) => console.log(`   ${String(n).padStart(4)}  ${label}`);
+const line = (label: string, n: number) => console.log(`   ${String(n).padStart(4)}  ${label}`);
 
 async function main() {
   console.log(`\n=== cleanup-test-data (${EXECUTE ? "EXECUTE" : "DRY RUN"}) ===\n`);
