@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { getEndUser } from "@/lib/admin-access";
+import { sendPushNotification, notifyAdmins } from "@/lib/send-notification";
 
 // Statuses from which submitting Phase 1 is legitimate: a first application, a
 // re-application after rejection, or an edit while still awaiting review.
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
 
     const dbUser = await prismadb.user.findUnique({
       where: { id: user.id },
-      select: { providerStatus: true },
+      select: { providerStatus: true, pushToken: true },
     });
 
     if (!dbUser || !PHASE1_SUBMITTABLE.includes(dbUser.providerStatus)) {
@@ -78,6 +79,31 @@ export async function POST(req: Request) {
       where: { id: user.id },
       data: { providerStatus: "PHASE1_PENDING" },
     });
+
+    // Best-effort notifications. The application is already saved at this point,
+    // so nothing here may affect the response. Both senders swallow their own
+    // errors; the wrapper is defensive per the notification contract.
+    try {
+      await Promise.all([
+        // P1 → applicant
+        dbUser.pushToken
+          ? sendPushNotification(
+              dbUser.pushToken,
+              "Application Received",
+              "We've got your details. We'll review them shortly.",
+              { type: "provider_phase1_submitted" }
+            )
+          : Promise.resolve(),
+        // A1 → admins
+        notifyAdmins(
+          "New Application",
+          `${firstName} ${lastName} applied — Phase 1`,
+          { type: "admin_new_application" }
+        ),
+      ]);
+    } catch (pushError) {
+      console.error("[PROVIDER_APPLY_PHASE1] push failed:", pushError);
+    }
 
     return NextResponse.json({ success: true, application }, { headers: corsHeaders });
   } catch (error) {

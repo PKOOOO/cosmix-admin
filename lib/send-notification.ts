@@ -1,3 +1,6 @@
+import prismadb from "./prismadb";
+import { ADMIN_EXTERNAL_ID } from "./service-auth";
+
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 
 interface ExpoPushMessage {
@@ -51,5 +54,43 @@ export async function sendPushNotifications(
         });
     } catch (error) {
         console.error("[PUSH_NOTIFICATION] Failed to send:", error);
+    }
+}
+
+/**
+ * Broadcast to every real admin who has a push token registered.
+ *
+ * Resolves the recipients in a single query and hands them to the multi-token
+ * sender. The synthetic service user is excluded explicitly: ensureServiceUser()
+ * creates its row with isAdmin: true, so it would otherwise match — and it is a
+ * shared row, not a person holding a device.
+ *
+ * Never throws. The send path swallows its own errors, but the lookup can fail
+ * independently, so it carries its own guard.
+ */
+export async function notifyAdmins(
+    title: string,
+    body: string,
+    data?: object
+): Promise<void> {
+    try {
+        const admins = await prismadb.user.findMany({
+            where: {
+                isAdmin: true,
+                pushToken: { not: null },
+                clerkId: { not: ADMIN_EXTERNAL_ID },
+            },
+            select: { pushToken: true },
+        });
+
+        const tokens = admins
+            .map((a) => a.pushToken)
+            .filter((t): t is string => !!t);
+
+        if (tokens.length === 0) return;
+
+        await sendPushNotifications(tokens, title, body, data);
+    } catch (error) {
+        console.error("[PUSH_NOTIFICATION] Failed to notify admins:", error);
     }
 }

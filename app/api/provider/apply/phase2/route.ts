@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { getEndUser } from "@/lib/admin-access";
+import { sendPushNotification, notifyAdmins } from "@/lib/send-notification";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
     // Enforce phase order — must be PHASE1_APPROVED before submitting phase 2
     const dbUser = await prismadb.user.findUnique({
       where: { id: user.id },
-      select: { providerStatus: true },
+      select: { providerStatus: true, pushToken: true },
     });
 
     if (dbUser?.providerStatus !== "PHASE1_APPROVED") {
@@ -74,6 +75,30 @@ export async function POST(req: Request) {
       where: { id: user.id },
       data: { providerStatus: "PHASE2_PENDING" },
     });
+
+    // Best-effort notifications — the documents are already saved, so a failure
+    // here must not affect the response.
+    try {
+      await Promise.all([
+        // P3 → applicant
+        dbUser.pushToken
+          ? sendPushNotification(
+              dbUser.pushToken,
+              "Documents Received",
+              "We're verifying your details now.",
+              { type: "provider_phase2_submitted" }
+            )
+          : Promise.resolve(),
+        // A2 → admins
+        notifyAdmins(
+          "Verification Submitted",
+          `${legalName} submitted Phase 2 documents`,
+          { type: "admin_phase2_submitted" }
+        ),
+      ]);
+    } catch (pushError) {
+      console.error("[PROVIDER_APPLY_PHASE2] push failed:", pushError);
+    }
 
     return NextResponse.json({ success: true }, { headers: corsHeaders });
   } catch (error) {
