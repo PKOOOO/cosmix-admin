@@ -13,7 +13,8 @@ enum ProviderStatus {
   PHASE1_APPROVED
   PHASE2_PENDING
   PHASE2_APPROVED
-  PHASE3_PENDING
+  // No PHASE3_PENDING: Phase 3 is salon setup, which activates the provider on
+  // submission rather than queueing for admin review.
   ACTIVE
   REJECTED
 }

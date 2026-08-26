@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { checkAdminAccess } from "@/lib/admin-access";
+import { getEndUser } from "@/lib/admin-access";
 
 // GET /api/provider/saloon
 // Returns the provider's saloon, creating it if it doesn't exist yet.
 // Safe to call multiple times (idempotent).
 export async function GET() {
   try {
-    const { user } = await checkAdminAccess();
+    const user = await getEndUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

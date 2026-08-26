@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { checkAdminAccess } from "@/lib/admin-access";
+import { getEndUser } from "@/lib/admin-access";
+
+// Statuses from which submitting Phase 1 is legitimate: a first application, a
+// re-application after rejection, or an edit while still awaiting review.
+// Anything further along would be a demotion.
+const PHASE1_SUBMITTABLE = ["NOT_APPLIED", "REJECTED", "PHASE1_PENDING"];
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,9 +19,21 @@ export async function OPTIONS() {
 
 export async function POST(req: Request) {
   try {
-    const { user } = await checkAdminAccess();
+    const user = await getEndUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
+    }
+
+    const dbUser = await prismadb.user.findUnique({
+      where: { id: user.id },
+      select: { providerStatus: true },
+    });
+
+    if (!dbUser || !PHASE1_SUBMITTABLE.includes(dbUser.providerStatus)) {
+      return NextResponse.json(
+        { error: "Application already in progress" },
+        { status: 403, headers: corsHeaders }
+      );
     }
 
     const body = await req.json();
@@ -47,6 +64,13 @@ export async function POST(req: Request) {
         neighbourhood: neighbourhood ?? null,
         address,
         serviceCategories,
+        // Re-applying restarts the funnel at Phase 1. Without this, a provider
+        // rejected at Phase 2 kept currentPhase = 2, so approving their Phase 1
+        // re-application jumped them to PHASE2_APPROVED — skipping IBAN, date of
+        // birth and qualification documents entirely.
+        currentPhase: 1,
+        // Stale reason would otherwise still be shown to the applicant.
+        rejectedReason: null,
       },
     });
 

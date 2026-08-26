@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { checkAdminAccess } from "@/lib/admin-access";
+import { getEndUser } from "@/lib/admin-access";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,7 +17,7 @@ export async function PUT(
   { params }: { params: { bookingId: string } }
 ) {
   try {
-    const { user } = await checkAdminAccess();
+    const user = await getEndUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
     }

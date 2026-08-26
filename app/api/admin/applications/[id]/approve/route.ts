@@ -31,7 +31,10 @@ export async function POST(
       return NextResponse.json({ error: "Not found" }, { status: 404, headers: corsHeaders });
     }
 
-    const nextStatus = ({ 1: "PHASE1_APPROVED", 2: "PHASE2_APPROVED", 3: "ACTIVE" } as Record<number, string>)[application.currentPhase];
+    // Only phases 1 and 2 are admin-reviewed. Phase 3 (salon setup) activates the
+    // provider on submission, so an application at phase 3 is already ACTIVE and
+    // has nothing left to approve.
+    const nextStatus = ({ 1: "PHASE1_APPROVED", 2: "PHASE2_APPROVED" } as Record<number, string>)[application.currentPhase];
 
     if (!nextStatus) {
       return NextResponse.json({ error: "Invalid phase" }, { status: 400, headers: corsHeaders });
