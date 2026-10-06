@@ -38,20 +38,7 @@ export const Modal: React.FC<ModalProps> = ({
                     "max-h-[85vh] overflow-y-auto z-[1001]", // keep above most overlays
                     className || ""
                 ].join(" ")
-            } onInteractOutside={(e) => {
-                try {
-                    // If Cloudinary widget is open, don't close this dialog
-                    if (typeof window !== 'undefined' && (window as any).__cloudinaryOpen) {
-                        e.preventDefault();
-                    }
-                } catch {}
-            }} onEscapeKeyDown={(e) => {
-                try {
-                    if (typeof window !== 'undefined' && (window as any).__cloudinaryOpen) {
-                        e.preventDefault();
-                    }
-                } catch {}
-            }}>
+            }>
                 <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>
                     <DialogDescription>

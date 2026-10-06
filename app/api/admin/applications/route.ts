@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { checkAdminAccess } from "@/lib/admin-access";
+import { resolveDocumentUrl } from "@/lib/r2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,7 +29,15 @@ export async function GET() {
       orderBy: { updatedAt: "desc" },
     });
 
-    return NextResponse.json({ applications }, { headers: corsHeaders });
+    // Documents live in a private bucket — hand admins short-lived signed links.
+    const withDocumentLinks = await Promise.all(
+      applications.map(async application => ({
+        ...application,
+        qualificationDocs: await Promise.all(application.qualificationDocs.map(resolveDocumentUrl)),
+      }))
+    );
+
+    return NextResponse.json({ applications: withDocumentLinks }, { headers: corsHeaders });
   } catch (error) {
     console.error("[ADMIN_APPLICATIONS_GET]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: corsHeaders });

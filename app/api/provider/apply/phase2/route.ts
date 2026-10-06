@@ -2,6 +2,18 @@ import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { getEndUser } from "@/lib/admin-access";
 import { sendPushNotification, notifyAdmins } from "@/lib/send-notification";
+import { PRIVATE_REF_PREFIX, isOwnDocumentRef } from "@/lib/r2";
+
+const LEGACY_DOC_HOSTS = new Set(["media.kosmiks.com", "res.cloudinary.com"]);
+
+function isAllowedLegacyDocUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && LEGACY_DOC_HOSTS.has(url.hostname);
+  } catch {
+    return false;
+  }
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,6 +50,18 @@ export async function POST(req: Request) {
 
     if (!legalName || !dateOfBirth || !iban || !bankAccountName || !Array.isArray(qualificationDocs) || qualificationDocs.length === 0 || !termsAccepted) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers: corsHeaders });
+    }
+
+    // Documents must be the caller's own private uploads. Plain https URLs are still
+    // accepted from app builds that predate private document storage.
+    const docsValid =
+      qualificationDocs.length <= 3 &&
+      qualificationDocs.every((doc: unknown) =>
+        typeof doc === "string" &&
+        (doc.startsWith(PRIVATE_REF_PREFIX) ? isOwnDocumentRef(doc, user.id) : isAllowedLegacyDocUrl(doc))
+      );
+    if (!docsValid) {
+      return NextResponse.json({ error: "Invalid qualification documents" }, { status: 400, headers: corsHeaders });
     }
 
     // Enforce 18+ server-side
