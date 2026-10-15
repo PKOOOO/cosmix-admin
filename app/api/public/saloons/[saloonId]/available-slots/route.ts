@@ -2,6 +2,31 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 
+// Providers are bookable around the clock: there are no opening hours, so every
+// slot in the customer's calendar day is offered unless it's past or booked.
+// (SaloonTimeSlot rows may still exist from older salons — they are ignored.)
+
+const MINUTE_MS = 60_000;
+const DAY_MINUTES = 24 * 60;
+// Floor on the slot step so a very short service can't produce hundreds of slots.
+const MIN_STEP_MINUTES = 15;
+const FALLBACK_TIME_ZONE = "Europe/Helsinki";
+
+const pad2 = (n: number) => n.toString().padStart(2, "0");
+
+// Minutes to ADD to local time to get UTC — the same sign as JS getTimezoneOffset().
+// Used for old app builds that don't send `tz`.
+function fallbackOffsetMinutes(at: Date): number {
+    const part = new Intl.DateTimeFormat("en-US", {
+        timeZone: FALLBACK_TIME_ZONE,
+        timeZoneName: "shortOffset",
+    }).formatToParts(at).find(p => p.type === "timeZoneName")?.value ?? "GMT";
+    const m = /GMT([+-])(\d{1,2})(?::(\d{2}))?/.exec(part);
+    if (!m) return 0;
+    const minutes = Number(m[2]) * 60 + Number(m[3] ?? 0);
+    return m[1] === "+" ? -minutes : minutes;
+}
+
 export async function GET(
     req: Request,
     { params }: { params: { saloonId: string } }
@@ -11,6 +36,7 @@ export async function GET(
         const { searchParams } = new URL(req.url);
         const serviceId = searchParams.get('serviceId');
         const date = searchParams.get('date');
+        const tzParam = searchParams.get('tz');
 
         if (!saloonId) {
             return new NextResponse("Saloon ID is required", { status: 400 });
@@ -20,177 +46,62 @@ export async function GET(
             return new NextResponse("Service ID is required", { status: 400 });
         }
 
-        if (!date) {
-            return new NextResponse("Date is required", { status: 400 });
+        const dateMatch = date ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(date) : null;
+        if (!date || !dateMatch) {
+            return new NextResponse("Date is required (YYYY-MM-DD)", { status: 400 });
         }
 
-        // Parse the date
-        const requestedDate = new Date(date);
-        if (isNaN(requestedDate.getTime())) {
-            return new NextResponse("Invalid date format", { status: 400 });
-        }
+        // `date` is the customer's local calendar day. Build its boundaries in
+        // UTC using their offset, so slot times match their clock rather than
+        // the server's (Vercel runs in UTC).
+        const utcMidnight = Date.UTC(Number(dateMatch[1]), Number(dateMatch[2]) - 1, Number(dateMatch[3]));
+        const parsedTz = tzParam != null ? Number(tzParam) : NaN;
+        const offsetMinutes = Number.isFinite(parsedTz) && Math.abs(parsedTz) <= 14 * 60
+            ? parsedTz
+            : fallbackOffsetMinutes(new Date(utcMidnight + 12 * 60 * MINUTE_MS));
+        const dayStart = new Date(utcMidnight + offsetMinutes * MINUTE_MS);
+        const dayEnd = new Date(dayStart.getTime() + DAY_MINUTES * MINUTE_MS);
 
-        // Get existing bookings for this saloon, service, and date
-        const startOfDay = new Date(requestedDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        
-        const endOfDay = new Date(requestedDate);
-        endOfDay.setHours(23, 59, 59, 999);
+        const saloonService = await prismadb.saloonService.findFirst({
+            where: { saloonId, serviceId },
+            select: { durationMinutes: true },
+        });
+        const serviceDuration = saloonService?.durationMinutes || 60;
+        const step = Math.max(serviceDuration, MIN_STEP_MINUTES);
 
         const existingBookings = await prismadb.booking.findMany({
             where: {
-                saloonId: saloonId,
-                serviceId: serviceId,
-                bookingTime: {
-                    gte: startOfDay,
-                    lte: endOfDay
-                },
-                status: {
-                    not: 'cancelled'
-                }
+                saloonId,
+                serviceId,
+                bookingTime: { gte: dayStart, lt: dayEnd },
+                status: { not: 'cancelled' },
             },
-            select: {
-                bookingTime: true
-            }
+            select: { bookingTime: true },
         });
+        const bookedTimes = existingBookings.map(b => new Date(b.bookingTime).getTime());
 
-        // Get saloon time slot configuration
-        let saloonTimeSlots: any[] = [];
-        try {
-            // Check if the model exists before trying to use it
-            if (prismadb.saloonTimeSlot) {
-                console.log('Attempting to fetch saloon time slots for saloonId:', saloonId);
-                saloonTimeSlots = await prismadb.saloonTimeSlot.findMany({
-                    where: {
-                        saloonId: saloonId
-                    }
-                });
-                console.log('Fetched saloon time slots:', saloonTimeSlots);
-            } else {
-                console.log('SaloonTimeSlot model not available, using default time slots');
-                saloonTimeSlots = [];
-            }
-        } catch (error) {
-            console.log('Error fetching saloon time slots:', error);
-            // Continue with default time slots if there's an error
-            saloonTimeSlots = [];
-        }
+        const now = Date.now();
+        const availableSlots: { time: string; datetime: string }[] = [];
 
-        // Get the service duration from the saloon service
-        let serviceDuration = 60; // default 1 hour
-        try {
-            const saloonService = await prismadb.saloonService.findFirst({
-                where: {
-                    saloonId: saloonId,
-                    serviceId: serviceId
-                },
-                select: {
-                    durationMinutes: true
-                }
+        for (let minute = 0; minute + serviceDuration <= DAY_MINUTES; minute += step) {
+            const slotStart = dayStart.getTime() + minute * MINUTE_MS;
+            if (slotStart <= now) continue;
+
+            // Taken if an existing booking starts inside this slot's window.
+            const slotEnd = slotStart + serviceDuration * MINUTE_MS;
+            if (bookedTimes.some(t => t >= slotStart && t < slotEnd)) continue;
+
+            availableSlots.push({
+                time: `${pad2(Math.floor(minute / 60))}:${pad2(minute % 60)}`,
+                datetime: new Date(slotStart).toISOString(),
             });
-            
-            if (saloonService) {
-                serviceDuration = saloonService.durationMinutes;
-                console.log('Service duration:', serviceDuration, 'minutes');
-            }
-        } catch (error) {
-            console.log('Error fetching service duration:', error);
-        }
-
-        // If no time slots configured, use default (9 AM to 8 PM, 30-minute intervals)
-        let availableSlots = [];
-        const dayOfWeek = requestedDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-        
-        const dayTimeSlot = saloonTimeSlots.find(slot => slot.dayOfWeek === dayOfWeek);
-        
-        // Check if the saloon is closed on this day
-        if (dayTimeSlot && !dayTimeSlot.isOpen) {
-            return NextResponse.json({
-                availableSlots: [],
-                date: date,
-                saloonId: saloonId,
-                serviceId: serviceId,
-                isClosed: true,
-                message: "We are closed on this day"
-            });
-        }
-        
-        if (dayTimeSlot && dayTimeSlot.isOpen) {
-            // Use configured time slots
-            const startTime = dayTimeSlot.startTime.split(':');
-            const endTime = dayTimeSlot.endTime.split(':');
-            const startHour = parseInt(startTime[0]);
-            const startMinute = parseInt(startTime[1]);
-            const endHour = parseInt(endTime[0]);
-            const endMinute = parseInt(endTime[1]);
-            // Use service duration instead of slot duration
-            let currentHour = startHour;
-            let currentMinute = startMinute;
-            
-            while (currentHour < endHour || (currentHour === endHour && currentMinute < endMinute)) {
-                const slotTime = new Date(requestedDate);
-                slotTime.setHours(currentHour, currentMinute, 0, 0);
-                
-                // Check if this slot is already booked
-                const isBooked = existingBookings.some(booking => {
-                    const bookingTime = new Date(booking.bookingTime);
-                    return bookingTime.getHours() === currentHour && bookingTime.getMinutes() === currentMinute;
-                });
-                
-                // Only add slots that are in the future and not booked
-                if (slotTime > new Date() && !isBooked) {
-                    availableSlots.push({
-                        time: `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`,
-                        datetime: slotTime.toISOString()
-                    });
-                }
-                
-                // Move to next slot based on service duration
-                currentMinute += serviceDuration;
-                if (currentMinute >= 60) {
-                    currentHour += Math.floor(currentMinute / 60);
-                    currentMinute = currentMinute % 60;
-                }
-            }
-        } else {
-            // Use default time slots (9 AM to 8 PM) with service duration intervals
-            const startHour = 9;
-            const endHour = 20;
-            let currentHour = startHour;
-            let currentMinute = 0;
-            
-            while (currentHour < endHour) {
-                const slotTime = new Date(requestedDate);
-                slotTime.setHours(currentHour, currentMinute, 0, 0);
-                
-                // Check if this slot is already booked
-                const isBooked = existingBookings.some(booking => {
-                    const bookingTime = new Date(booking.bookingTime);
-                    return bookingTime.getHours() === currentHour && bookingTime.getMinutes() === currentMinute;
-                });
-                
-                // Only add slots that are in the future and not booked
-                if (slotTime > new Date() && !isBooked) {
-                    availableSlots.push({
-                        time: `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`,
-                        datetime: slotTime.toISOString()
-                    });
-                }
-                
-                // Move to next slot based on service duration
-                currentMinute += serviceDuration;
-                if (currentMinute >= 60) {
-                    currentHour += Math.floor(currentMinute / 60);
-                    currentMinute = currentMinute % 60;
-                }
-            }
         }
 
         return NextResponse.json({
             availableSlots,
-            date: date,
-            saloonId: saloonId,
-            serviceId: serviceId
+            date,
+            saloonId,
+            serviceId,
         });
 
     } catch (error) {
