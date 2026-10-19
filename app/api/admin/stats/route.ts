@@ -28,8 +28,9 @@ export async function GET() {
             prismadb.saloonService.groupBy({
                 by: ['serviceId'],
             }).then(groups => groups.length),
-            // Total revenue from all bookings
+            // Revenue from paid bookings (unpaid `pending` and cancelled don't count)
             prismadb.booking.aggregate({
+                where: { status: { notIn: ['pending', 'cancelled'] } },
                 _sum: {
                     totalAmount: true
                 }

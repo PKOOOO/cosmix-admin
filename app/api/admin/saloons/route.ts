@@ -11,7 +11,11 @@ export async function GET() {
                 id: true,
                 name: true,
                 address: true,
+                latitude: true,
+                longitude: true,
+                shortIntro: true,
                 createdAt: true,
+                images: { select: { url: true }, take: 1, orderBy: { createdAt: 'asc' } },
                 user: {
                     select: {
                         name: true,

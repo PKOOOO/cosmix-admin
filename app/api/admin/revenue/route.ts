@@ -53,7 +53,9 @@ export async function GET() {
 
         // Calculate revenue per saloon
         const saloonsWithRevenue = saloons.map(saloon => {
-            const totalRevenue = saloon.bookings.reduce((sum, booking) => {
+            // Unpaid (`pending`) and cancelled bookings aren't revenue.
+            const paid = saloon.bookings.filter(b => b.status !== 'pending' && b.status !== 'cancelled');
+            const totalRevenue = paid.reduce((sum, booking) => {
                 return sum + (booking.totalAmount || 0);
             }, 0);
 
@@ -63,7 +65,7 @@ export async function GET() {
                 ownerName: saloon.user?.name || 'Unknown',
                 ownerEmail: saloon.user?.email || '',
                 totalRevenue,
-                bookingsCount: saloon._count.bookings,
+                bookingsCount: paid.length,
                 bookings: saloon.bookings
             };
         });
