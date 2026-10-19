@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { getEndUser } from "@/lib/admin-access";
+import { balanceForSaloon, PLATFORM_FEE_RATE } from "@/lib/payouts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,16 +38,32 @@ export async function GET() {
         status: true,
         bookingTime: true,
         customerName: true,
+        paymentMethod: true,
+        payoutId: true,
         service: { select: { name: true } },
         user: { select: { name: true, email: true } },
       },
     });
 
-    const confirmedBookings = bookings.filter((b) => b.status !== "cancelled");
+    // Unpaid (`pending`) and cancelled bookings aren't revenue.
+    const confirmedBookings = bookings.filter((b) => b.status !== "cancelled" && b.status !== "pending");
     const totalRevenue = confirmedBookings.reduce((sum, b) => sum + (b.totalAmount ?? 0), 0);
-    const platformFeeRate = 0.10;
+    const platformFeeRate = PLATFORM_FEE_RATE;
     const platformFee = Math.round(totalRevenue * platformFeeRate * 100) / 100;
-    const pendingBalance = Math.round((totalRevenue - platformFee) * 100) / 100;
+
+    const [balance, payoutRows] = await Promise.all([
+      balanceForSaloon(saloon.id),
+      prismadb.payout.findMany({
+        where: { userId: user.id },
+        orderBy: { scheduledFor: "desc" },
+        take: 50,
+        include: { bookings: { select: { id: true } } },
+      }),
+    ]);
+    const payouts = payoutRows.map(({ bookings: included, ...p }) => ({
+      ...p,
+      bookingIds: included.map((b) => b.id),
+    }));
 
     const application = await prismadb.providerApplication.findUnique({
       where: { userId: user.id },
@@ -59,7 +76,10 @@ export async function GET() {
         totalRevenue,
         platformFee,
         platformFeeRate,
-        pendingBalance,
+        // What will be paid in the next payout. (Older app builds read this.)
+        pendingBalance: balance.available,
+        balance,
+        payouts,
         bookingsCount: confirmedBookings.length,
         bookings,
         payout: {

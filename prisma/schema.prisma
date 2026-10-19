@@ -33,6 +33,7 @@ model User {
   saloons         Saloon[]
   reviews         SaloonReview[]
   application     ProviderApplication?
+  payouts         Payout[]
 
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
@@ -181,10 +182,16 @@ model Booking {
   notes         String?
   totalAmount   Float?
 
+  // Set once this booking's earnings are included in a provider payout, so a
+  // booking can never be paid out twice. Null = not paid out yet.
+  payoutId      String?
+  payout        Payout?  @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("bookings")
+  @@index([payoutId])
   @@index([saloonId])
   @@index([status])
   @@index([bookingTime])
@@ -275,4 +282,43 @@ model SaloonTimeSlot {
   
   @@unique([saloonId, dayOfWeek])
   @@map("saloon_time_slots")
+}
+
+// ------------------- PAYOUTS -------------------
+// One transfer of a provider's earnings to their bank account. Created by the
+// weekly payout run (or an admin) from eligible bookings; see lib/payouts.ts.
+model Payout {
+  id              String    @id @default(uuid())
+  userId          String    // the provider being paid
+  user            User      @relation(fields: [userId], references: [id])
+  saloonId        String
+
+  gross           Float     // bookings total before the platform fee
+  fee             Float     // platform fee kept
+  amount          Float     // what the provider receives (gross - fee)
+  currency        String    @default("EUR")
+
+  // scheduled → sent → arrived, or failed (bookings are released back to the balance)
+  status          String    @default("scheduled")
+  scheduledFor    DateTime
+  sentAt          DateTime?
+  arrivedAt       DateTime?
+  failedAt        DateTime?
+  failureReason   String?
+  reference       String?   // bank / transfer reference
+
+  // Where the money goes, captured when the payout is created so a later
+  // bank-details change can't alter where an existing payout was sent.
+  iban            String
+  bankAccountName String?
+
+  bookings        Booking[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("payouts")
+  @@index([userId])
+  @@index([status])
+  @@index([scheduledFor])
 }

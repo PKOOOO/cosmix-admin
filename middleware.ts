@@ -128,6 +128,12 @@ const bearerAuthMiddleware = async (req: NextRequest) => {
         return response;
     }
 
+    // Vercel Cron calls carry `Bearer $CRON_SECRET`, not the app key; the cron
+    // route checks that secret itself.
+    if (req.nextUrl.pathname.startsWith("/api/cron/")) {
+        return response;
+    }
+
     // Restrict dashboard/admin access to mobile app (WebView) only
     // The mobile app sends 'x-user-token' header on first load, and we set 'x-user-token-session' cookie
     if (isRestrictedPage) {
