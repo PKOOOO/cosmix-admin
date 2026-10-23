@@ -17,8 +17,8 @@ const philosopher = Philosopher({
 
 
 export const metadata: Metadata = {
-  title: "Digihipo Admin",
-  description: "Digihipo Admin",
+  title: "Kosmiks",
+  description: "Book beauty and wellness services in Finland.",
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
   other: {
     'mobile-web-app-capable': 'yes',

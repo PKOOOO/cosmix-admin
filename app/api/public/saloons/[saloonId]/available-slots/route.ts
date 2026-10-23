@@ -8,8 +8,10 @@ import prismadb from "@/lib/prismadb";
 
 const MINUTE_MS = 60_000;
 const DAY_MINUTES = 24 * 60;
-// Floor on the slot step so a very short service can't produce hundreds of slots.
-const MIN_STEP_MINUTES = 15;
+// Start times sit on a fixed half-hour grid (09:00, 09:30, …) whatever the
+// service length, so customers see tidy times instead of 00:55, 01:50…
+const STEP_MINUTES = 30;
+const DEFAULT_DURATION = 60;
 const FALLBACK_TIME_ZONE = "Europe/Helsinki";
 
 const pad2 = (n: number) => n.toString().padStart(2, "0");
@@ -62,34 +64,39 @@ export async function GET(
         const dayStart = new Date(utcMidnight + offsetMinutes * MINUTE_MS);
         const dayEnd = new Date(dayStart.getTime() + DAY_MINUTES * MINUTE_MS);
 
-        const saloonService = await prismadb.saloonService.findFirst({
-            where: { saloonId, serviceId },
-            select: { durationMinutes: true },
+        // Durations of everything this salon offers — a provider can't do two
+        // treatments at once, so every booking at the salon blocks its time.
+        const salonServices = await prismadb.saloonService.findMany({
+            where: { saloonId },
+            select: { serviceId: true, durationMinutes: true },
         });
-        const serviceDuration = saloonService?.durationMinutes || 60;
-        const step = Math.max(serviceDuration, MIN_STEP_MINUTES);
+        const durationOf = new Map(salonServices.map(s => [s.serviceId, s.durationMinutes || DEFAULT_DURATION]));
+        const serviceDuration = durationOf.get(serviceId) ?? DEFAULT_DURATION;
 
+        // Include the evening before so a late booking running past midnight still blocks.
         const existingBookings = await prismadb.booking.findMany({
             where: {
                 saloonId,
-                serviceId,
-                bookingTime: { gte: dayStart, lt: dayEnd },
+                bookingTime: { gte: new Date(dayStart.getTime() - DAY_MINUTES * MINUTE_MS), lt: dayEnd },
                 status: { not: 'cancelled' },
             },
-            select: { bookingTime: true },
+            select: { bookingTime: true, serviceId: true },
         });
-        const bookedTimes = existingBookings.map(b => new Date(b.bookingTime).getTime());
+        const busy = existingBookings.map(b => {
+            const start = new Date(b.bookingTime).getTime();
+            return { start, end: start + (durationOf.get(b.serviceId) ?? DEFAULT_DURATION) * MINUTE_MS };
+        });
 
         const now = Date.now();
         const availableSlots: { time: string; datetime: string }[] = [];
 
-        for (let minute = 0; minute + serviceDuration <= DAY_MINUTES; minute += step) {
+        for (let minute = 0; minute + serviceDuration <= DAY_MINUTES; minute += STEP_MINUTES) {
             const slotStart = dayStart.getTime() + minute * MINUTE_MS;
             if (slotStart <= now) continue;
 
-            // Taken if an existing booking starts inside this slot's window.
+            // Taken if it overlaps any existing booking at this salon.
             const slotEnd = slotStart + serviceDuration * MINUTE_MS;
-            if (bookedTimes.some(t => t >= slotStart && t < slotEnd)) continue;
+            if (busy.some(b => slotStart < b.end && b.start < slotEnd)) continue;
 
             availableSlots.push({
                 time: `${pad2(Math.floor(minute / 60))}:${pad2(minute % 60)}`,
