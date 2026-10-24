@@ -50,7 +50,11 @@ export async function GET(req: Request) {
             }
         });
 
-        return NextResponse.json(categories);
+        // Categories change rarely: let Vercel's CDN serve them for a minute and
+        // keep serving the cached copy while it refreshes in the background.
+        return NextResponse.json(categories, {
+            headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
+        });
 
     } catch (error) {
         console.log('[PUBLIC_CATEGORIES_GET]', error);
