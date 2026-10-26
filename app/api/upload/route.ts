@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { checkAdminAccess } from "@/lib/admin-access";
+import { getEndUser } from "@/lib/admin-access";
 import {
   MAX_UPLOAD_BYTES,
   buildKey,
@@ -26,7 +26,9 @@ export async function OPTIONS() {
  */
 export async function POST(req: Request) {
   try {
-    const { user } = await checkAdminAccess();
+    // A real signed-in user only — the bearer key alone must not be able to
+    // write files into storage.
+    const user = await getEndUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
     }

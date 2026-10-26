@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { checkAdminAccess } from "@/lib/admin-access";
+import { ADMIN_EXTERNAL_ID } from "@/lib/service-auth";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -13,52 +14,20 @@ export async function OPTIONS() {
     return NextResponse.json({}, { headers: corsHeaders });
 }
 
-export async function POST(req: Request) {
-    try {
-        const { user: serviceUser } = await checkAdminAccess();
-        if (!serviceUser) return new NextResponse("Unauthorized", { status: 401 });
-        const body = await req.json();
-
-        const { serviceId, bookingTime, saloonId } = body;
-
-        if (!serviceId || !bookingTime || !saloonId) {
-            return new NextResponse("Service ID, booking time, and saloon ID are required", { status: 400 });
-        }
-
-        // Verify the saloon exists
-        const saloon = await prismadb.saloon.findUnique({
-            where: { id: saloonId }
-        });
-
-        if (!saloon) {
-            return new NextResponse("Saloon not found", { status: 404 });
-        }
-
-        const booking = await prismadb.booking.create({
-            data: {
-                userId: serviceUser.id, // Attach to service admin user
-                serviceId,
-                saloonId,
-                bookingTime,
-                status: 'confirmed',
-                paymentMethod: 'pay_at_venue',
-            },
-        });
-
-        return NextResponse.json(booking);
-
-    } catch (error) {
-        console.log("[BOOKING_POST]", error);
-        return new NextResponse("Internal error", { status: 500 });
-    }
-}
-
 export async function GET(req: Request) {
     try {
-        const { user } = await checkAdminAccess();
-        if (!user) return new NextResponse("Unauthorized", { status: 401 });
+        const { user, isAdmin } = await checkAdminAccess();
+        // The bearer key alone (service user) is not a person: it never sees bookings.
+        if (!user || user.clerkId === ADMIN_EXTERNAL_ID) {
+            return new NextResponse("Unauthorized", { status: 401, headers: corsHeaders });
+        }
 
+        // Admins see everything; everyone else only their own bookings — by
+        // account, or by email for guest checkouts made before signing in.
         const bookings = await prismadb.booking.findMany({
+            where: isAdmin
+                ? undefined
+                : { OR: [{ userId: user.id }, { customerEmail: user.email }] },
             include: {
                 service: { select: { name: true } },
                 user: { select: { name: true, email: true } },

@@ -10,7 +10,8 @@ import { getOrCreateUserFromClerk } from "./get-or-create-user";
  * 
  * Now we ONLY trust:
  * 1. Clerk's verifyToken() from @clerk/backend to verify tokens from WebView headers (PRIORITY)
- * 2. Service-admin for bearer-token-only requests (API access) - ONLY if no x-user-token was provided
+ * 2. The service user for bearer-token-only requests (API access) - ONLY if no x-user-token was provided.
+ *    It is NEVER an admin: the bearer key ships inside the app bundle, so anyone can extract it.
  *
  * There is no browser-session path. Clerk's auth() used to serve as a fallback
  * here, but this app has no Clerk browser sessions and no Clerk authMiddleware,
@@ -110,14 +111,14 @@ export async function checkAdminAccess() {
     return { isAdmin: false, user: null };
   }
 
-  // If no user ID found, check if it's a service-admin request (bearer token only, no Clerk)
-  // This is for API-only access (like the mobile app calling APIs)
-  // ONLY allow this if NO x-user-token was provided at all
+  // Bearer key only (no Clerk token at all): resolve to the synthetic service
+  // user so anonymous flows (browsing, guest checkout) keep working, but NEVER
+  // as admin — the key ships inside the app bundle and anyone can extract it.
+  // Admins are recognised only through a verified Clerk token + users.isAdmin.
   if (!clerkUserId && isAuthorized && !hadUserToken) {
-    // This is a bearer token request without any user token - use service-admin
-    console.log('[ADMIN_ACCESS] No user token provided, using service-admin for bearer token request');
+    console.log('[ADMIN_ACCESS] No user token provided, using service user (non-admin) for bearer token request');
     const user = await ensureServiceUser();
-    return { isAdmin: true, user };
+    return { isAdmin: false, user };
   }
 
   // If no user ID found and not a bearer token request, deny access

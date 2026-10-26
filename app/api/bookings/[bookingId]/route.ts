@@ -7,6 +7,11 @@ export async function GET(
     { params }: { params: { bookingId: string } }
 ) {
     try {
+        const { isAdmin } = await checkAdminAccess();
+        if (!isAdmin) {
+            return new NextResponse("Forbidden", { status: 403 });
+        }
+
         if (!params.bookingId) {
             return new NextResponse("Booking ID is required", { status: 400 });
         }
@@ -52,10 +57,11 @@ export async function PATCH(
     { params }: { params: { bookingId: string } }
 ) {
     try {
-        const { user } = await checkAdminAccess();
-
-        if (!user) {
-            return new NextResponse("Unauthorized", { status: 401 });
+        // Admin only: this changes or deletes ANY booking, including payment
+        // status, so it must never be reachable with the app's bearer key.
+        const { isAdmin } = await checkAdminAccess();
+        if (!isAdmin) {
+            return new NextResponse("Forbidden", { status: 403 });
         }
 
         const body = await req.json();
@@ -91,10 +97,11 @@ export async function DELETE(
     { params }: { params: { bookingId: string } }
 ) {
     try {
-        const { user } = await checkAdminAccess();
-
-        if (!user) {
-            return new NextResponse("Unauthorized", { status: 401 });
+        // Admin only: this changes or deletes ANY booking, including payment
+        // status, so it must never be reachable with the app's bearer key.
+        const { isAdmin } = await checkAdminAccess();
+        if (!isAdmin) {
+            return new NextResponse("Forbidden", { status: 403 });
         }
 
         if (!params.bookingId) {
