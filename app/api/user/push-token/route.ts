@@ -27,6 +27,20 @@ export async function POST(req: Request) {
             return new NextResponse("pushToken is required", { status: 400 });
         }
 
+        // One row per device: a second phone adds a token instead of
+        // overwriting the first. A device that signs in as another account
+        // moves its token there (upsert on the unique token).
+        await prismadb.pushToken.upsert({
+            where: { token: pushToken },
+            create: { token: pushToken, userId: user.id },
+            update: { userId: user.id },
+        });
+        // Keep the legacy column on the latest device, and take this device
+        // away from any other account still holding it there.
+        await prismadb.user.updateMany({
+            where: { pushToken, NOT: { id: user.id } },
+            data: { pushToken: null },
+        });
         await prismadb.user.update({
             where: { id: user.id },
             data: { pushToken },

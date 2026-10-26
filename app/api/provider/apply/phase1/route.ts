@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { getEndUser } from "@/lib/admin-access";
-import { sendPushNotification, notifyAdmins } from "@/lib/send-notification";
+import { notifyAdmins, notifyUser } from "@/lib/send-notification";
 
 // Statuses from which submitting Phase 1 is legitimate: a first application, a
 // re-application after rejection, or an edit while still awaiting review.
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
     const dbUser = await prismadb.user.findUnique({
       where: { id: user.id },
-      select: { providerStatus: true, pushToken: true },
+      select: { providerStatus: true },
     });
 
     if (!dbUser || !PHASE1_SUBMITTABLE.includes(dbUser.providerStatus)) {
@@ -86,14 +86,12 @@ export async function POST(req: Request) {
     try {
       await Promise.all([
         // P1 → applicant
-        dbUser.pushToken
-          ? sendPushNotification(
-              dbUser.pushToken,
-              "Application Received",
-              "We've got your details. We'll review them shortly.",
-              { type: "provider_phase1_submitted" }
-            )
-          : Promise.resolve(),
+        notifyUser(
+          user.id,
+          "Application Received",
+          "We've got your details. We'll review them shortly.",
+          { type: "provider_phase1_submitted" }
+        ),
         // A1 → admins
         notifyAdmins(
           "New Application",

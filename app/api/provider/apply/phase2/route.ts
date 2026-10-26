@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { getEndUser } from "@/lib/admin-access";
-import { sendPushNotification, notifyAdmins } from "@/lib/send-notification";
+import { notifyAdmins, notifyUser } from "@/lib/send-notification";
 import { PRIVATE_REF_PREFIX, isOwnDocumentRef } from "@/lib/r2";
 
 const LEGACY_DOC_HOSTS = new Set(["media.kosmiks.com", "res.cloudinary.com"]);
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     // Enforce phase order — must be PHASE1_APPROVED before submitting phase 2
     const dbUser = await prismadb.user.findUnique({
       where: { id: user.id },
-      select: { providerStatus: true, pushToken: true },
+      select: { providerStatus: true },
     });
 
     if (dbUser?.providerStatus !== "PHASE1_APPROVED") {
@@ -105,14 +105,12 @@ export async function POST(req: Request) {
     try {
       await Promise.all([
         // P3 → applicant
-        dbUser.pushToken
-          ? sendPushNotification(
-              dbUser.pushToken,
-              "Documents Received",
-              "We're verifying your details now.",
-              { type: "provider_phase2_submitted" }
-            )
-          : Promise.resolve(),
+        notifyUser(
+          user.id,
+          "Documents Received",
+          "We're verifying your details now.",
+          { type: "provider_phase2_submitted" }
+        ),
         // A2 → admins
         notifyAdmins(
           "Verification Submitted",

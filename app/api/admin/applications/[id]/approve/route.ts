@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { checkAdminAccess } from "@/lib/admin-access";
-import { sendPushNotification } from "@/lib/send-notification";
+import { notifyUser } from "@/lib/send-notification";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -75,25 +75,22 @@ export async function POST(
     // here must not affect the response. Branch on currentPhase, the same source
     // of truth the nextStatus map uses; an invalid phase already returned 400.
     try {
-      const providerToken = application.user?.pushToken;
-      if (providerToken) {
-        if (application.currentPhase === 1) {
-          // P2
-          await sendPushNotification(
-            providerToken,
-            "Phase 1 Approved ✓",
-            "Continue to Phase 2 to verify your details.",
-            { type: "provider_phase1_approved" }
-          );
-        } else if (application.currentPhase === 2) {
-          // P4
-          await sendPushNotification(
-            providerToken,
-            "Phase 2 Approved ✓",
-            "You're verified. Set up your salon to go live.",
-            { type: "provider_phase2_approved" }
-          );
-        }
+      if (application.currentPhase === 1) {
+        // P2
+        await notifyUser(
+          application.userId,
+          "Phase 1 Approved ✓",
+          "Continue to Phase 2 to verify your details.",
+          { type: "provider_phase1_approved" }
+        );
+      } else if (application.currentPhase === 2) {
+        // P4
+        await notifyUser(
+          application.userId,
+          "Phase 2 Approved ✓",
+          "You're verified. Set up your salon to go live.",
+          { type: "provider_phase2_approved" }
+        );
       }
     } catch (pushError) {
       console.error("[ADMIN_APPLICATION_APPROVE] push failed:", pushError);

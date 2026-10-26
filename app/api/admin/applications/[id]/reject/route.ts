@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { checkAdminAccess } from "@/lib/admin-access";
-import { sendPushNotification } from "@/lib/send-notification";
+import { notifyUser } from "@/lib/send-notification";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,7 +30,6 @@ export async function POST(
 
     const application = await prismadb.providerApplication.findUnique({
       where: { id: params.id },
-      include: { user: { select: { pushToken: true } } },
     });
 
     if (!application) {
@@ -50,20 +49,17 @@ export async function POST(
     // Best-effort notification — the rejection is already committed, so a failure
     // here must not affect the response.
     try {
-      const providerToken = application.user?.pushToken;
-      if (providerToken) {
-        const trimmed = reason.trim();
-        // The handler 400s on an empty reason, so the bare sentence is a
-        // fallback in case that validation is ever relaxed — never "undefined".
-        const body = trimmed
-          ? `Your application wasn't approved. Reason: ${trimmed}`
-          : "Your application wasn't approved.";
+      const trimmed = reason.trim();
+      // The handler 400s on an empty reason, so the bare sentence is a
+      // fallback in case that validation is ever relaxed — never "undefined".
+      const body = trimmed
+        ? `Your application wasn't approved. Reason: ${trimmed}`
+        : "Your application wasn't approved.";
 
-        // P6
-        await sendPushNotification(providerToken, "Application Update", body, {
-          type: "provider_rejected",
-        });
-      }
+      // P6
+      await notifyUser(application.userId, "Application Update", body, {
+        type: "provider_rejected",
+      });
     } catch (pushError) {
       console.error("[ADMIN_APPLICATION_REJECT] push failed:", pushError);
     }

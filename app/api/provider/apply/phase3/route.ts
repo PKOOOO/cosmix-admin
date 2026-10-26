@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { getEndUser } from "@/lib/admin-access";
-import { sendPushNotification, notifyAdmins } from "@/lib/send-notification";
+import { notifyAdmins, notifyUser } from "@/lib/send-notification";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,7 +22,7 @@ export async function POST() {
 
     const dbUser = await prismadb.user.findUnique({
       where: { id: user.id },
-      select: { providerStatus: true, pushToken: true },
+      select: { providerStatus: true },
     });
 
     if (dbUser?.providerStatus !== "PHASE2_APPROVED") {
@@ -53,14 +53,12 @@ export async function POST() {
 
       await Promise.all([
         // P5 → provider
-        dbUser.pushToken
-          ? sendPushNotification(
-              dbUser.pushToken,
-              "Your Salon Is Live! 🎉",
-              "You can now start accepting bookings.",
-              { type: "provider_active" }
-            )
-          : Promise.resolve(),
+        notifyUser(
+          user.id,
+          "Your Salon Is Live! 🎉",
+          "You can now start accepting bookings.",
+          { type: "provider_active" }
+        ),
         // A3 → admins
         notifyAdmins(
           "Salon Setup Complete",

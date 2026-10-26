@@ -2,6 +2,7 @@ import prismadb from "./prismadb";
 import { ADMIN_EXTERNAL_ID } from "./service-auth";
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
+const EXPO_RECEIPTS_URL = "https://exp.host/--/api/v2/push/getReceipts";
 
 interface ExpoPushMessage {
     to: string;
@@ -29,8 +30,9 @@ interface ExpoPushTicket {
  *  - A 200 whose ticket carries status: "error". This is where
  *    DeviceNotRegistered surfaces — the send succeeded, the delivery did not.
  *
- * Both are logged with the offending token so a dead token can be identified
- * and cleared by hand until automatic pruning exists.
+ * A DeviceNotRegistered ticket removes the token right away. Successful
+ * tickets are stored so the daily receipt check (checkPushReceipts) can catch
+ * the tokens that only fail at delivery time.
  */
 async function sendToOneToken(
     token: string,
@@ -87,6 +89,13 @@ async function sendToOneToken(
                     `[PUSH_NOTIFICATION] Delivery error for ${token}: ` +
                     `${ticket.details?.error ?? "UNKNOWN"} — ${ticket.message ?? "no message"}`
                 );
+                if (ticket.details?.error === "DeviceNotRegistered") {
+                    await removePushToken(token);
+                }
+            } else if (ticket?.status === "ok" && ticket.id) {
+                await prismadb.pushTicket
+                    .create({ data: { id: ticket.id, token } })
+                    .catch((err) => console.error("[PUSH_NOTIFICATION] Could not store ticket:", err));
             }
         }
     } catch (error) {
@@ -154,15 +163,15 @@ export async function notifyAdmins(
         const admins = await prismadb.user.findMany({
             where: {
                 isAdmin: true,
-                pushToken: { not: null },
                 clerkId: { not: ADMIN_EXTERNAL_ID },
             },
-            select: { pushToken: true },
+            select: { pushToken: true, pushTokens: { select: { token: true } } },
         });
 
-        const tokens = admins
-            .map((a) => a.pushToken)
-            .filter((t): t is string => !!t);
+        const tokens = admins.flatMap((a) => [
+            ...a.pushTokens.map((t) => t.token),
+            ...(a.pushToken ? [a.pushToken] : []),
+        ]);
 
         if (tokens.length === 0) return;
 
@@ -181,7 +190,7 @@ export function formatWhen(date: Date | string): string {
 }
 
 /**
- * Push to one user by id, if they have a token. Skips the synthetic service
+ * Push to every device of one user, if they have any. Skips the synthetic service
  * user (guest bookings are attached to it; it is not a person with a device).
  *
  * Never throws, so callers can fire it after their success path.
@@ -196,11 +205,75 @@ export async function notifyUser(
     try {
         const user = await prismadb.user.findUnique({
             where: { id: userId },
-            select: { pushToken: true, clerkId: true },
+            select: { pushToken: true, clerkId: true, pushTokens: { select: { token: true } } },
         });
-        if (!user?.pushToken || user.clerkId === ADMIN_EXTERNAL_ID) return;
-        await sendPushNotification(user.pushToken, title, body, data);
+        if (!user || user.clerkId === ADMIN_EXTERNAL_ID) return;
+        // Every device the user has signed in on, plus the legacy single column.
+        const tokens = [
+            ...user.pushTokens.map((t) => t.token),
+            ...(user.pushToken ? [user.pushToken] : []),
+        ];
+        await sendPushNotifications(tokens, title, body, data);
     } catch (error) {
         console.error("[PUSH_NOTIFICATION] Failed to notify user:", error);
     }
+}
+
+/** Forget a dead token everywhere it is stored. Never throws. */
+export async function removePushToken(token: string): Promise<void> {
+    try {
+        await prismadb.pushToken.deleteMany({ where: { token } });
+        await prismadb.user.updateMany({ where: { pushToken: token }, data: { pushToken: null } });
+        console.log(`[PUSH_NOTIFICATION] Removed dead token ${token}`);
+    } catch (error) {
+        console.error("[PUSH_NOTIFICATION] Failed to remove token:", error);
+    }
+}
+
+/**
+ * Fetch Expo receipts for stored tickets and remove tokens whose delivery
+ * failed with DeviceNotRegistered. Expo keeps receipts for 24 h and they can
+ * take a while to appear, so tickets younger than 15 minutes wait for the next
+ * run; older than 24 h are dropped unchecked. Run daily by /api/cron/push-receipts.
+ */
+export async function checkPushReceipts(): Promise<{ checked: number; removed: number }> {
+    const now = Date.now();
+    await prismadb.pushTicket.deleteMany({
+        where: { createdAt: { lt: new Date(now - 24 * 60 * 60 * 1000) } },
+    });
+    const tickets = await prismadb.pushTicket.findMany({
+        where: { createdAt: { lt: new Date(now - 15 * 60 * 1000) } },
+        select: { id: true, token: true },
+    });
+
+    let removed = 0;
+    // Expo accepts up to 1000 receipt ids per request.
+    for (let i = 0; i < tickets.length; i += 1000) {
+        const chunk = tickets.slice(i, i + 1000);
+        const res = await fetch(EXPO_RECEIPTS_URL, {
+            method: "POST",
+            headers: { Accept: "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({ ids: chunk.map((t) => t.id) }),
+        });
+        const payload = await res.json().catch(() => null);
+        const receipts: Record<string, ExpoPushTicket> = payload?.data ?? {};
+
+        for (const ticket of chunk) {
+            const receipt = receipts[ticket.id];
+            if (receipt?.status === "error") {
+                console.error(
+                    `[PUSH_NOTIFICATION] Receipt error for ${ticket.token}: ` +
+                    `${receipt.details?.error ?? "UNKNOWN"} — ${receipt.message ?? "no message"}`
+                );
+                if (receipt.details?.error === "DeviceNotRegistered") {
+                    await removePushToken(ticket.token);
+                    removed++;
+                }
+            }
+        }
+        // Receipts were read (or are gone): don't check these tickets again.
+        await prismadb.pushTicket.deleteMany({ where: { id: { in: chunk.map((t) => t.id) } } });
+    }
+
+    return { checked: tickets.length, removed };
 }

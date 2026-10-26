@@ -2,7 +2,7 @@ import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { sendBookingConfirmationToUser, sendBookingNotificationToSalon } from "@/lib/email";
-import { sendPushNotification } from "@/lib/send-notification";
+import { notifyUser } from "@/lib/send-notification";
 import { getEndUser } from "@/lib/admin-access";
 
 const corsHeaders = {
@@ -373,8 +373,8 @@ export async function PATCH(req: Request) {
         // Collected after each booking is confirmed; sent (best-effort) once the
         // booking success path is already determined so notifications never affect it.
         const pushNotifications: Array<{
-            customerToken: string | null;
-            providerToken: string | null;
+            customerId: string;
+            providerId: string;
             serviceName: string;
             saloonName: string;
             customerName: string;
@@ -398,7 +398,7 @@ export async function PATCH(req: Request) {
             const booking = await prismadb.booking.findUnique({
                 where: { id: bookingId },
                 include: {
-                    user: true, // customer — for their pushToken
+                    user: true, // customer
                     saloon: {
                         include: {
                             user: true
@@ -469,8 +469,10 @@ export async function PATCH(req: Request) {
             })}`;
 
             pushNotifications.push({
-                customerToken: booking.user?.pushToken ?? null,
-                providerToken: booking.saloon.user?.pushToken ?? null,
+                // Ids, not tokens: notifyUser sends to every device of each
+                // user and skips the service user (guest checkouts).
+                customerId: booking.userId,
+                providerId: booking.saloon.userId,
                 serviceName: booking.service.name,
                 saloonName: booking.saloon.name,
                 customerName: booking.customerName || 'A customer',
@@ -488,29 +490,25 @@ export async function PATCH(req: Request) {
         }
 
         // Best-effort push notifications. The booking is already confirmed at this point,
-        // so any failure here must never affect the response. sendPushNotification also
+        // so any failure here must never affect the response. notifyUser also
         // swallows its own errors, but we wrap defensively per the notification contract.
         try {
             const pushPromises: Promise<void>[] = [];
             for (const n of pushNotifications) {
                 // C1 → Customer
-                if (n.customerToken) {
-                    pushPromises.push(sendPushNotification(
-                        n.customerToken,
-                        "Booking Confirmed ✓",
-                        `${n.serviceName} at ${n.saloonName} on ${n.whenLabel}`,
-                        { type: "booking_confirmed" }
-                    ));
-                }
+                pushPromises.push(notifyUser(
+                    n.customerId,
+                    "Booking Confirmed ✓",
+                    `${n.serviceName} at ${n.saloonName} on ${n.whenLabel}`,
+                    { type: "booking_confirmed" }
+                ));
                 // P7 → Provider
-                if (n.providerToken) {
-                    pushPromises.push(sendPushNotification(
-                        n.providerToken,
-                        "New Booking 🎉",
-                        `${n.customerName} booked ${n.serviceName} on ${n.whenLabel}`,
-                        { type: "new_booking" }
-                    ));
-                }
+                pushPromises.push(notifyUser(
+                    n.providerId,
+                    "New Booking 🎉",
+                    `${n.customerName} booked ${n.serviceName} on ${n.whenLabel}`,
+                    { type: "new_booking" }
+                ));
             }
             await Promise.all(pushPromises);
         } catch (pushError) {

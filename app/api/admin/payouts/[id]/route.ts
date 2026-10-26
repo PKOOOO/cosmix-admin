@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { sendPushNotification } from "@/lib/send-notification";
+import { notifyUser } from "@/lib/send-notification";
 import { requireHumanAdmin, PAYOUT_STATUSES, PAYOUT_TRANSITIONS, type PayoutStatus } from "@/lib/payouts";
 
 const corsHeaders = {
@@ -30,7 +30,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     const payout = await prismadb.payout.findUnique({
       where: { id: params.id },
-      include: { user: { select: { pushToken: true } } },
     });
     if (!payout) return NextResponse.json({ error: "Not found" }, { status: 404, headers: corsHeaders });
 
@@ -74,10 +73,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     }
 
     // P9 — best effort, never affects the response.
-    if (next === "sent" && payout.user?.pushToken) {
+    if (next === "sent") {
       try {
-        await sendPushNotification(
-          payout.user.pushToken,
+        await notifyUser(
+          payout.userId,
           "Payout sent 💸",
           `${eur(payout.amount)} is on its way to your bank account.`,
           { type: "provider_payout_sent", payoutId: payout.id },

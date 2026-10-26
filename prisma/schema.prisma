@@ -27,7 +27,8 @@ model User {
   name            String?
   isAdmin         Boolean             @default(false)
   providerStatus      ProviderStatus  @default(NOT_APPLIED)
-  pushToken       String?
+  pushToken       String?   // legacy single token; per-device tokens live in PushToken
+  pushTokens      PushToken[]
 
   bookings        Booking[]
   saloons         Saloon[]
@@ -321,4 +322,29 @@ model Payout {
   @@index([userId])
   @@index([status])
   @@index([scheduledFor])
+}
+
+// One row per app install (device). A user can have several; registering the
+// same token from another account moves it there.
+model PushToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("push_tokens")
+}
+
+// Expo push tickets awaiting their receipt. A daily cron fetches the receipts
+// (Expo keeps them for 24 h) and removes tokens reported as DeviceNotRegistered.
+model PushTicket {
+  id        String   @id // Expo ticket id
+  token     String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("push_tickets")
 }
