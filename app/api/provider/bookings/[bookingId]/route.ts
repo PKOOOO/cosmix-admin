@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { getEndUser } from "@/lib/admin-access";
+import { formatWhen, notifyUser } from "@/lib/send-notification";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,7 +40,14 @@ export async function PUT(
 
     const booking = await prismadb.booking.findUnique({
       where: { id: params.bookingId },
-      select: { saloonId: true },
+      select: {
+        saloonId: true,
+        status: true,
+        userId: true,
+        bookingTime: true,
+        service: { select: { name: true } },
+        saloon: { select: { name: true } },
+      },
     });
 
     if (!booking || booking.saloonId !== saloon.id) {
@@ -57,6 +65,16 @@ export async function PUT(
         totalAmount: true,
       },
     });
+
+    // C2: tell the customer when the salon cancels (only on an actual change).
+    if (status === "cancelled" && booking.status !== "cancelled") {
+      await notifyUser(
+        booking.userId,
+        "Booking cancelled",
+        `${booking.saloon.name} cancelled your ${booking.service?.name ?? "booking"} on ${formatWhen(booking.bookingTime)}.`,
+        { type: "customer_booking_cancelled", bookingId: params.bookingId }
+      );
+    }
 
     return NextResponse.json(updated, { headers: corsHeaders });
   } catch (error) {

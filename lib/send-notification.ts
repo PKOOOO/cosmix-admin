@@ -139,9 +139,8 @@ export async function sendPushNotifications(
  * Broadcast to every real admin who has a push token registered.
  *
  * Resolves the recipients in a single query and hands them to the multi-token
- * sender. The synthetic service user is excluded explicitly: ensureServiceUser()
- * creates its row with isAdmin: true, so it would otherwise match — and it is a
- * shared row, not a person holding a device.
+ * sender. The synthetic service user is excluded explicitly: it is a shared
+ * row, not a person holding a device.
  *
  * Never throws. The send path swallows its own errors, but the lookup can fail
  * independently, so it carries its own guard.
@@ -170,5 +169,38 @@ export async function notifyAdmins(
         await sendPushNotifications(tokens, title, body, data);
     } catch (error) {
         console.error("[PUSH_NOTIFICATION] Failed to notify admins:", error);
+    }
+}
+
+/** Compact label for push bodies, e.g. "Mon 2 Jun at 14:00" (same as checkout's). */
+export function formatWhen(date: Date | string): string {
+    const d = new Date(date);
+    const day = d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+    const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+    return `${day} at ${time}`;
+}
+
+/**
+ * Push to one user by id, if they have a token. Skips the synthetic service
+ * user (guest bookings are attached to it; it is not a person with a device).
+ *
+ * Never throws, so callers can fire it after their success path.
+ */
+export async function notifyUser(
+    userId: string | null | undefined,
+    title: string,
+    body: string,
+    data?: object
+): Promise<void> {
+    if (!userId) return;
+    try {
+        const user = await prismadb.user.findUnique({
+            where: { id: userId },
+            select: { pushToken: true, clerkId: true },
+        });
+        if (!user?.pushToken || user.clerkId === ADMIN_EXTERNAL_ID) return;
+        await sendPushNotification(user.pushToken, title, body, data);
+    } catch (error) {
+        console.error("[PUSH_NOTIFICATION] Failed to notify user:", error);
     }
 }

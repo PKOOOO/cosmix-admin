@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { checkAdminAccess } from "@/lib/admin-access";
+import { formatWhen, notifyUser } from "@/lib/send-notification";
 
 export async function GET(
     req: Request,
@@ -72,6 +73,11 @@ export async function PATCH(
             return new NextResponse("Booking ID is required", { status: 400 });
         }
 
+        const before = await prismadb.booking.findUnique({
+            where: { id: params.bookingId },
+            select: { status: true },
+        });
+
         // Update the booking
         const booking = await prismadb.booking.update({
             where: {
@@ -83,7 +89,27 @@ export async function PATCH(
                 ...(notes && { notes }),
                 updatedAt: new Date(),
             },
+            include: {
+                service: { select: { name: true } },
+                saloon: { select: { name: true } },
+            },
         });
+
+        // C3: tell the customer when an admin changes the booking's status.
+        if (status && before && before.status !== status) {
+            const label: Record<string, string> = {
+                confirmed: "confirmed",
+                cancelled: "cancelled",
+                completed: "marked as completed",
+                pending: "set back to pending",
+            };
+            await notifyUser(
+                booking.userId,
+                "Booking updated",
+                `Your ${booking.service?.name ?? "booking"} at ${booking.saloon.name} on ${formatWhen(booking.bookingTime)} was ${label[status] ?? `updated to ${status}`}.`,
+                { type: "customer_booking_updated", bookingId: booking.id, status }
+            );
+        }
 
         return NextResponse.json(booking);
     } catch (error) {

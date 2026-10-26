@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
+import { getEndUser } from "@/lib/admin-access";
+import { notifyUser } from "@/lib/send-notification";
 
 // POST - Create a new review
 export async function POST(req: Request) {
   try {
+    // A real signed-in customer only: the app's bearer key alone must not be
+    // able to write (or overwrite) reviews and move a salon's rating.
+    const user = await getEndUser();
+    if (!user) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
     const body = await req.json();
     const { bookingId, rating, comment } = body;
 
@@ -24,7 +33,9 @@ export async function POST(req: Request) {
       },
     });
 
-    if (!booking) {
+    // Only the customer who made the booking may review it (by account, or by
+    // email for a guest checkout made before signing in).
+    if (!booking || (booking.userId !== user.id && booking.customerEmail !== user.email)) {
       return new NextResponse("Booking not found", { status: 404 });
     }
 
@@ -64,6 +75,15 @@ export async function POST(req: Request) {
 
     // Update saloon's average rating
     await updateSaloonRating(booking.saloonId);
+
+    // P8: tell the salon's provider about the new review (never blocks the response).
+    const snippet = comment ? ` — "${String(comment).slice(0, 80)}"` : "";
+    await notifyUser(
+      booking.saloon.userId,
+      "New review ⭐",
+      `${"★".repeat(rating)}${"☆".repeat(5 - rating)}${snippet}`,
+      { type: "provider_new_review", saloonId: booking.saloonId }
+    );
 
     return NextResponse.json(review);
   } catch (error) {
@@ -105,8 +125,6 @@ export async function GET(req: Request) {
         user: {
           select: {
             name: true,
-            email: true,
-            clerkId: true,
           },
         },
       },
@@ -115,7 +133,15 @@ export async function GET(req: Request) {
       },
     });
 
-    return NextResponse.json(reviews);
+    // Public list: show only the reviewer's first name — never their email or
+    // ids (this used to return both to anyone holding the app's bearer key).
+    const publicReviews = reviews.map((review) => ({
+      ...review,
+      userId: undefined,
+      user: { name: review.user?.name?.trim().split(/\s+/)[0] || null },
+    }));
+
+    return NextResponse.json(publicReviews);
   } catch (error) {
     console.error("[REVIEWS_GET]", error);
     return new NextResponse("Internal error", { status: 500 });
