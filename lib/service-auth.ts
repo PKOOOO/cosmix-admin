@@ -60,14 +60,25 @@ export const ensureServiceUser = async () => {
   });
 
   if (existing) {
+    const updates: { isAdmin?: boolean; email?: string } = {};
     // If service-admin was previously set as admin, update it to non-admin
-    if (existing.isAdmin) {
-      return prismadb.user.update({
-        where: { clerkId: ADMIN_EXTERNAL_ID },
-        data: { isAdmin: false },
-      });
+    if (existing.isAdmin) updates.isAdmin = false;
+    // The service row must never hold a real person's email: that person's
+    // own sign-in then collides on the unique email and 401s forever (a row
+    // left over from the fake-clerk era held a customer's address).
+    if (existing.email !== ADMIN_EMAIL && existing.email !== SERVICE_FALLBACK_EMAIL) {
+      const holder = await prismadb.user.findUnique({ where: { email: ADMIN_EMAIL } });
+      updates.email = holder ? SERVICE_FALLBACK_EMAIL : ADMIN_EMAIL;
+      console.warn(`[service-auth] Service row held a real email; resetting it to ${updates.email}`);
     }
-    return existing;
+    if (Object.keys(updates).length === 0) return existing;
+    try {
+      return await prismadb.user.update({ where: { clerkId: ADMIN_EXTERNAL_ID }, data: updates });
+    } catch (error: any) {
+      // Both synthetic addresses taken: keep serving the existing row.
+      console.error("[service-auth] Could not repair service row:", error?.code ?? error);
+      return existing;
+    }
   }
 
   // `email` is @unique, so creating the service row under ADMIN_EMAIL collides
