@@ -52,6 +52,11 @@ export async function GET(req: Request) {
             name: true,
           },
         },
+        // Opening hours, for the map card's "open now" line.
+        timeSlots: {
+          select: { dayOfWeek: true, startTime: true, endTime: true, isOpen: true },
+          orderBy: { dayOfWeek: "asc" },
+        },
         reviews: {
           select: {
             rating: true,
@@ -77,6 +82,11 @@ export async function GET(req: Request) {
 
       return {
         ...saloon,
+        // Public endpoint: reviewers appear by first name only.
+        reviews: saloon.reviews.map((review) => ({
+          ...review,
+          user: { name: review.user?.name?.trim().split(/\s+/)[0] || null },
+        })),
         averageRating,
         reviewCount: saloon.reviews.length,
       };
