@@ -52,6 +52,9 @@ model Saloon {
   images         SaloonImage[]
   rating         Float          @default(0.0)
   address        String?
+  // Shown to customers ("Soita" on the map). Filled from the Phase 1
+  // application phone; the provider can change or clear it.
+  phone          String?
   
   // Location coordinates for map display
   latitude       Float?

@@ -65,6 +65,7 @@ export async function POST(
             name: application.businessName ?? `${application.firstName ?? ""} ${application.lastName ?? ""}`.trim(),
             userId: application.userId,
             address: application.address,
+            phone: application.phone,
           },
         });
       }

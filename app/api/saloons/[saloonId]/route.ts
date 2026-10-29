@@ -49,7 +49,19 @@ export async function PATCH(
     const { user } = await checkAdminAccess();
     const body = await req.json();
 
-    const { name, description, shortIntro, address, images, selectedServices, latitude, longitude } = body;
+    const { name, description, shortIntro, address, images, selectedServices, latitude, longitude, phone } = body;
+
+    // Public phone: undefined = leave unchanged, empty = remove.
+    let phoneValue: string | null | undefined;
+    if (phone !== undefined) {
+      phoneValue = typeof phone === "string" && phone.trim() ? phone.trim() : null;
+      if (phoneValue !== null) {
+        const digits = phoneValue.replace(/\D/g, "").length;
+        if (!/^\+?[\d\s()-]+$/.test(phoneValue) || digits < 7 || digits > 15) {
+          return new NextResponse("Enter a valid phone number", { status: 400 });
+        }
+      }
+    }
 
     if (!user) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -87,6 +99,7 @@ export async function PATCH(
         address,
         latitude,
         longitude,
+        ...(phoneValue !== undefined && { phone: phoneValue }),
         ...(images && {
           images: {
             deleteMany: {},

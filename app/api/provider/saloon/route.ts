@@ -19,6 +19,7 @@ export async function GET() {
     if (!saloon) {
       let appName: string | null = null;
       let appAddress: string | null = null;
+      let appPhone: string | null = null;
 
       try {
         const application = await prismadb.providerApplication.findUnique({
@@ -27,6 +28,7 @@ export async function GET() {
         const fullName = `${application?.firstName ?? ""} ${application?.lastName ?? ""}`.trim();
         appName = application?.businessName ?? (fullName || null);
         appAddress = application?.address ?? null;
+        appPhone = application?.phone ?? null;
       } catch {}
 
       saloon = await prismadb.saloon.create({
@@ -34,6 +36,7 @@ export async function GET() {
           name: appName || user.name || "My Salon",
           userId: user.id,
           address: appAddress,
+          phone: appPhone,
         },
       });
     }
