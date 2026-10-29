@@ -186,6 +186,11 @@ model Booking {
   notes         String?
   totalAmount   Float?
 
+  // Set when the salon or an admin cancels: the reason shown to the customer
+  // and the Stripe refund that returned an online payment (lib/refunds.ts).
+  cancelReason  String?
+  refundId      String?
+
   // Set once this booking's earnings are included in a provider payout, so a
   // booking can never be paid out twice. Null = not paid out yet.
   payoutId      String?

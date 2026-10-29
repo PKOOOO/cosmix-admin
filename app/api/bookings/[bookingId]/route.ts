@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
 import { checkAdminAccess } from "@/lib/admin-access";
 import { formatWhen, notifyUser } from "@/lib/send-notification";
+import { refundBooking } from "@/lib/refunds";
 
 export async function GET(
     req: Request,
@@ -75,8 +76,20 @@ export async function PATCH(
 
         const before = await prismadb.booking.findUnique({
             where: { id: params.bookingId },
-            select: { status: true },
+            select: { id: true, status: true, paymentMethod: true, paymentIntentId: true, totalAmount: true, refundId: true },
         });
+
+        // Cancelling a paid booking refunds it first (same as a salon cancel);
+        // if the refund fails, nothing changes.
+        let refundId: string | null = null;
+        if (status === "cancelled" && before && before.status !== "cancelled") {
+            try {
+                refundId = await refundBooking(before);
+            } catch (error) {
+                console.error("[BOOKING_PATCH_REFUND]", params.bookingId, error instanceof Error ? error.message : error);
+                return new NextResponse("Refund failed; the booking was not cancelled", { status: 502 });
+            }
+        }
 
         // Update the booking
         const booking = await prismadb.booking.update({
@@ -87,6 +100,7 @@ export async function PATCH(
                 ...(status && { status }),
                 ...(bookingTime && { bookingTime }),
                 ...(notes && { notes }),
+                ...(refundId && { refundId }),
                 updatedAt: new Date(),
             },
             include: {
