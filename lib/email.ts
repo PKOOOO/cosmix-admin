@@ -202,8 +202,8 @@ export function generateUserBookingConfirmationEmail(bookingData: {
             </div>
             
             <div class="payment-notice">
-              <h3>💳 Maksu paikalla</h3>
-              <p><span class="important">Muista maksaa palvelu paikalla kampaamossa.</span></p>
+              <h3>💳 Maksettu</h3>
+              <p>Varaus on maksettu verkossa. Sinun ei tarvitse maksaa mitään paikan päällä.</p>
               <p>Maksu suoritetaan käteisellä tai kortilla kampaamon vastaanotossa.</p>
             </div>
             
@@ -235,7 +235,7 @@ VARAUKSEN TIEDOT:
 ${notes ? `- Huomautukset: ${notes}` : ''}
 
 💳 MAKSU PAIKALLA
-Muista maksaa palvelu paikalla kampaamossa. Maksu suoritetaan käteisellä tai kortilla kampaamon vastaanotossa.
+Varaus on maksettu verkossa. Sinun ei tarvitse maksaa mitään paikan päällä.
 
 Jos sinulla on kysymyksiä tai tarvitset muuttaa varausta, ota yhteyttä kampaamoon suoraan.
 
@@ -365,7 +365,7 @@ export function generateSalonNotificationEmail(bookingData: {
           <div class="content">
             <div class="alert">
               <h2>🎉 Uusi varaus vastaanotettu!</h2>
-              <p>Asiakas on tehnyt varauksen ja maksaa paikalla.</p>
+              <p>Asiakas on tehnyt varauksen ja maksanut sen verkossa.</p>
             </div>
             
             <div class="customer-info">
@@ -416,7 +416,7 @@ export function generateSalonNotificationEmail(bookingData: {
               ` : ''}
             </div>
             
-            <p><strong>Muista:</strong> Asiakas maksaa palvelun paikalla käteisellä tai kortilla.</p>
+            <p><strong>Huom:</strong> Varaus on jo maksettu, joten asiakkaalta ei peritä maksua paikan päällä.</p>
             
             <p>Hyvää työpäivää!</p>
             <p>Ystävällisin terveisin,<br><strong>KOSMIKS-tiimi</strong></p>
@@ -433,7 +433,7 @@ export function generateSalonNotificationEmail(bookingData: {
     text: `
 🎉 UUSI VARAUS VASTAANOTETTU!
 
-Asiakas on tehnyt varauksen ja maksaa paikalla.
+Asiakas on tehnyt varauksen ja maksanut sen verkossa.
 
 ASIAKKAAN TIEDOT:
 - Nimi: ${customerName}
@@ -448,7 +448,7 @@ VARAUKSEN TIEDOT:
 - Hinta: ${totalAmount.toFixed(2)} €
 ${notes ? `- Huomautukset: ${notes}` : ''}
 
-Muista: Asiakas maksaa palvelun paikalla käteisellä tai kortilla.
+Huom: Varaus on jo maksettu, joten asiakkaalta ei peritä maksua paikan päällä.
 
 Hyvää työpäivää!
 Ystävällisin terveisin,
