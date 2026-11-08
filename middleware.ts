@@ -128,9 +128,10 @@ const bearerAuthMiddleware = async (req: NextRequest) => {
         return response;
     }
 
-    // Vercel Cron calls carry `Bearer $CRON_SECRET`, not the app key; the cron
-    // route checks that secret itself.
-    if (req.nextUrl.pathname.startsWith("/api/cron/")) {
+    // Cron calls carry `Bearer $CRON_SECRET`, not the app key; the cron route
+    // checks that secret itself. Stripe webhooks are verified by their
+    // signature in the route.
+    if (req.nextUrl.pathname.startsWith("/api/cron/") || req.nextUrl.pathname === "/api/webhooks/stripe") {
         return response;
     }
 

@@ -82,9 +82,17 @@ export async function GET() {
         payouts,
         bookingsCount: confirmedBookings.length,
         bookings,
+        // Old app builds show this on their bank screen.
         payout: {
           iban: application?.iban ?? null,
           bankAccountName: application?.bankAccountName ?? null,
+        },
+        // Stripe Connect payout account (flags kept in sync by the webhook and
+        // GET /api/provider/stripe).
+        stripe: {
+          connected: !!user.stripeAccountId,
+          detailsSubmitted: user.stripeDetailsSubmitted,
+          payoutsEnabled: user.stripePayoutsEnabled,
         },
       },
       { headers: corsHeaders }

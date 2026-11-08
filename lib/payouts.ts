@@ -2,7 +2,8 @@ import prismadb from "@/lib/prismadb";
 import { getEndUser } from "@/lib/admin-access";
 
 // Provider payouts: which bookings count towards a provider's balance, and how
-// a balance becomes a Payout record.
+// a balance becomes a Payout record (via a Stripe Connect withdrawal, see
+// lib/stripe-connect.ts).
 //
 // A booking is paid out at most once: creating a payout stamps its id onto the
 // bookings it covers (Booking.payoutId), and only bookings with no payoutId are
@@ -13,7 +14,10 @@ export const PLATFORM_FEE_RATE = 0.1;
 /** Booking statuses whose money belongs to the provider. `pending` = not paid yet. */
 export const EARNING_STATUSES = ["confirmed", "completed", "no_show"];
 
+/** Statuses of the old manual SEPA payouts (admin moves them along by hand). */
 export const PAYOUT_STATUSES = ["scheduled", "sent", "arrived", "failed"] as const;
+/** Stripe Connect withdrawals (lib/stripe-connect.ts) are processing → transferred | failed. */
+export const ALL_PAYOUT_STATUSES = [...PAYOUT_STATUSES, "processing", "transferred"] as const;
 export type PayoutStatus = (typeof PAYOUT_STATUSES)[number];
 
 /** Allowed status changes. `failed` releases the bookings back to the balance. */
@@ -82,88 +86,6 @@ export async function balanceForSaloon(saloonId: string, now = new Date()) {
     upcomingCount: upcoming._count,
     feeRate: PLATFORM_FEE_RATE,
   };
-}
-
-export type PayoutRunResult = {
-  created: { payoutId: string; saloonId: string; amount: number; bookings: number }[];
-  skipped: { saloonId: string; reason: string }[];
-};
-
-/**
- * Creates a `scheduled` payout for every provider with an available balance.
- * Safe to run more than once: bookings already claimed by a payout are no
- * longer eligible, so a second run the same day creates nothing new.
- */
-export async function runPayouts(now = new Date()): Promise<PayoutRunResult> {
-  const result: PayoutRunResult = { created: [], skipped: [] };
-
-  const saloons = await prismadb.saloon.findMany({
-    where: { bookings: { some: eligibleFilter(now) } },
-    select: { id: true, userId: true },
-  });
-
-  for (const saloon of saloons) {
-    try {
-      const application = await prismadb.providerApplication.findUnique({
-        where: { userId: saloon.userId },
-        select: { iban: true, bankAccountName: true },
-      });
-      if (!application?.iban) {
-        result.skipped.push({ saloonId: saloon.id, reason: "No IBAN on file" });
-        continue;
-      }
-
-      const payout = await prismadb.$transaction(async (tx) => {
-        const bookings = await tx.booking.findMany({
-          where: eligibleBookingsWhere(saloon.id, now),
-          select: { id: true, totalAmount: true },
-        });
-        if (bookings.length === 0) return null;
-
-        const totals = split(bookings.reduce((s, b) => s + (b.totalAmount ?? 0), 0));
-        if (totals.amount <= 0) return null;
-
-        const created = await tx.payout.create({
-          data: {
-            userId: saloon.userId,
-            saloonId: saloon.id,
-            gross: totals.gross,
-            fee: totals.fee,
-            amount: totals.amount,
-            status: "scheduled",
-            scheduledFor: now,
-            iban: application.iban!,
-            bankAccountName: application.bankAccountName,
-          },
-        });
-
-        // Claim the bookings. `payoutId: null` in the filter means a booking
-        // claimed by a concurrent run is skipped; if any were, roll back.
-        const claimed = await tx.booking.updateMany({
-          where: { id: { in: bookings.map(b => b.id) }, payoutId: null },
-          data: { payoutId: created.id },
-        });
-        if (claimed.count !== bookings.length) {
-          throw new Error("Bookings changed during payout run");
-        }
-        return { payout: created, count: bookings.length };
-      });
-
-      if (payout) {
-        result.created.push({
-          payoutId: payout.payout.id,
-          saloonId: saloon.id,
-          amount: payout.payout.amount,
-          bookings: payout.count,
-        });
-      }
-    } catch (error) {
-      console.error("[PAYOUT_RUN] saloon failed:", saloon.id, error);
-      result.skipped.push({ saloonId: saloon.id, reason: "Error creating payout" });
-    }
-  }
-
-  return result;
 }
 
 /**

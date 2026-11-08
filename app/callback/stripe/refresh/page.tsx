@@ -1,28 +1,25 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+
+// Stripe Connect onboarding sends the provider here when its onboarding link has expired.
+// It hands control back to the Kosmiks app, which closes the browser and opens a fresh link.
+const APP_URL = "kosmiks://stripe-return?result=refresh";
 
 export default function StripeRefreshPage() {
-  const router = useRouter();
-
   useEffect(() => {
-    const timer = setTimeout(() => {
-      router.replace("/dashboard/integration");
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [router]);
+    window.location.href = APP_URL;
+  }, []);
 
   return (
-    <div className="h-screen w-full flex flex-col items-center justify-center gap-4">
-      <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      <div className="text-center">
-        <h2 className="text-xl font-semibold">Refreshing...</h2>
-        <p className="text-muted-foreground mt-2">Please wait while we redirect you.</p>
+    <main style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "Georgia, serif", background: "#F8F4EF", color: "#423120", textAlign: "center" }}>
+      <div>
+        <h1 style={{ fontSize: 22, marginBottom: 12 }}>Link expired</h1>
+        <p style={{ marginBottom: 24 }}>Returning to the Kosmiks app…</p>
+        <a href={APP_URL} style={{ display: "inline-block", padding: "12px 24px", borderRadius: 24, background: "#423120", color: "#FFFFFF", textDecoration: "none" }}>
+          Open Kosmiks
+        </a>
       </div>
-    </div>
+    </main>
   );
 }
-

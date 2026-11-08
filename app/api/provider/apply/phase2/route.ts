@@ -46,9 +46,11 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    // Bank details are no longer collected here: providers add them in Stripe
+    // when they first withdraw earnings. Older app builds may still send them.
     const { legalName, dateOfBirth, iban, bankAccountName, qualificationDocs, termsAccepted } = body;
 
-    if (!legalName || !dateOfBirth || !iban || !bankAccountName || !Array.isArray(qualificationDocs) || qualificationDocs.length === 0 || !termsAccepted) {
+    if (!legalName || !dateOfBirth || !Array.isArray(qualificationDocs) || qualificationDocs.length === 0 || !termsAccepted) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers: corsHeaders });
     }
 
@@ -76,8 +78,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Must be 18 or older to register" }, { status: 400, headers: corsHeaders });
     }
 
-    const cleanIban = String(iban).replace(/\s+/g, "").toUpperCase();
-    if (!/^FI\d{16}$/.test(cleanIban)) {
+    const cleanIban = iban ? String(iban).replace(/\s+/g, "").toUpperCase() : null;
+    if (cleanIban && !/^FI\d{16}$/.test(cleanIban)) {
       return NextResponse.json({ error: "Invalid Finnish IBAN" }, { status: 400, headers: corsHeaders });
     }
 
@@ -86,8 +88,7 @@ export async function POST(req: Request) {
       data: {
         legalName,
         dateOfBirth,
-        bankAccountName,
-        iban: cleanIban,
+        ...(cleanIban && { iban: cleanIban, bankAccountName: bankAccountName || null }),
         qualificationDocs,
         termsAccepted: true,
         termsAcceptedAt: new Date(),
