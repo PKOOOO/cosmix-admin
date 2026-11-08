@@ -182,10 +182,13 @@ export async function notifyAdmins(
 }
 
 /** Compact label for push bodies, e.g. "Mon 2 Jun at 14:00" (same as checkout's). */
+// Bookings are stored in UTC and the server runs in UTC; salons are in Finland.
+export const SALON_TIME_ZONE = "Europe/Helsinki";
+
 export function formatWhen(date: Date | string): string {
     const d = new Date(date);
-    const day = d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
-    const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+    const day = d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: SALON_TIME_ZONE });
+    const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: SALON_TIME_ZONE });
     return `${day} at ${time}`;
 }
 

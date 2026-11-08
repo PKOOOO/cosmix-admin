@@ -1,6 +1,6 @@
 import prismadb from "@/lib/prismadb";
 import { sendBookingConfirmationToUser, sendBookingNotificationToSalon } from "@/lib/email";
-import { notifyUser } from "@/lib/send-notification";
+import { formatWhen, notifyUser, SALON_TIME_ZONE } from "@/lib/send-notification";
 
 /**
  * Confirms paid bookings: pending → confirmed, then the confirmation emails
@@ -69,16 +69,20 @@ export async function confirmPendingBookings(existingBookings: { id: string; sta
         confirmedIds.push(booking.id);
 
         // Prepare email data
+        // In the salon's time zone (the server runs in UTC), e.g.
+        // "maanantai 9. marraskuuta" and "14:00".
         const bookingDate = new Date(booking.bookingTime).toLocaleDateString('fi-FI', {
             weekday: 'long',
-            year: 'numeric',
             month: 'long',
-            day: 'numeric'
+            day: 'numeric',
+            timeZone: SALON_TIME_ZONE,
         });
-        
-        const bookingTime = new Date(booking.bookingTime).toLocaleTimeString('fi-FI', {
+
+        const bookingTime = new Date(booking.bookingTime).toLocaleTimeString('en-GB', {
             hour: '2-digit',
-            minute: '2-digit'
+            minute: '2-digit',
+            hour12: false,
+            timeZone: SALON_TIME_ZONE,
         });
         
         // Send confirmation email to customer
@@ -87,6 +91,8 @@ export async function confirmPendingBookings(existingBookings: { id: string; sta
                 customerName: booking.customerName || 'Customer',
                 customerEmail: booking.customerEmail,
                 saloonName: booking.saloon.name,
+                saloonAddress: booking.saloon.address,
+                saloonPhone: booking.saloon.phone,
                 serviceName: booking.service.name,
                 bookingTime: bookingTime,
                 bookingDate: bookingDate,
@@ -114,15 +120,7 @@ export async function confirmPendingBookings(existingBookings: { id: string; sta
         }
 
         // Compact, human-readable label for push bodies, e.g. "Mon 2 Jun at 14:00"
-        const whenLabel = `${new Date(booking.bookingTime).toLocaleDateString('en-GB', {
-            weekday: 'short',
-            day: 'numeric',
-            month: 'short'
-        })} at ${new Date(booking.bookingTime).toLocaleTimeString('en-GB', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        })}`;
+        const whenLabel = formatWhen(booking.bookingTime);
 
         pushNotifications.push({
             // Ids, not tokens: notifyUser sends to every device of each

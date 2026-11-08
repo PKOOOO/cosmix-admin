@@ -37,427 +37,199 @@ async function sendWithResend(to: string, subject: string, html: string, text: s
   return json.id as string;
 }
 
-// KOSMIKS brand colors
-const BRAND_COLORS = {
-  primary: '#423120',
-  secondary: '#D7C3A7',
-  background: '#F4EDE5',
+// ─── Booking email templates ─────────────────────────────────────────────────
+// Email clients (Gmail, Outlook) ignore <style> blocks and modern CSS, so the
+// layout is tables with inline styles only.
+
+const C = {
+  brown: '#423120',
+  beige: '#D7C3A7',
+  sand: '#F4EDE5',
+  line: '#EFE4D6',
+  muted: '#8A7A6A',
   white: '#FFFFFF',
-  text: '#333333',
-  lightText: '#666666',
 };
+const SERIF = "'Philosopher', Georgia, 'Times New Roman', serif";
+const SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
-// Email template for user booking confirmation
-export function generateUserBookingConfirmationEmail(bookingData: {
-  customerName: string;
-  customerEmail: string;
-  saloonName: string;
-  serviceName: string;
-  bookingTime: string;
-  bookingDate: string;
-  totalAmount: number;
-  notes?: string;
-}) {
-  const { customerName, saloonName, serviceName, bookingTime, bookingDate, totalAmount, notes } = bookingData;
-  
-  return {
-    subject: `Vahvistus varauksestasi - ${saloonName}`,
-    html: `
-      <!DOCTYPE html>
-      <html lang="fi">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Varausvahvistus</title>
-        <style>
-          body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: ${BRAND_COLORS.text};
-            background-color: ${BRAND_COLORS.background};
-            margin: 0;
-            padding: 20px;
-          }
-          .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: ${BRAND_COLORS.white};
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          }
-          .header {
-            background: linear-gradient(135deg, ${BRAND_COLORS.primary} 0%, ${BRAND_COLORS.secondary} 100%);
-            color: ${BRAND_COLORS.white};
-            padding: 30px;
-            text-align: center;
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: bold;
-          }
-          .content {
-            padding: 30px;
-          }
-          .greeting {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: ${BRAND_COLORS.primary};
-          }
-          .booking-details {
-            background-color: ${BRAND_COLORS.background};
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-            border-left: 4px solid ${BRAND_COLORS.secondary};
-          }
-          .detail-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding: 8px 0;
-            border-bottom: 1px solid #e0e0e0;
-          }
-          .detail-row:last-child {
-            border-bottom: none;
-          }
-          .detail-label {
-            font-weight: 600;
-            color: ${BRAND_COLORS.primary};
-          }
-          .detail-value {
-            color: ${BRAND_COLORS.text};
-          }
-          .payment-notice {
-            background-color: ${BRAND_COLORS.secondary};
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-            text-align: center;
-          }
-          .payment-notice h3 {
-            color: ${BRAND_COLORS.primary};
-            margin-top: 0;
-          }
-          .footer {
-            background-color: ${BRAND_COLORS.primary};
-            color: ${BRAND_COLORS.white};
-            padding: 20px;
-            text-align: center;
-            font-size: 14px;
-          }
-          .footer a {
-            color: ${BRAND_COLORS.secondary};
-            text-decoration: none;
-          }
-          .important {
-            color: ${BRAND_COLORS.primary};
-            font-weight: bold;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>KOSMIKS</h1>
-            <p>Varausvahvistus</p>
-          </div>
-          
-          <div class="content">
-            <div class="greeting">
-              Hei ${customerName}!
-            </div>
-            
-            <p>Kiitos varauksestasi! Varauksesi on vahvistettu ja odotamme sinua paikalle.</p>
-            
-            <div class="booking-details">
-              <h3 style="color: ${BRAND_COLORS.primary}; margin-top: 0;">Varauksen tiedot</h3>
-              <div class="detail-row">
-                <span class="detail-label">Kampaamo:</span>
-                <span class="detail-value">${saloonName}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Palvelu:</span>
-                <span class="detail-value">${serviceName}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Päivämäärä:</span>
-                <span class="detail-value">${bookingDate}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Aika:</span>
-                <span class="detail-value">${bookingTime}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Hinta:</span>
-                <span class="detail-value">${totalAmount.toFixed(2)} €</span>
-              </div>
-              ${notes ? `
-              <div class="detail-row">
-                <span class="detail-label">Huomautukset:</span>
-                <span class="detail-value">${notes}</span>
-              </div>
-              ` : ''}
-            </div>
-            
-            <div class="payment-notice">
-              <h3>💳 Maksettu</h3>
-              <p>Varaus on maksettu verkossa. Sinun ei tarvitse maksaa mitään paikan päällä.</p>
-              <p>Maksu suoritetaan käteisellä tai kortilla kampaamon vastaanotossa.</p>
-            </div>
-            
-            <p>Jos sinulla on kysymyksiä tai tarvitset muuttaa varausta, ota yhteyttä kampaamoon suoraan.</p>
-            
-            <p>Nähdään pian!</p>
-            <p>Ystävällisin terveisin,<br><strong>KOSMIKS-tiimi</strong></p>
-          </div>
-          
-          <div class="footer">
-            <p>© 2024 KOSMIKS. Kaikki oikeudet pidätetään.</p>
-            <p>Tämä on automaattinen viesti, älä vastaa tähän sähköpostiin.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
-    text: `
-Hei ${customerName}!
-
-Kiitos varauksestasi! Varauksesi on vahvistettu ja odotamme sinua paikalle.
-
-VARAUKSEN TIEDOT:
-- Kampaamo: ${saloonName}
-- Palvelu: ${serviceName}
-- Päivämäärä: ${bookingDate}
-- Aika: ${bookingTime}
-- Hinta: ${totalAmount.toFixed(2)} €
-${notes ? `- Huomautukset: ${notes}` : ''}
-
-💳 MAKSU PAIKALLA
-Varaus on maksettu verkossa. Sinun ei tarvitse maksaa mitään paikan päällä.
-
-Jos sinulla on kysymyksiä tai tarvitset muuttaa varausta, ota yhteyttä kampaamoon suoraan.
-
-Nähdään pian!
-Ystävällisin terveisin,
-KOSMIKS-tiimi
-
-© 2024 KOSMIKS. Kaikki oikeudet pidätetään.
-Tämä on automaattinen viesti, älä vastaa tähän sähköpostiin.
-    `
-  };
-}
-
-// Email template for salon notification
-export function generateSalonNotificationEmail(bookingData: {
+type BookingEmailData = {
   customerName: string;
   customerEmail: string;
   customerPhone?: string;
   saloonName: string;
+  saloonAddress?: string | null;
+  saloonPhone?: string | null;
   serviceName: string;
   bookingTime: string;
   bookingDate: string;
   totalAmount: number;
   notes?: string;
+};
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatEur(amount: number) {
+  return `${amount.toFixed(2).replace('.', ',')} €`;
+}
+
+function firstName(name: string) {
+  return name.trim().split(/\s+/)[0] || name;
+}
+
+/** One label/value row of the booking summary. Values are escaped here. */
+function row(label: string, value: string, last = false) {
+  return `
+    <tr>
+      <td style="padding:12px 0;${last ? '' : `border-bottom:1px solid ${C.line};`}font-family:${SANS};font-size:14px;color:${C.muted};width:38%;vertical-align:top;">${label}</td>
+      <td style="padding:12px 0;${last ? '' : `border-bottom:1px solid ${C.line};`}font-family:${SANS};font-size:15px;color:${C.brown};font-weight:600;text-align:right;vertical-align:top;">${escapeHtml(value)}</td>
+    </tr>`;
+}
+
+/** The shared frame: wordmark, white card, footer. */
+function layout({ preheader, title, intro, body, footer }: {
+  preheader: string; title: string; intro: string; body: string; footer: string;
 }) {
-  const { customerName, customerEmail, customerPhone, saloonName, serviceName, bookingTime, bookingDate, totalAmount, notes } = bookingData;
-  
-  return {
-    subject: `Uusi varaus - ${customerName} - ${serviceName}`,
-    html: `
-      <!DOCTYPE html>
-      <html lang="fi">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Uusi varaus</title>
-        <style>
-          body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: ${BRAND_COLORS.text};
-            background-color: ${BRAND_COLORS.background};
-            margin: 0;
-            padding: 20px;
-          }
-          .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: ${BRAND_COLORS.white};
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          }
-          .header {
-            background: linear-gradient(135deg, ${BRAND_COLORS.primary} 0%, ${BRAND_COLORS.secondary} 100%);
-            color: ${BRAND_COLORS.white};
-            padding: 30px;
-            text-align: center;
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: bold;
-          }
-          .content {
-            padding: 30px;
-          }
-          .alert {
-            background-color: #e8f5e8;
-            border: 2px solid #4caf50;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px 0;
-            text-align: center;
-          }
-          .alert h2 {
-            color: #2e7d32;
-            margin-top: 0;
-          }
-          .booking-details {
-            background-color: ${BRAND_COLORS.background};
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-            border-left: 4px solid ${BRAND_COLORS.secondary};
-          }
-          .detail-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding: 8px 0;
-            border-bottom: 1px solid #e0e0e0;
-          }
-          .detail-row:last-child {
-            border-bottom: none;
-          }
-          .detail-label {
-            font-weight: 600;
-            color: ${BRAND_COLORS.primary};
-          }
-          .detail-value {
-            color: ${BRAND_COLORS.text};
-          }
-          .customer-info {
-            background-color: #f0f8ff;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-            border-left: 4px solid #2196f3;
-          }
-          .footer {
-            background-color: ${BRAND_COLORS.primary};
-            color: ${BRAND_COLORS.white};
-            padding: 20px;
-            text-align: center;
-            font-size: 14px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>KOSMIKS</h1>
-            <p>Uusi varaus</p>
-          </div>
-          
-          <div class="content">
-            <div class="alert">
-              <h2>🎉 Uusi varaus vastaanotettu!</h2>
-              <p>Asiakas on tehnyt varauksen ja maksanut sen verkossa.</p>
-            </div>
-            
-            <div class="customer-info">
-              <h3 style="color: ${BRAND_COLORS.primary}; margin-top: 0;">Asiakkaan tiedot</h3>
-              <div class="detail-row">
-                <span class="detail-label">Nimi:</span>
-                <span class="detail-value">${customerName}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Sähköposti:</span>
-                <span class="detail-value">${customerEmail}</span>
-              </div>
-              ${customerPhone ? `
-              <div class="detail-row">
-                <span class="detail-label">Puhelin:</span>
-                <span class="detail-value">${customerPhone}</span>
-              </div>
-              ` : ''}
-            </div>
-            
-            <div class="booking-details">
-              <h3 style="color: ${BRAND_COLORS.primary}; margin-top: 0;">Varauksen tiedot</h3>
-              <div class="detail-row">
-                <span class="detail-label">Kampaamo:</span>
-                <span class="detail-value">${saloonName}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Palvelu:</span>
-                <span class="detail-value">${serviceName}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Päivämäärä:</span>
-                <span class="detail-value">${bookingDate}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Aika:</span>
-                <span class="detail-value">${bookingTime}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Hinta:</span>
-                <span class="detail-value">${totalAmount.toFixed(2)} €</span>
-              </div>
-              ${notes ? `
-              <div class="detail-row">
-                <span class="detail-label">Huomautukset:</span>
-                <span class="detail-value">${notes}</span>
-              </div>
-              ` : ''}
-            </div>
-            
-            <p><strong>Huom:</strong> Varaus on jo maksettu, joten asiakkaalta ei peritä maksua paikan päällä.</p>
-            
-            <p>Hyvää työpäivää!</p>
-            <p>Ystävällisin terveisin,<br><strong>KOSMIKS-tiimi</strong></p>
-          </div>
-          
-          <div class="footer">
-            <p>© 2024 KOSMIKS. Kaikki oikeudet pidätetään.</p>
-            <p>Tämä on automaattinen viesti, älä vastaa tähän sähköpostiin.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `,
-    text: `
-🎉 UUSI VARAUS VASTAANOTETTU!
+  return `<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>${escapeHtml(title)}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Philosopher:wght@700&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0;padding:0;background:${C.sand};">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(preheader)}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.sand};">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+          <tr>
+            <td align="center" style="padding-bottom:24px;font-family:${SERIF};font-size:22px;font-weight:700;letter-spacing:6px;color:${C.brown};">KOSMIKS</td>
+          </tr>
+          <tr>
+            <td style="background:${C.white};border-radius:20px;padding:32px 28px;">
+              <h1 style="margin:0 0 8px;font-family:${SERIF};font-size:26px;line-height:1.25;font-weight:700;color:${C.brown};">${title}</h1>
+              <p style="margin:0 0 24px;font-family:${SANS};font-size:15px;line-height:1.55;color:${C.muted};">${intro}</p>
+              ${body}
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:24px 12px 0;font-family:${SANS};font-size:13px;line-height:1.6;color:${C.muted};">
+              ${footer}<br>
+              <a href="https://www.kosmiks.com" style="color:${C.muted};text-decoration:underline;">kosmiks.com</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
 
-Asiakas on tehnyt varauksen ja maksanut sen verkossa.
+function notesBlock(notes?: string) {
+  if (!notes) return '';
+  return `
+    <div style="margin-top:20px;padding:14px 16px;background:${C.sand};border-radius:12px;font-family:${SANS};font-size:14px;line-height:1.5;color:${C.brown};">
+      <span style="color:${C.muted};">Lisätiedot</span><br>${escapeHtml(notes)}
+    </div>`;
+}
 
-ASIAKKAAN TIEDOT:
-- Nimi: ${customerName}
-- Sähköposti: ${customerEmail}
-${customerPhone ? `- Puhelin: ${customerPhone}` : ''}
+// Email to the customer once their payment is confirmed.
+export function generateUserBookingConfirmationEmail(data: BookingEmailData) {
+  const { customerName, saloonName, saloonAddress, saloonPhone, serviceName, bookingTime, bookingDate, totalAmount, notes } = data;
+  const name = firstName(customerName);
 
-VARAUKSEN TIEDOT:
-- Kampaamo: ${saloonName}
-- Palvelu: ${serviceName}
-- Päivämäärä: ${bookingDate}
-- Aika: ${bookingTime}
-- Hinta: ${totalAmount.toFixed(2)} €
-${notes ? `- Huomautukset: ${notes}` : ''}
+  const rows = [
+    row('Palvelu', serviceName),
+    row('Salonki', saloonName),
+    ...(saloonAddress ? [row('Osoite', saloonAddress)] : []),
+    row('Päivä', bookingDate),
+    row('Aika', `klo ${bookingTime}`),
+    row('Maksettu', formatEur(totalAmount), true),
+  ].join('');
 
-Huom: Varaus on jo maksettu, joten asiakkaalta ei peritä maksua paikan päällä.
+  const contact = saloonPhone
+    ? `Jos haluat muuttaa tai perua varauksen, soita salonkiin: ${escapeHtml(saloonPhone)}.`
+    : 'Jos haluat muuttaa tai perua varauksen, ota yhteyttä salonkiin.';
 
-Hyvää työpäivää!
-Ystävällisin terveisin,
-KOSMIKS-tiimi
+  const html = layout({
+    preheader: `${serviceName}, ${bookingDate} klo ${bookingTime} – ${saloonName}`,
+    title: 'Varauksesi on vahvistettu',
+    intro: `Kiitos, ${escapeHtml(name)}! Odotamme sinua ${escapeHtml(saloonName)}-salongissa.`,
+    body: `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>${notesBlock(notes)}`,
+    footer: contact,
+  });
 
-© 2024 KOSMIKS. Kaikki oikeudet pidätetään.
-Tämä on automaattinen viesti, älä vastaa tähän sähköpostiin.
-    `
-  };
+  const text = [
+    `Varauksesi on vahvistettu`,
+    ``,
+    `Kiitos, ${name}! Odotamme sinua ${saloonName}-salongissa.`,
+    ``,
+    `Palvelu: ${serviceName}`,
+    `Salonki: ${saloonName}`,
+    ...(saloonAddress ? [`Osoite: ${saloonAddress}`] : []),
+    `Päivä: ${bookingDate}`,
+    `Aika: klo ${bookingTime}`,
+    `Maksettu: ${formatEur(totalAmount)}`,
+    ...(notes ? [``, `Lisätiedot: ${notes}`] : []),
+    ``,
+    saloonPhone ? `Jos haluat muuttaa tai perua varauksen, soita salonkiin: ${saloonPhone}.` : `Jos haluat muuttaa tai perua varauksen, ota yhteyttä salonkiin.`,
+    ``,
+    `Kosmiks – kosmiks.com`,
+  ].join('\n');
+
+  return { subject: `Varaus vahvistettu – ${saloonName}, ${bookingDate} klo ${bookingTime}`, html, text };
+}
+
+// Email to the salon owner about a new paid booking.
+export function generateSalonNotificationEmail(data: BookingEmailData & { salonEmail: string }) {
+  const { customerName, customerEmail, customerPhone, serviceName, bookingTime, bookingDate, totalAmount, notes } = data;
+
+  const rows = [
+    row('Asiakas', customerName),
+    row('Palvelu', serviceName),
+    row('Päivä', bookingDate),
+    row('Aika', `klo ${bookingTime}`),
+    ...(customerPhone ? [row('Puhelin', customerPhone)] : []),
+    ...(customerEmail ? [row('Sähköposti', customerEmail)] : []),
+    row('Maksettu verkossa', formatEur(totalAmount), true),
+  ].join('');
+
+  const html = layout({
+    preheader: `${customerName} – ${serviceName}, ${bookingDate} klo ${bookingTime}`,
+    title: 'Uusi varaus',
+    intro: 'Asiakas on varannut ja maksanut ajan. Asiakkaalta ei peritä maksua paikan päällä.',
+    body: `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>${notesBlock(notes)}`,
+    footer: 'Näet ja hallitset varauksia Kosmiks-sovelluksessa.',
+  });
+
+  const text = [
+    `Uusi varaus`,
+    ``,
+    `Asiakas on varannut ja maksanut ajan. Asiakkaalta ei peritä maksua paikan päällä.`,
+    ``,
+    `Asiakas: ${customerName}`,
+    `Palvelu: ${serviceName}`,
+    `Päivä: ${bookingDate}`,
+    `Aika: klo ${bookingTime}`,
+    ...(customerPhone ? [`Puhelin: ${customerPhone}`] : []),
+    ...(customerEmail ? [`Sähköposti: ${customerEmail}`] : []),
+    `Maksettu verkossa: ${formatEur(totalAmount)}`,
+    ...(notes ? [``, `Lisätiedot: ${notes}`] : []),
+    ``,
+    `Näet ja hallitset varauksia Kosmiks-sovelluksessa.`,
+  ].join('\n');
+
+  return { subject: `Uusi varaus: ${serviceName}, ${bookingDate} klo ${bookingTime}`, html, text };
 }
 
 // Function to send email
@@ -486,16 +258,7 @@ export async function sendEmail(to: string, subject: string, html: string, text:
 }
 
 // Function to send booking confirmation to user
-export async function sendBookingConfirmationToUser(bookingData: {
-  customerName: string;
-  customerEmail: string;
-  saloonName: string;
-  serviceName: string;
-  bookingTime: string;
-  bookingDate: string;
-  totalAmount: number;
-  notes?: string;
-}) {
+export async function sendBookingConfirmationToUser(bookingData: BookingEmailData) {
   const emailContent = generateUserBookingConfirmationEmail(bookingData);
   return await sendEmail(
     bookingData.customerEmail,
@@ -506,18 +269,7 @@ export async function sendBookingConfirmationToUser(bookingData: {
 }
 
 // Function to send booking notification to salon
-export async function sendBookingNotificationToSalon(bookingData: {
-  customerName: string;
-  customerEmail: string;
-  customerPhone?: string;
-  saloonName: string;
-  serviceName: string;
-  bookingTime: string;
-  bookingDate: string;
-  totalAmount: number;
-  notes?: string;
-  salonEmail: string;
-}) {
+export async function sendBookingNotificationToSalon(bookingData: BookingEmailData & { salonEmail: string }) {
   const emailContent = generateSalonNotificationEmail(bookingData);
   return await sendEmail(
     bookingData.salonEmail,
