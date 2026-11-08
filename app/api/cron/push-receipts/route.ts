@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { checkPushReceipts } from "@/lib/send-notification";
 
-// Daily push receipt check, triggered by Vercel Cron (see vercel.json). Removes
-// tokens Expo reports as DeviceNotRegistered so dead devices stop piling up.
-// Vercel sends `Authorization: Bearer $CRON_SECRET`; without CRON_SECRET set
-// this route refuses every call rather than running unauthenticated.
+// Daily push receipt check (04:00 UTC), triggered by the Railway cron service
+// `cron-push-receipts`. Removes tokens Expo reports as DeviceNotRegistered so
+// dead devices stop piling up. The cron sends `Authorization: Bearer
+// $CRON_SECRET`; without CRON_SECRET set this route refuses every call rather
+// than running unauthenticated.
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
