@@ -30,6 +30,13 @@ model User {
   pushToken       String?   // legacy single token; per-device tokens live in PushToken
   pushTokens      PushToken[]
 
+  // Stripe Connect (Express) account that receives the provider's earnings.
+  // Created when the provider first sets up payouts; the flags mirror Stripe
+  // (account.updated webhook / GET /api/provider/stripe).
+  stripeAccountId        String?  @unique
+  stripeDetailsSubmitted Boolean  @default(false)
+  stripePayoutsEnabled   Boolean  @default(false)
+
   bookings        Booking[]
   saloons         Saloon[]
   reviews         SaloonReview[]
@@ -195,6 +202,9 @@ model Booking {
   // booking can never be paid out twice. Null = not paid out yet.
   payoutId      String?
   payout        Payout?  @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+  // Stripe transfer that sent this booking's earnings to the provider's
+  // connected account (one transfer per booking, source = its charge).
+  transferId    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -307,7 +317,9 @@ model Payout {
   amount          Float     // what the provider receives (gross - fee)
   currency        String    @default("EUR")
 
-  // scheduled → sent → arrived, or failed (bookings are released back to the balance)
+  // Stripe Connect withdrawal: processing → transferred, or failed (bookings
+  // released back to the balance). Rows from the old manual SEPA model use
+  // scheduled → sent → arrived.
   status          String    @default("scheduled")
   scheduledFor    DateTime
   sentAt          DateTime?
@@ -318,8 +330,9 @@ model Payout {
 
   // Where the money goes, captured when the payout is created so a later
   // bank-details change can't alter where an existing payout was sent.
-  iban            String
+  iban            String?   // manual SEPA payouts only (before Stripe Connect)
   bankAccountName String?
+  stripeAccountId String?   // Stripe Connect payouts: where the transfers went
 
   bookings        Booking[]
 
