@@ -136,16 +136,8 @@ export async function confirmPendingBookings(existingBookings: { id: string; sta
         });
     }
 
-    // Send all emails in parallel
-    try {
-        await Promise.all(emailPromises);
-        console.log('All confirmation emails sent successfully');
-    } catch (emailError) {
-        console.error('Error sending confirmation emails:', emailError);
-        // Don't fail the confirmation if email fails
-    }
-
-    // Best-effort push notifications. The booking is already confirmed at this point,
+    // Best-effort push notifications, sent right away — they used to wait
+    // for the emails, which can take much longer (or time out). The booking is already confirmed at this point,
     // so any failure here must never affect the response. notifyUser also
     // swallows its own errors, but we wrap defensively per the notification contract.
     try {
@@ -171,6 +163,13 @@ export async function confirmPendingBookings(existingBookings: { id: string; sta
         console.error('Error sending push notifications:', pushError);
         // Never fail the confirmation if push fails
     }
+
+    // Emails were started above and finish in the background: the API runs
+    // as a long-lived server on Railway, so neither the app's checkout call
+    // nor Stripe's webhook waits for the mail server.
+    Promise.all(emailPromises)
+        .then(() => console.log('All confirmation emails sent successfully'))
+        .catch((emailError) => console.error('Error sending confirmation emails:', emailError));
 
     return { confirmedIds, alreadyConfirmed };
 }

@@ -1,6 +1,11 @@
 import nodemailer from 'nodemailer';
 
-// Email configuration using environment variables
+// Email goes through Resend's HTTP API when RESEND_API_KEY is set. Railway's
+// Hobby plan blocks outbound SMTP, so the SMTP transport below only works on
+// Pro (or locally). Short timeouts: a blocked SMTP port used to hang for
+// nodemailer's default 2 minutes per email.
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: parseInt(process.env.SMTP_PORT || '587'),
@@ -9,7 +14,28 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASSWORD,
   },
+  connectionTimeout: 10_000,
+  greetingTimeout: 10_000,
+  socketTimeout: 15_000,
 });
+
+async function sendWithResend(to: string, subject: string, html: string, text: string) {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from: process.env.EMAIL_FROM || process.env.SMTP_FROM,
+      to: [to],
+      subject,
+      html,
+      text,
+    }),
+    signal: AbortSignal.timeout(15_000),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(`Resend ${res.status}: ${json?.message ?? 'send failed'}`);
+  return json.id as string;
+}
 
 // KOSMIKS brand colors
 const BRAND_COLORS = {
@@ -445,6 +471,11 @@ export async function sendEmail(to: string, subject: string, html: string, text:
       text: text,
     };
 
+    if (RESEND_API_KEY) {
+      const id = await sendWithResend(to, subject, html, text);
+      console.log('Email sent successfully (Resend):', id);
+      return { success: true, messageId: id };
+    }
     const result = await transporter.sendMail(mailOptions);
     console.log('Email sent successfully:', result.messageId);
     return { success: true, messageId: result.messageId };
