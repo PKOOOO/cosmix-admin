@@ -93,6 +93,11 @@ function row(label: string, value: string, last = false) {
 }
 
 /** The shared frame: wordmark, white card, footer. */
+// Served from public/; email clients need an absolute URL.
+const LOGO_URL = 'https://www.kosmiks.com/email-logo.png';
+const LOGO_WIDTH = 50;
+const LOGO_HEIGHT = 72;
+
 function layout({ preheader, title, intro, body, footer }: {
   preheader: string; title: string; intro: string; body: string; footer: string;
 }) {
@@ -112,10 +117,8 @@ function layout({ preheader, title, intro, body, footer }: {
       <td align="center" style="padding:32px 16px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
           <tr>
-            <td align="center" style="padding-bottom:24px;font-family:${SERIF};font-size:22px;font-weight:700;letter-spacing:6px;color:${C.brown};">KOSMIKS</td>
-          </tr>
-          <tr>
             <td style="background:${C.white};border-radius:20px;padding:32px 28px;">
+              <img src="${LOGO_URL}" alt="Kosmiks" width="${LOGO_WIDTH}" height="${LOGO_HEIGHT}" style="display:block;margin:0 auto 24px;border:0;outline:none;width:${LOGO_WIDTH}px;height:${LOGO_HEIGHT}px;">
               <h1 style="margin:0 0 8px;font-family:${SERIF};font-size:26px;line-height:1.25;font-weight:700;color:${C.brown};">${title}</h1>
               <p style="margin:0 0 24px;font-family:${SANS};font-size:15px;line-height:1.55;color:${C.muted};">${intro}</p>
               ${body}
