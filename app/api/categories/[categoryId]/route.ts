@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { checkAdminAccess } from "@/lib/admin-access";
+import { checkWriteAccess } from "@/lib/admin-access";
 
 export async function GET(
     req: Request,
@@ -42,7 +42,7 @@ export async function PATCH(
     { params }: { params: { categoryId: string } }
 ) {
     try {
-        const { user } = await checkAdminAccess();
+        const { user } = await checkWriteAccess();
         const body = await req.json();
 
         const { name } = body;
@@ -95,7 +95,7 @@ export async function DELETE(
     { params }: { params: { categoryId: string } }
 ) {
     try {
-        const { user } = await checkAdminAccess();
+        const { user } = await checkWriteAccess();
 
         if (!user) {
             return new NextResponse("Unauthenticated", { status: 401 });

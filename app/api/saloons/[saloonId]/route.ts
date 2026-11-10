@@ -1,7 +1,7 @@
 // app/api/saloons/[saloonId]/route.ts
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { checkAdminAccess } from "@/lib/admin-access";
+import { checkWriteAccess } from "@/lib/admin-access";
 
 export async function GET(
   req: Request,
@@ -46,7 +46,7 @@ export async function PATCH(
   { params }: { params: { saloonId: string } }
 ) {
   try {
-    const { user } = await checkAdminAccess();
+    const { user } = await checkWriteAccess();
     const body = await req.json();
 
     const { name, description, shortIntro, address, images, selectedServices, latitude, longitude, phone } = body;
@@ -148,7 +148,7 @@ export async function DELETE(
   { params }: { params: { saloonId: string } }
 ) {
   try {
-    const { user } = await checkAdminAccess();
+    const { user } = await checkWriteAccess();
 
     if (!user) {
       return new NextResponse("Unauthorized", { status: 401 });

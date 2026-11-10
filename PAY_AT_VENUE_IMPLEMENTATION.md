@@ -96,9 +96,9 @@ Ensure these are set in your `.env` file:
 # SMTP Configuration (Already configured)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=gabrielplus2001@gmail.com
-SMTP_PASSWORD=wfqf rmow gnxb gcem
-SMTP_FROM=SERVEY gabrielplus2001@gmail.com
+SMTP_USER=your-address@example.com
+SMTP_PASSWORD=your-app-password
+SMTP_FROM=Kosmiks <your-address@example.com>
 
 # Database
 DATABASE_URL=your_database_url

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { checkAdminAccess } from "@/lib/admin-access";
+import { checkWriteAccess } from "@/lib/admin-access";
 
 export async function PATCH(
     req: NextRequest,
     { params }: { params: { saloonId: string; serviceId: string } }
 ) {
     try {
-        const { user } = await checkAdminAccess();
+        const { user } = await checkWriteAccess();
 
         if (!user) {
             return new NextResponse("Unauthorized", { status: 401 });
@@ -57,7 +57,7 @@ export async function DELETE(
     { params }: { params: { saloonId: string; serviceId: string } }
 ) {
     try {
-        const { user } = await checkAdminAccess();
+        const { user } = await checkWriteAccess();
 
         if (!user) {
             return new NextResponse("Unauthorized", { status: 401 });

@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { checkAdminAccess } from "@/lib/admin-access";
+import { checkAdminAccess, checkWriteAccess } from "@/lib/admin-access";
 
 export async function POST(req: Request) {
   try {
-    const { user } = await checkAdminAccess();
+    const { user, isAdmin } = await checkWriteAccess();
 
-    if (!user) {
-      return new NextResponse("Unauthorized", { status: 401 });
+    // Salons are created by the application approval; the app never calls this.
+
+    if (!user || !isAdmin) {
+      return new NextResponse("Unauthorized", { status: 403 });
     }
 
     const body = await req.json();

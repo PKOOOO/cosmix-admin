@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { checkAdminAccess } from "@/lib/admin-access";
+import { checkAdminAccess, checkWriteAccess } from "@/lib/admin-access";
 
 export async function POST(
     req: NextRequest,
     { params }: { params: { saloonId: string } }
 ) {
     try {
-        const { user } = await checkAdminAccess();
+        const { user } = await checkWriteAccess();
 
         if (!user) {
             return new NextResponse("Unauthorized", { status: 401 });

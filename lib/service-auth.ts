@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import prismadb from "./prismadb";
 
 // Shared secret for server-to-server calls (set in env)
-const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "dev-admin-key-change-me";
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY;
 
 // Synthetic user identifiers (reuse existing schema field to avoid migrations)
 export const ADMIN_EXTERNAL_ID = process.env.ADMIN_EXTERNAL_ID || "service-admin";
@@ -32,7 +32,7 @@ export const getTokenFromRequest = (req?: NextRequest) => {
 
 export const isAuthorizedRequest = (req?: NextRequest) => {
   const token = getTokenFromRequest(req);
-  return !!token && token === ADMIN_API_KEY;
+  return !!token && !!ADMIN_API_KEY && token === ADMIN_API_KEY;
 };
 
 // Fallback address for the service row when ADMIN_EMAIL is unusable.

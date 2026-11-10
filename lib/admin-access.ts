@@ -162,6 +162,14 @@ export async function checkAdminAccess() {
  * Returns null when only the bearer key was presented, or when no verified
  * Clerk user could be resolved.
  */
+// For routes that change data: the app's public bearer key alone is never
+// enough, so the synthetic service user counts as not signed in.
+export async function checkWriteAccess() {
+  const { isAdmin, user } = await checkAdminAccess();
+  if (!user || user.clerkId === ADMIN_EXTERNAL_ID) return { isAdmin: false, user: null };
+  return { isAdmin, user };
+}
+
 export async function getEndUser() {
   const { user } = await checkAdminAccess();
   if (!user || user.clerkId === ADMIN_EXTERNAL_ID) return null;

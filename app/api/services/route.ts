@@ -1,7 +1,7 @@
 // app/api/services/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { checkAdminAccess } from "@/lib/admin-access";
+import { checkAdminAccess, checkWriteAccess } from "@/lib/admin-access";
 
 // GET method - Fetch services by category or saloon
 export async function GET(request: NextRequest) {
@@ -240,7 +240,7 @@ export async function POST(req: Request) {
         // read auth(), which resolved to a lib/fake-clerk stub returning the
         // synthetic service id for every request — so the ownership checks
         // below were being made against the shared service row.
-        const { isAdmin, user } = await checkAdminAccess();
+        const { isAdmin, user } = await checkWriteAccess();
         if (!user) {
             return new NextResponse("Unauthenticated", { status: 401 });
         }

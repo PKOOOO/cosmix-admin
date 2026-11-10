@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import prismadb from "@/lib/prismadb";
-import { checkAdminAccess } from "@/lib/admin-access";
+import { checkAdminAccess, checkWriteAccess } from "@/lib/admin-access";
 
 export async function POST(req: Request) {
     try {
-        const { user, isAdmin } = await checkAdminAccess();
+        const { user, isAdmin } = await checkWriteAccess();
         const body = await req.json();
         const { name, saloonId } = body;
 
